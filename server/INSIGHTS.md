@@ -16,6 +16,24 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-09-20 — Conventions scan: the model only proposes, code chooses what it reads and verifies what it claims
+`modules/conventions` samples config files + `repoIntel.getConventionSamples` (no LLM), makes ONE structured call, then drops any candidate whose cited path isn't in the sampled set or whose snippet isn't really in the file (wrong line is corrected, fabricated code is dropped); repo content goes through `wrapUntrusted`. The Zod field order (`rule, rationale, evidence_path, evidence_line, evidence_snippet, category, occurrences, confidence`) is load-bearing — with `category` first the model collapsed to a flat 0.90 over 1 of 8 categories. Re-scan replaces only `pending` rows; `rejected` rows stay for de-dup (`ruleKey`) but are never returned. `repo-conventions` is ONE workspace-wide skill (upsert by name), so saving from a second repo overwrites the first repo's version — known limitation of the plan's D9, not a bug to patch quietly.
+
+### 2026-09-20 — Skill injection scan: a tripwire on every body write, blocking = auto-disable + 422, not a security boundary
+`skills/injection.ts` is deterministic pattern matching (no LLM), run by `SkillsService` on create/update/URL-import/restore; block rule = ≥1 high or ≥2 medium matches. Flagged ⇒ `enabled` forced false, `PUT enabled:true` and `POST /agents/:id/skills` return 422 `SKILL_BLOCKED`. Already-linked skills that later get flagged are exempt from the link 422 (so reorder/unlink still saves) and `run-executor.resolveActiveSkills` skips them. Tuning trap: legit security skills discuss injection in the third person, so the detector exempts quoted phrases after a reporting cue and `<untrusted>` inside inline code — a test iterates `SEED_SKILLS` and every repo `.md` so a new seeded skill that trips it fails CI.
+
+### 2026-09-20 — Skill restore is append-only; URL import SSRF guard lives in the connect-time `lookup`
+`POST /skills/:id/versions/:v/restore` writes version N+1 with the old body and `restored_from = v` (never rewinds — `skill_versions` PK is `(skill_id, version)` and history is an audit trail); 409 when `v` is current. For `POST /skills/import-url`, resolving DNS first and then fetching is open to DNS rebinding, so the private/loopback/link-local/metadata check runs inside a guarded `lookup` at connect time — but Node's `https.request` skips `lookup` for IP-literal hosts, so those are pre-checked separately (`adapters/url-fetcher/ssrf.ts`). The `UrlFetcher` port is declared in `adapters/url-fetcher/types.ts` and mirrored as `SkillUrlFetcher` in the skills module because adapters may not import modules.
+
+### 2026-09-19 — Skill usage stats: `agent_run_skills` is the only record of which skills fired, and accept-rate is correlational
+A run's skills are decided at run time (linked in `agent_skills` AND `skills.enabled`), so history can't be reconstructed later from current links — `ReviewRepository.recordRunSkills` writes `agent_run_skills` right after `completeAgentRun('done')` (`reviews/run-executor.ts`), so failed/cancelled runs record nothing and pre-feature runs have no rows. `pull_rate` = those rows ÷ `done` runs of agents that *currently* link the skill (kept ≤100%). `accept_rate`/`findings_by_category` join `findings → reviews.run_id → agent_run_skills`: findings are never attributed to a specific skill (the model doesn't say which one triggered it), so treat these as "findings from runs where the skill was on", and a run with several categories counts its cost in each. Don't "fix" this into causal attribution without a schema for it.
+
+### 2026-09-19 — "Auto-invocation disabled" agent = `agents.enabled: false`, no new flag needed
+`ReviewService.resolveTargets({ all: true })` uses `listEnabled` (skips disabled agents) while `resolveTargets({ agentId })` calls `getById` with no `enabled` filter (`reviews/service.ts:46-57`). So the seeded `pr-self-review` (`enabled: false`) never runs on "Run all" but can still be run by picking it explicitly. Note the polling module never calls `resolveTargets` — "auto" runs are only the client's `all:true` action.
+
+### 2026-09-19 — Onion layering is now machine-checked; the baseline (42 entries) may only shrink
+`server/.dependency-cruiser.cjs` + `pnpm arch:check` (CI job `arch` in `server-unit.yml`) enforce inward-only imports over the flat per-module files; rules/rationale in `.claude/skills/onion-architecture/`. Pre-existing debt is frozen in `.dependency-cruiser-known-violations.json` (routes running Drizzle in `pulls|polling|settings|workspace`, ORM row types in `repos/helpers.ts` + `reviews/*`, whole-`Container` in every service, `repo-intel` importing concrete adapters). Never add to the baseline to make CI green — fix the import or move the code; run `pnpm arch:baseline` only after fixes and check the diff is removals-only.
+
 ### 2026-09-18 — PR-list SCORE/STATUS/FINDINGS now dedupe to each agent's LATEST review, not every review ever
 `server/src/modules/pulls/routes.ts`'s aggregation previously counted EVERY
 completed `reviews` row for a PR when computing lowest score, worst verdict,
@@ -115,6 +133,18 @@ contracts between client and server with no compiler error until runtime.
 
 ## Tool & Library Notes
 
+### 2026-09-20 — A "green" `.it` run can be 100% skipped: `dockerAvailable()` uses a 5 s `docker info` timeout
+`test/helpers/pg.ts` skips every integration file when `docker info` doesn't answer within 5 s, and Docker Desktop on Windows does exactly that while it's busy (e.g. right after other testcontainers runs). The summary then reads `N skipped` with 0 failures. Always check the `skipped` count in the vitest summary; if it's non-zero for `*.it.test.ts`, rerun once Docker is responsive (`docker info` by hand) before trusting the result.
+
+### 2026-09-20 — drizzle-kit: an un-exported schema file becomes `DROP TABLE`; dropping a column makes `db:generate` interactive
+A new `db/schema/<x>.ts` must be re-exported from the `db/schema.ts` barrel *before* `pnpm db:generate`, otherwise the generated migration drops the table it can't see. Renaming/dropping a column makes drizzle-kit prompt interactively (pipe `\r` to accept the default), and it will NOT carry data — hand-add the `UPDATE` before the `DROP COLUMN` (see `0014_conventions_triage.sql`, `accepted` → `status`). Also: jsonb doesn't preserve object key order, so compare persisted `injection_matches` via a canonical form, not `toEqual` on a string.
+
+### 2026-09-20 — Seeds: edits to a seeded skill body never reach an existing DB; skill bodies are joined without their names
+`seed-skills.ts` inserts a skill only if its name is missing, so changing e.g. `test-coverage-nudge` needs a manual update (or a new version) on databases that already seeded it. `run-executor` joins skill bodies without their names, so every body must start with its own `# Title`. Seed skills for the API Contract Reviewer are read from `docs/agent-skills/api-contract-reviewer/*.md` at module load — the seed throws if `docs/` isn't on disk (check any Docker image that runs the seed), and CI path filters don't cover that folder.
+
+### 2026-09-19 — dependency-cruiser 17.4: four quirks that break the docs' recipe
+(1) No `--baseline` flag (the `main` docs describe a newer CLI) — generate with `depcruise src --config … --output-type baseline > .dependency-cruiser-known-violations.json`; no `shrink-only` mode, so review the diff by hand. (2) `tsPreCompilationDeps: true` is mandatory, otherwise `import type` / `typeof t.x.$inferSelect` leaks are invisible (TS elides them). (3) `dependencyTypesNot: ['type-only']` on a `circular` rule only exempts cycles whose *first* edge is type-only — `Container ↔ RepoIntelService` still reports. (4) Drizzle edges resolve to `node_modules/.pnpm/drizzle-orm@<ver>…`, so baseline entries for them go stale on upgrade (regenerate, confirm count unchanged). Because `package.json` may be skip-worktree (below), CI runs `pnpm exec depcruise …` inline rather than `pnpm arch:check`.
+
 ### 2026-09-16 — `reviewer-core` needs its own `npm ci`, separate from server's `pnpm install`
 `server/tsconfig.json` path-aliases straight into `reviewer-core/src` (raw
 source, not a built package), so `pnpm typecheck`/`pnpm test` in `server/`
@@ -135,6 +165,15 @@ directly instead. If you add or rename a script, check
 whoever has the skip-worktree bit set.
 
 ## Recurring Errors & Fixes
+
+### 2026-09-20 — Fixed: `reviews.it` "run all" now mocks every provider; `run-skills.it` polls for post-`done` writes
+Corrects the 2026-09-19 `reviews.it` entry below: `appWith` (`test/reviews.it.test.ts`) now registers mocks for `openai`, `anthropic` AND `openrouter`, so `all: true` no longer reaches a real adapter (an earlier test in the same shared DB creates an enabled `anthropic` agent, which was a second unmocked provider — mocking only openrouter left the total at 0.009 vs 0.010). Separately, `run-executor` writes `agent_run_skills` and the trace AFTER flipping the run to `done`, so `waitForPrRuns` returning does not mean those rows exist: `run-skills.it` failed ~2 runs in 3 under a loaded machine until it wrapped both reads in `vi.waitFor`. Any new test reading run side-effects (skills, trace) right after `waitForPrRuns` needs the same poll.
+
+### 2026-09-20 — `indexer-pipeline.test.ts` fails 6 tests on Windows (ENOENT in `writeFileAt`) — pre-existing, not a regression
+`writeFileAt` (`test/indexer-pipeline.test.ts:142`) finds the parent dir with `lastIndexOf('/')` on a `path.join` result, which uses `\` on Windows, so `mkdir` is skipped and `writeFile` throws ENOENT. The 6 failures show up in every full unit run on Windows and are unrelated to whatever you're changing — confirm the failing file is untouched (`git status`) before chasing them. Real fix (not done): use `path.dirname`.
+
+### 2026-09-19 — `reviews.it` "run all enabled agents" runs against the REAL provider; it's machine-dependent, not skills-related
+The seeded agents all use `DEFAULT_PROVIDER` (openrouter) but the test only mocks `openai` (`test/reviews.it.test.ts:113-125`), so `all: true` runs hit the real openrouter adapter. With no key the runs fail and the PR's `cost_usd` is `null` (`expected null to be close to 0.004`); with `~/.devdigest/secrets.json` present it makes real, billed calls and can blow the 10s `waitForPrRuns`. Every new *enabled* seeded agent adds one more (the "seed has 2 enabled agents" comment is stale). To run it safely, hide the keys: `HOME=/tmp/nohome USERPROFILE=<empty dir> pnpm exec vitest run test/reviews.it.test.ts`. Real fix (not done): register mocks for the seed agents' provider in `appWith`. Diagnosed by reading the code, not by running against a clean checkout.
 
 ### 2026-09-18 — Deleting a review left an orphaned Timeline tile: two tables, one unenforced link, one-way cleanup
 `reviews` and `agent_runs` represent the SAME run from two angles (Review-runs
@@ -176,6 +215,9 @@ CLI script run actually did anything on Windows.
 ## Session Notes
 
 ## Open Questions
+
+### 2026-09-19 — `test/indexer-pipeline.test.ts` fails 6 tests on Windows (unrelated to skills)
+Its helper splits paths with `full.lastIndexOf('/')` (`indexer-pipeline.test.ts:~142`) so `mkdir` never creates the nested dir on a backslash path and `writeFile` throws ENOENT under `%TEMP%\repo-intel-*`. Present before the Skills work (untouched by it); the unit suite therefore shows 115/121 on Windows. Not fixed here — use `path.dirname` when someone owns that test.
 
 ---
 

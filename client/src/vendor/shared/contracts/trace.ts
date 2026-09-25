@@ -41,15 +41,28 @@ export const PromptAssembly = z.object({
   skills: z.string().nullish(),
   memory: z.string().nullish(),
   specs: z.string().nullish(),
-  /** Callers-of-changed-symbols digest (repo-intel); null when absent. */
+  /** Callers-of-changed-symbols digest (T1.3); null when absent. */
   callers: z.string().nullish(),
-  /** Repo skeleton / map (repo-intel); null when absent. */
+  /** Repo skeleton / map (T3); null when absent. Enables per-slot token
+      attribution in the run trace. */
   repo_map: z.string().nullish(),
   /** PR author's description/body (truncated); null when absent. */
   pr_description: z.string().nullish(),
   user: z.string(),
 });
 export type PromptAssembly = z.infer<typeof PromptAssembly>;
+
+/**
+ * Derived facts about the assembled prompt, computed server-side at run time.
+ * `skills_tokens` = token count of the Skills block text ONLY (not the whole
+ * prompt); null when the run had no skills block. The whole object is optional
+ * so traces persisted before this field existed still parse (the client falls
+ * back to ceil(length/4) of `prompt_assembly.skills`).
+ */
+export const PromptAssemblyMeta = z.object({
+  skills_tokens: z.number().int().nonnegative().nullable(),
+});
+export type PromptAssemblyMeta = z.infer<typeof PromptAssemblyMeta>;
 
 export const MemoryPulled = z.object({
   pr: z.number().int().nullish(),
@@ -79,6 +92,7 @@ export const RunTrace = z.object({
   }),
   stats: RunStats,
   prompt_assembly: PromptAssembly,
+  prompt_assembly_meta: PromptAssemblyMeta.optional(),
   tool_calls: z.array(ToolCall),
   raw_output: z.string(),
   memory_pulled: z.array(MemoryPulled),

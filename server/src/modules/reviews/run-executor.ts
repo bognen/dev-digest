@@ -184,6 +184,11 @@ export class ReviewRunExecutor {
 
       const task = taskLine(pull) + rankNote;
 
+      // Linked skills — only those that are ALSO globally enabled fire. Bodies
+      // are passed in `order`; the section is omitted when none are active.
+      const activeSkills = await this.resolveActiveSkills(agent, runLog);
+      const skillBodies = activeSkills.map((s) => s.body);
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -201,6 +206,9 @@ export class ReviewRunExecutor {
         ...(callersDigest ? { callers: callersDigest } : {}),
         // T3 — repo skeleton, same omit-when-empty contract.
         ...(repoMap ? { repoMap } : {}),
+        // Linked + enabled skill bodies (`## Skills / rules`), same omit-when-empty
+        // contract; surfaces in the trace's prompt_assembly.skills.
+        ...(skillBodies.length ? { skills: skillBodies } : {}),
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
@@ -259,6 +267,12 @@ export class ReviewRunExecutor {
         costUsd,
         error: null,
       });
+      // The only durable record of which skills fired on this run (feeds the
+      // Skills Stats tab). Runs after the row is finalized, for completed runs only.
+      await this.repo.recordRunSkills(
+        runId,
+        activeSkills.map((s) => s.id),
+      );
 
       const trace: RunTrace = {
         config: {
@@ -278,6 +292,11 @@ export class ReviewRunExecutor {
           cost_usd: costUsd,
         },
         prompt_assembly: outcome.assembly,
+        // Token count of the Skills block ONLY (not the whole prompt); null when
+        // the run had no skills block (disabled / unlinked / flagged skills).
+        prompt_assembly_meta: {
+          skills_tokens: outcome.assembly.skills ? this.container.tokenizer.count(outcome.assembly.skills) : null,
+        },
         tool_calls: outcome.chunks.map((c) => ({
           tool: 'review_file',
           args: c.label,
@@ -367,6 +386,32 @@ export class ReviewRunExecutor {
   }
 
   /**
+   * Skills this run will actually use: the agent's linked skills (already in
+   * `order` ascending) filtered to those globally `enabled` and not injection-flagged. Logs the attached
+   * names in order, and any linked-but-disabled ones that were skipped. Logs
+   * nothing when the agent has no linked skills.
+   */
+  private async resolveActiveSkills(
+    agent: AgentRow,
+    runLog: RunLogger,
+  ): Promise<{ id: string; name: string; body: string }[]> {
+    const linked = await this.agents.linkedSkills(agent.id);
+    // Defence in depth: a skill flagged by the injection scan never reaches the prompt,
+    // even if something re-enabled it or it was flagged after being linked.
+    const flagged = linked.filter((l) => l.skill.injectionDetected).length;
+    const active = linked
+      .filter((l) => l.skill.enabled && !l.skill.injectionDetected)
+      .map((l) => l.skill);
+    const skipped = linked.length - active.length - flagged;
+    if (active.length > 0) {
+      runLog.info(`skills: ${active.length} skill(s) attached — ${active.map((s) => s.name).join(', ')}`);
+    }
+    if (skipped > 0) runLog.info(`skills: ${skipped} linked skill(s) skipped (disabled)`);
+    if (flagged > 0) runLog.info(`skills: ${flagged} linked skill(s) skipped (injection detected)`);
+    return active;
+  }
+
+  /**
    * T3 — fetch the cached repo skeleton for the prompt's `## Repo skeleton`
    * slot. Returns `undefined` when repo-intel is off / the repo isn't indexed
    * (the facade degrades), so the prompt stays identical to the pre-T3 shape.
@@ -433,6 +478,7 @@ export class ReviewRunExecutor {
       },
       stats: { duration_ms: durationMs, tokens_in: 0, tokens_out: 0, findings: 0, grounding, cost_usd: null },
       prompt_assembly: { system: agent.systemPrompt, skills: null, memory: null, specs: null, user: '' },
+      prompt_assembly_meta: { skills_tokens: null },
       tool_calls: [],
       raw_output: '',
       memory_pulled: [],

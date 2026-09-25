@@ -6,20 +6,18 @@
     "addSkill": "Add Skill",
     "searchPlaceholder": "Search skills…",
     "loadError": "Could not load skills.",
-    "menu": {
-      "fromFile": "Import from file",
-      "fromUrl": "Import from URL",
-      "community": "Search community skills…"
-    },
     "empty": {
       "title": "No skills yet",
-      "body": "Import a skill from a file, a URL, or the community catalog.",
-      "cta": "Import from file"
+      "body": "Create a skill, import one from a file, or fetch one from a URL.",
+      "cta": "Add Skill"
     },
     "selectPrompt": {
       "title": "Select a skill",
       "body": "Pick a skill on the left to preview its body."
-    }
+    },
+    "subtitle": "Reusable prompt blocks agents pull into a review. Toggle a skill off to exclude it everywhere.",
+    "noResults": "No skills match your search.",
+    "selectAria": "Skill list"
   },
   "detail": {
     "crumbSkill": "Skill",
@@ -28,36 +26,10 @@
     "notFound": {
       "title": "Skill not found",
       "body": "It may have been deleted."
-    }
-  },
-  "drawer": {
-    "title": "Add a skill",
-    "subtitle": "Import from a file, a URL, or search vetted community skills",
-    "tabs": {
-      "file": "From file",
-      "url": "From URL",
-      "community": "Community"
     },
-    "importFailed": "Import failed"
-  },
-  "file": {
-    "nameLabel": "Skill name",
-    "nameHint": "Optional — derived from the first heading if blank.",
-    "namePlaceholder": "pr-quality-rubric",
-    "bodyLabel": "Skill body (Markdown)",
-    "bodyHint": "Pasted content is wrapped as untrusted data — never executed as instructions.",
-    "bodyPlaceholder": "# Rule\nDescribe the rule…",
-    "importing": "Importing…",
-    "import": "Import skill",
-    "success": "Imported \"{name}\" (stored as untrusted data)."
-  },
-  "url": {
-    "label": "Skill URL",
-    "hint": "Fetched server-side, stored as untrusted, and left disabled until vetted.",
-    "placeholder": "https://example.com/skills/security.md",
-    "fetching": "Fetching…",
-    "import": "Import from URL",
-    "success": "Imported \"{name}\". Disabled until you vet + enable it."
+    "loadErrorTitle": "Couldn’t load this skill",
+    "skillFallback": "Skill",
+    "disabledBadge": "disabled"
   },
   "community": {
     "searchPlaceholder": "Search community skills (e.g. security)…",
@@ -82,9 +54,9 @@
     },
     "source": {
       "manual": "Manual",
-      "extracted": "Extracted",
+      "extracted": "Imported",
       "community": "Community",
-      "imported_url": "Imported"
+      "imported_url": "Imported (URL)"
     }
   },
   "preview": {
@@ -96,6 +68,119 @@
     "untrustedNotice": "This skill came from an untrusted source. Its body is stored as data (delimiter-wrapped) and must be vetted before it is enabled for an agent.",
     "bodyLabel": "Skill body (Markdown)",
     "bodyHint": "Saving a changed body creates a new immutable version.",
-    "version": "v{version}"
+    "version": "v{version}",
+    "title": "Preview",
+    "subtitle": "Rendered as the reviewing agent receives it.",
+    "empty": "This skill has no body yet."
+  },
+  "list": {
+    "noDescription": "No description",
+    "toggleAria": "Enable skill {name}",
+    "metrics": {
+      "usedBy": "{count, plural, one {# agent} other {# agents}}",
+      "pull": "{value} pull",
+      "accept": "{value} accept",
+      "none": "—"
+    },
+    "sourceVersion": "{source} · v{version}"
+  },
+  "tabs": {
+    "config": "Config",
+    "preview": "Preview",
+    "stats": "Stats",
+    "versions": "Versions"
+  },
+  "config": {
+    "title": "Configuration",
+    "name": "Name",
+    "description": "Description",
+    "descriptionHint": "Phrase as a directive — this is how agents see the skill.",
+    "type": "Type",
+    "body": "Body (Markdown)",
+    "enabled": "Enabled",
+    "save": "Save skill",
+    "saving": "Saving…",
+    "saved": "Saved (v{version})",
+    "savedToast": "Skill saved — now at v{version}",
+    "delete": "Delete skill"
+  },
+  "stats": {
+    "loadError": "Could not load stats for this skill.",
+    "usedBy": "USED BY",
+    "usedByUnit": "{count, plural, one {agent} other {agents}}",
+    "pullFrequency": "PULL FREQUENCY",
+    "acceptRate": "ACCEPT RATE",
+    "findings30d": "FINDINGS (30D)",
+    "agentsUsing": "AGENTS USING THIS SKILL",
+    "open": "Open",
+    "openAria": "Open agent {name}",
+    "noAgents": "No agents use this skill yet. Link it from an agent’s Skills tab.",
+    "findingsByCategory": "FINDINGS BY CATEGORY",
+    "noFindings": "No findings yet — numbers appear after a review run that used this skill.",
+    "noValue": "—"
+  },
+  "versions": {
+    "title": "Version history",
+    "subtitle": "Saving a changed body creates a new immutable version; restoring an old one adds a new version with its body. Newest first.",
+    "loadError": "Could not load versions for this skill.",
+    "empty": "No versions recorded.",
+    "current": "current",
+    "toggleAria": "Show or hide version {version}",
+    "view": {
+      "label": "Version view",
+      "current": "Diff vs current",
+      "previous": "Diff vs previous",
+      "rendered": "Rendered"
+    },
+    "diff": {
+      "against": "Changes from v{version}",
+      "noChanges": "No changes from v{version}.",
+      "unchanged": "{count, plural, one {# unchanged line} other {# unchanged lines}}",
+      "tooLarge": "This change is too large to diff — switch to Rendered to read the body.",
+      "add": "added",
+      "del": "removed",
+      "same": "unchanged",
+      "againstCurrent": "Changes from v{version} to current (v{current})",
+      "sameAsCurrent": "v{version} is identical to the current version (v{current})."
+    },
+    "restoredFrom": "Restored from v{version}",
+    "restore": {
+      "button": "Restore",
+      "aria": "Restore version {version}",
+      "title": "Restore v{version}?",
+      "message": "This creates v{next} with v{version}’s body. The current body is kept in history.",
+      "confirm": "Restore",
+      "cancel": "Cancel",
+      "toast": "Restored v{from} — now at v{version}"
+    }
+  },
+  "injection": {
+    "badge": "Injection detected",
+    "badgeTitle": "Prompt injection patterns were found. This skill is automatically blocked.",
+    "toggleBlocked": "Blocked — injection detected. This skill cannot be enabled.",
+    "stillBlocked": "Saved, but the body still contains prompt injection patterns — the skill stays blocked.",
+    "banner": {
+      "title": "INJECTION DETECTED — DO NOT ENABLE",
+      "body": "This skill contains prompt injection patterns. It has been automatically blocked."
+    },
+    "matches": {
+      "title": "Why it was flagged",
+      "hint": "Edit the body to remove these patterns; a clean body lifts the block (the skill is not enabled automatically).",
+      "line": "line {line}",
+      "severity": {
+        "high": "high",
+        "medium": "medium"
+      }
+    }
+  },
+  "delete": {
+    "aria": "Delete skill {name}",
+    "title": "Delete \"{name}\"?",
+    "message": "\"{name}\" will be unlinked from {count, plural, one {# agent} other {# agents}}. This can’t be undone.",
+    "messageUnused": "\"{name}\" is not linked to any agent. This can’t be undone.",
+    "messageGeneric": "\"{name}\" will be unlinked from every agent. This can’t be undone.",
+    "confirm": "Delete",
+    "cancel": "Cancel",
+    "toast": "Skill deleted"
   }
 }
