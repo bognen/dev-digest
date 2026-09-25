@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Finding, Verdict } from './findings.js';
-import { Intent, SmartDiff } from './brief.js';
+import { Intent, IntentConfidence, IntentSource, SmartDiff } from './brief.js';
+import { Provider } from './knowledge.js';
 
 /**
  * A2 — Review-Core API surface contracts. These extend the core
@@ -56,9 +57,45 @@ export const ReviewRunResponse = z.object({
 });
 export type ReviewRunResponse = z.infer<typeof ReviewRunResponse>;
 
-/** Intent persisted for a PR (the Intent plus the pr_id it scopes). */
-export const PrIntentRecord = Intent.extend({ pr_id: z.string() });
+/**
+ * Intent persisted for a PR: the Intent plus the pr_id it scopes, the
+ * code-derived confidence + sources, extracted ticket refs, the linked issue
+ * number (if any), the provider/model/head_sha it was generated against, when
+ * it was generated, and whether the stored row is stale vs the PR's current
+ * title/body/branch/head_sha (computed by the caller, not persisted).
+ */
+export const PrIntentRecord = Intent.extend({
+  pr_id: z.string(),
+  confidence: IntentConfidence,
+  sources: z.array(IntentSource),
+  ticket_refs: z.array(z.string()),
+  linked_issue: z.number().int().nullable(),
+  provider: Provider.nullable(),
+  model: z.string().nullable(),
+  head_sha: z.string().nullable(),
+  generated_at: z.string(),
+  stale: z.boolean(),
+});
 export type PrIntentRecord = z.infer<typeof PrIntentRecord>;
+
+/** Why `GET /pulls/:id/intent` returned no intent. */
+export const IntentUnavailableReason = z.enum([
+  'not_generated',
+  'provider_not_configured',
+  'generation_failed',
+]);
+export type IntentUnavailableReason = z.infer<typeof IntentUnavailableReason>;
+
+/** Response of both `GET` and `POST /pulls/:id/intent`. */
+export const PrIntentResponse = z.object({
+  intent: PrIntentRecord.nullable(),
+  unavailable_reason: IntentUnavailableReason.nullable(),
+});
+export type PrIntentResponse = z.infer<typeof PrIntentResponse>;
+
+/** Body for `POST /pulls/:id/intent`; `force: true` bypasses the cache. */
+export const GenerateIntentRequest = z.object({ force: z.boolean().optional() });
+export type GenerateIntentRequest = z.infer<typeof GenerateIntentRequest>;
 
 /** Smart-diff response for a PR (the SmartDiff). */
 export const SmartDiffResponse = SmartDiff;

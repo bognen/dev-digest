@@ -48,6 +48,10 @@ export const PromptAssembly = z.object({
   repo_map: z.string().nullish(),
   /** PR author's description/body (truncated); null when absent. */
   pr_description: z.string().nullish(),
+  /** Derived-intent section (T-Intent), exactly as rendered into the review
+      prompt; null when no intent was available for this run. Optional/nullish
+      so traces persisted before this field existed still parse. */
+  intent: z.string().nullish(),
   user: z.string(),
 });
 export type PromptAssembly = z.infer<typeof PromptAssembly>;

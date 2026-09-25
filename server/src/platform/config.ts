@@ -36,6 +36,11 @@ const EnvSchema = z.object({
     (v) => (v === '' ? undefined : v),
     z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
   ),
+  // Per-section prompt-assembly log breakdown (name/source/length/tokens per
+  // section — never content). Off by default even locally; ALSO hard-blocked
+  // outside development in loadConfig() below regardless of this value, so a
+  // stray `true` committed to a deployed .env can't turn it on in prod.
+  PROMPT_LOG_VERBOSE: z.string().optional(),
 });
 
 export type AppConfig = {
@@ -59,6 +64,14 @@ export type AppConfig = {
    * EXACTLY like the ripgrep-only baseline.
    */
   repoIntelEnabled: boolean;
+  /**
+   * Verbose prompt-assembly logging: emits the full per-section breakdown
+   * (name/source/length_chars/length_tokens — never content) instead of just
+   * the compact totals line. LOCAL-DEV ONLY BY CONSTRUCTION: true only when
+   * PROMPT_LOG_VERBOSE=true AND nodeEnv !== 'production', so this can never be
+   * silently turned on in a deployed environment.
+   */
+  promptLogVerbose: boolean;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -77,5 +90,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     webOrigin: `http://localhost:${parsed.WEB_PORT}`,
     embeddingsEnabled: parsed.EMBEDDINGS_ENABLED === 'true',
     repoIntelEnabled: parsed.REPO_INTEL_ENABLED !== 'false',
+    // `&& parsed.NODE_ENV !== 'production'` is the enforcement point, not just
+    // documentation — this makes "verbose mode is local-only" a code guarantee.
+    promptLogVerbose: parsed.PROMPT_LOG_VERBOSE === 'true' && parsed.NODE_ENV !== 'production',
   };
 }

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, integer, jsonb, timestamp, doublePrecision, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, jsonb, timestamp, doublePrecision, index, check } from 'drizzle-orm/pg-core';
 import { now } from './_shared';
 import { workspaces } from './core';
 import { pullRequests } from './pulls';
@@ -60,14 +60,37 @@ export const findings = pgTable(
   }),
 );
 
-export const prIntent = pgTable('pr_intent', {
-  prId: uuid('pr_id')
-    .primaryKey()
-    .references(() => pullRequests.id, { onDelete: 'cascade' }),
-  intent: text('intent').notNull(),
-  inScope: jsonb('in_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-  outOfScope: jsonb('out_of_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
-});
+export const prIntent = pgTable(
+  'pr_intent',
+  {
+    prId: uuid('pr_id')
+      .primaryKey()
+      .references(() => pullRequests.id, { onDelete: 'cascade' }),
+    intent: text('intent').notNull(),
+    inScope: jsonb('in_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    outOfScope: jsonb('out_of_scope').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    /** Set deterministically in code from which inputs were available — never
+     *  model-reported. See `deriveConfidence` in reviews/pipeline/intent-signals.ts. */
+    confidence: text('confidence').notNull().default('low'),
+    /** Which signal kinds were actually sent to the intent model (drives the UI's "why" line). */
+    sources: jsonb('sources').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    /** External ticket/spec refs extracted as TEXT ONLY (never fetched). Not a reserved word
+     *  substitute for "references", which IS a reserved word in Postgres. */
+    ticketRefs: jsonb('ticket_refs').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    linkedIssue: integer('linked_issue'),
+    /** NULL for legacy rows generated before this column existed. */
+    provider: text('provider'),
+    model: text('model'),
+    /** Cache key input; NULL means "always stale" (forces regeneration). */
+    inputHash: text('input_hash'),
+    /** The PR's head_sha at generation time — staleness is `stale = headSha !== pull.headSha`. */
+    headSha: text('head_sha'),
+    generatedAt: timestamp('generated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    confidenceCheck: check('pr_intent_confidence_check', sql`${t.confidence} IN ('high', 'low')`),
+  }),
+);
 
 export const prBrief = pgTable('pr_brief', {
   prId: uuid('pr_id')

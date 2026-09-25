@@ -1,13 +1,15 @@
 import type { Container } from '../../platform/container.js';
 import type { Provider, Review, RunTrace, UnifiedDiff } from '@devdigest/shared';
-import { reviewPullRequest, countBlockers } from '@devdigest/reviewer-core';
+import { reviewPullRequest, countBlockers, type PromptIntent } from '@devdigest/reviewer-core';
 import { RunLogger } from '../../platform/run-logger.js';
 import * as schema from '../../db/schema.js';
 import type { AgentRow } from '../../db/rows.js';
 import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './repository.js';
 import { REVIEW_STRATEGY } from './constants.js';
-import { taskLine } from './helpers.js';
+import { taskLine, summarizePromptAssembly } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
+import { hunkContexts, toPromptIntent } from './pipeline/intent-signals.js';
+import type { IntentDeriver } from './types.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -36,15 +38,19 @@ export type RunOutcome = {
 
 /**
  * Owns the background execution of queued agent runs (extracted from
- * ReviewService; behaviour unchanged). Loads the diff + intent once, then
- * map-reduces each agent, streaming events over the runBus and persisting each
- * review. Per-agent failures are isolated.
+ * ReviewService; behaviour unchanged). Loads the diff + intent ONCE (shared
+ * pre-work), then map-reduces each agent, streaming events over the runBus and
+ * persisting each review. Per-agent failures are isolated. Intent derivation is
+ * FAIL-OPEN and optional (`intent` may be omitted, e.g. in tests): a missing
+ * provider key, timeout, or schema failure never fails the run — it only means
+ * the review proceeds without the intent grounding section.
  */
 export class ReviewRunExecutor {
   constructor(
     private container: Container,
     private repo: ReviewRepository,
     private agents: Container['agentsRepo'],
+    private intent?: IntentDeriver,
   ) {}
 
   /**
@@ -105,6 +111,43 @@ export class ReviewRunExecutor {
     }
     runLog.info(`Diff ready — ${diff.files.length} changed file(s); starting ${jobs.length} agent run(s)`);
 
+    // Shared pre-work, step 2: derive the PR's intent ONCE (not once per agent).
+    // Fail-open by construction (`intent.ensure()` never throws) — never `failAll`.
+    let promptIntent: PromptIntent | undefined;
+    if (this.intent) {
+      try {
+        const res = await runLog.step(
+          'Deriving PR intent',
+          () =>
+            this.intent!.ensure(
+              {
+                workspaceId,
+                pull,
+                repo: { owner: repo.owner, name: repo.name },
+                files: diff.files.map((f) => ({ path: f.path, additions: f.additions, deletions: f.deletions })),
+                hunkHeaders: hunkContexts(diff.raw),
+              },
+              { trigger: 'run', log: logger },
+            ),
+          { kind: 'tool' },
+        );
+        if (res.status === 'ok') {
+          promptIntent = toPromptIntent(res.intent);
+          runLog.result(
+            res.cached
+              ? `Intent: cached (${res.intent.confidence} confidence)`
+              : `Intent: derived via ${res.intent.provider}/${res.intent.model} — ${res.intent.confidence.toUpperCase()} confidence`,
+          );
+        } else {
+          runLog.info(`Intent unavailable (${res.reason}) — continuing review without intent grounding`);
+        }
+      } catch {
+        // Defence in depth only: `ensure()` is documented to never throw. If it
+        // somehow does, degrade instead of failing every queued run over it.
+        runLog.info('Intent unavailable (unexpected error) — continuing review without intent grounding');
+      }
+    }
+
     for (const { agent, runId } of jobs) {
       const agentStart = Date.now();
       logger?.info(
@@ -112,7 +155,7 @@ export class ReviewRunExecutor {
         `review: agent "${agent.name}" started (${agent.provider}/${agent.model})`,
       );
       try {
-        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, agent, runId, runLog);
+        const outcome = await this.runOneAgent(workspaceId, pull, repo, diff, agent, runId, runLog, promptIntent);
         logger?.info(
           {
             runId,
@@ -144,6 +187,7 @@ export class ReviewRunExecutor {
     agent: AgentRow,
     runId: string,
     parentLog: RunLogger,
+    promptIntent?: PromptIntent,
   ): Promise<RunOutcome> {
     const start = Date.now();
     // Narrow the fanned-out pre-work logger to THIS run; the shared diff/intent
@@ -212,6 +256,9 @@ export class ReviewRunExecutor {
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
+        // Derived intent (T-Intent) — omitted when unavailable (fail-open) or
+        // when this executor has no IntentDeriver (e.g. existing 3-arg tests).
+        ...(promptIntent ? { intent: promptIntent } : {}),
         task,
         sessionId: `${repo.owner}/${repo.name}#${pull.number}:${agent.name}`,
         onEvent: (e) => runLog.event(e.kind, e.msg, e.data),
@@ -220,6 +267,42 @@ export class ReviewRunExecutor {
         },
       });
       const { tokensIn, tokensOut, grounding, costUsd } = outcome;
+
+      // ---- Secure, structured prompt-assembly logging ------------------------
+      // Metadata only — section name, source, length (chars + tokens), the
+      // selected model, and a correlation id (the runId already threaded through
+      // every other log line for this run). NEVER section content: this can't
+      // leak a secret, a full diff, or private spec text, because none of those
+      // ever pass through `summarizePromptAssembly` as anything but a number.
+      const promptSections = summarizePromptAssembly(outcome.assembly);
+      const promptTotalChars = promptSections.reduce((n, s) => n + s.length_chars, 0);
+      const promptTotalTokens = promptSections.reduce((n, s) => n + s.length_tokens, 0);
+      const selectedModel = `${agent.provider}/${agent.model}`;
+      runLog.info(
+        `Prompt assembled: ${promptSections.length} section(s), ${promptTotalChars.toLocaleString()} chars (~${promptTotalTokens.toLocaleString()} tokens)`,
+        {
+          event: 'prompt_assembly',
+          correlationId: runId,
+          prId: pull.id,
+          model: selectedModel,
+          sectionCount: promptSections.length,
+          totalChars: promptTotalChars,
+          totalTokens: promptTotalTokens,
+        },
+      );
+      // Full per-section breakdown — LOCAL DEV ONLY. `promptLogVerbose` is
+      // hard-forced false outside development in platform/config.ts, so this
+      // can't be silently enabled in a deployed environment. Goes to stdout
+      // only (debugOnly), never the Live Log/SSE or the persisted run trace.
+      if (this.container.config?.promptLogVerbose) {
+        runLog.debugOnly('Prompt assembly (verbose)', {
+          event: 'prompt_assembly_detail',
+          correlationId: runId,
+          prId: pull.id,
+          model: selectedModel,
+          sections: promptSections,
+        });
+      }
 
       const keptFindings = outcome.review.findings;
 

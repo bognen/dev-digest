@@ -16,6 +16,9 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-09-24 — Derived intent is framing, not a scope limit — it must never change grounding or scoring
+`PromptParts.intent`/`ReviewInput.intent` add a `## Derived intent …` section (`prompt.ts`'s `buildIntentSection`) rendered right after `## PR description`, with a trusted framing line OUTSIDE the `<untrusted>` wrapper that explicitly tells the model out-of-scope items are descriptive only and real defects must still be reported at full severity everywhere in the diff. Confidence only changes the section's HEADER WORDING ("LOWER CONFIDENCE…" vs not) — it is never a number the model sees. Intent is intentionally NOT threaded into `groundFindings`, `scoreFromFindings`, `reduceReviews`, or `countBlockers`: when `parts.intent` is absent OR present-but-empty (`statement` blank and both bullet lists empty), `buildIntentSection` returns `null` and the assembled prompt is byte-identical to before this feature existed — verified by keeping `intent` fully optional through `PromptParts` → `ReviewInput` → `assemblePrompt`'s `promptParts` object rather than defaulting it to an empty object anywhere in the chain.
+
 ### 2026-09-16 — `build` is a type-check, not a real build
 This package intentionally never emits JS — `npm run typecheck` (`tsc --noEmit`)
 doubles as the build. The server consumes reviewer-core's TypeScript **source**

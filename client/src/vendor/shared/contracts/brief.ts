@@ -13,6 +13,27 @@ export const Intent = z.object({
 });
 export type Intent = z.infer<typeof Intent>;
 
+/**
+ * Confidence in a derived Intent — set DETERMINISTICALLY IN CODE from which
+ * inputs were actually available (see `deriveConfidence` in the reviews
+ * module's `pipeline/intent-signals.ts`). The model is never asked for this
+ * value and the structured-output schema has no such field.
+ */
+export const IntentConfidence = z.enum(['high', 'low']);
+export type IntentConfidence = z.infer<typeof IntentConfidence>;
+
+/** Which signal kinds were actually non-empty and sent to the intent model. */
+export const IntentSource = z.enum([
+  'title',
+  'description',
+  'linked_issue',
+  'branch',
+  'commits',
+  'diff_paths',
+  'hunk_context',
+]);
+export type IntentSource = z.infer<typeof IntentSource>;
+
 // ---- Blast radius ----
 export const ChangedSymbol = z.object({
   name: z.string(),

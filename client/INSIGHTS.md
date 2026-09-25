@@ -16,6 +16,9 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-09-24 — `usePrIntent` composes GET → POST inside `queryFn` itself, not a `useEffect`
+The Intent card needs to work before any review has ever run, so `lib/hooks/intent.ts`'s `queryFn` does a plain `GET /pulls/:id/intent` and, only when the response's `unavailable_reason === "not_generated"`, follows up with one `POST` (which derives it) — all inside the same async `queryFn`, so TanStack Query sees ONE query lifecycle (one loading state, one cache entry) instead of the derived-state-via-effect anti-pattern of triggering a second query/mutation from an effect keyed on the first result. `retry: false` is intentional too: a missing provider key or LLM failure is a 200 with `unavailable_reason` set, never a thrown/rejected request, so there is nothing here that a retry would fix.
+
 ### 2026-09-20 — Agent tile stats: accept % is legitimately grey until findings have been accepted/dismissed
 `AgentCard` colours the accept segment (`<30` crit, `<60` warn, else ok — `AgentCard/helpers.ts`), but `accept_rate` is `null` until an agent's findings have `accepted_at`/`dismissed_at` set, and then it renders a muted "— accept". A fresh dev/seed DB has 52 findings and zero decisions, so every tile looks monochrome next to a mockup that was screenshotted with real triage data — check `select count(*) from findings where accepted_at is not null` before assuming a styling bug. The model-chip tint is `color-mix(in srgb, <color> 12%, transparent)`: the old `color + "1a"` produced invalid CSS for `var(--…)` colours (every model outside `MODEL_COLOR`).
 

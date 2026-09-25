@@ -1,0 +1,35 @@
+{
+  "title": "Intent",
+  "inScope": "IN SCOPE",
+  "outOfScope": "OUT OF SCOPE",
+  "noneIdentified": "None identified",
+  "lowConfidenceBadge": "Inferred — low confidence",
+  "actionHint": "Add a description or link an issue (e.g. \"Fixes #123\") to improve this.",
+  "stale": "Out of date — PR changed since this was derived",
+  "regenerate": "Regenerate",
+  "retry": "Retry",
+  "loading": "Loading intent…",
+  "providerNotConfigured": "No model configured for PR Review · Intent. Set one in Settings → Models.",
+  "generationFailed": "Couldn't derive intent for this PR.",
+  "referencesLabel": "References: {refs}",
+  "why": {
+    "source": {
+      "title": "the title",
+      "description": "the description",
+      "linkedIssue": "the linked issue",
+      "branch": "the branch name",
+      "commits": "commit messages",
+      "diffPaths": "changed file paths",
+      "hunkContext": "code changes"
+    },
+    "base": "Inferred from {sources}.",
+    "noDescription": "Inferred from {sources}. The PR description is empty or too short.",
+    "noDescriptionNoIssue": "Inferred from {sources}. The PR description is empty or too short, and no issue is linked.",
+    "limited": "Inferred with limited signals."
+  },
+  "caption": {
+    "fromDescription": "From PR description",
+    "fromDescriptionAndIssue": "From description + #{number}",
+    "fromIssue": "From linked issue #{number}"
+  }
+}

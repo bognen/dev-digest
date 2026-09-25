@@ -36,6 +36,23 @@ export function wrapUntrusted(label: string, content: string): string {
 /** Cap the PR description so a huge author body can't blow the token budget. */
 const MAX_PR_DESCRIPTION_CHARS = 4000;
 
+/**
+ * A derived PR intent (statement + in/out-of-scope bullets), decoupled from
+ * the `@devdigest/shared` Intent contract — this is a local engine type so
+ * reviewer-core stays a pure, dependency-free engine. Confidence is set
+ * DETERMINISTICALLY IN CODE by the caller (never model-reported) and only
+ * changes the section's HEADER WORDING here — it is never surfaced as a number.
+ */
+export interface PromptIntent {
+  statement: string;
+  inScope: string[];
+  outOfScope: string[];
+  confidence: 'high' | 'low';
+}
+
+/** Cap the rendered intent section so a derivation call can't blow the token budget. */
+const MAX_INTENT_CHARS = 1500;
+
 export interface PromptParts {
   /** Agent's system prompt (trusted). */
   system: string;
@@ -66,6 +83,14 @@ export interface PromptParts {
    * undefined → section omitted.
    */
   prDescription?: string;
+  /**
+   * A derived PR intent (T-Intent). Rendered right after `## PR description`
+   * (or right after the task line when there is no description), before
+   * `## Skills / rules`. Confidence only changes the section's header wording
+   * — it is never surfaced as a number. Empty/undefined → section omitted
+   * (byte-identical to a prompt with no intent).
+   */
+  intent?: PromptIntent;
   /** The unified diff / user task (untrusted content). */
   diff: string;
   /** Optional task framing line, e.g. "Review PR #482 '…'". */
@@ -75,6 +100,45 @@ export interface PromptParts {
 export interface AssembledPrompt {
   messages: ChatMessage[];
   assembly: PromptAssembly;
+}
+
+/**
+ * Trusted framing that always accompanies a derived-intent block — OUTSIDE the
+ * `<untrusted>` wrapper, since it is our instruction, not derived content.
+ */
+const INTENT_FRAMING =
+  'Context for judging whether changes match their stated purpose. It is NOT a scope limit: ' +
+  'report real defects anywhere in the diff at their true severity. Out-of-scope items are ' +
+  'descriptive; a change touching them is at most a SUGGESTION-level note, never a reason to ' +
+  'raise severity. Review-driven follow-up commits are in scope.';
+
+/**
+ * Render the `## Derived intent …` section, or `null` when there is nothing to
+ * show (intent absent, or present but empty — same effective prompt as absent).
+ * Confidence changes only the header wording, per Design §5 — never a number.
+ */
+function buildIntentSection(intent: PromptIntent | undefined): string | null {
+  if (!intent) return null;
+  const statement = intent.statement.trim();
+  if (!statement && intent.inScope.length === 0 && intent.outOfScope.length === 0) return null;
+
+  const header =
+    intent.confidence === 'high'
+      ? '## Derived intent (derived from the PR description/linked issue)'
+      : '## Derived intent — LOWER CONFIDENCE (inferred from title, file paths and commits; the author did not state it)';
+
+  const body = [
+    statement,
+    '',
+    'In scope:',
+    ...(intent.inScope.length > 0 ? intent.inScope.map((s) => `- ${s}`) : ['- (none identified)']),
+    '',
+    'Out of scope:',
+    ...(intent.outOfScope.length > 0 ? intent.outOfScope.map((s) => `- ${s}`) : ['- (none identified)']),
+  ].join('\n');
+
+  const wrapped = wrapUntrusted('derived-intent', body.slice(0, MAX_INTENT_CHARS));
+  return `${header}\n${INTENT_FRAMING}\n${wrapped}`;
 }
 
 /**
@@ -101,11 +165,14 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
       ? parts.prDescription.slice(0, MAX_PR_DESCRIPTION_CHARS)
       : undefined;
 
+  const intentSection = buildIntentSection(parts.intent);
+
   const userSections: string[] = [];
   if (parts.task) userSections.push(parts.task);
   if (prDescription) {
     userSections.push(`## PR description\n${wrapUntrusted('pr-description', prDescription)}`);
   }
+  if (intentSection) userSections.push(intentSection);
   if (skillsBlock) userSections.push(`## Skills / rules\n${skillsBlock}`);
   if (memoryBlock) userSections.push(`## Relevant memory\n${memoryBlock}`);
   if (parts.repoMap && parts.repoMap.trim().length > 0) {
@@ -134,6 +201,7 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
     callers: parts.callers ?? null,
     repo_map: parts.repoMap ?? null,
     pr_description: prDescription ?? null,
+    intent: intentSection ?? null,
     user,
   };
 

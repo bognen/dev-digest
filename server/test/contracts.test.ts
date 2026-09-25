@@ -15,6 +15,9 @@ import {
   Settings,
   Repo,
   PrDetail,
+  PrIntentRecord,
+  PrIntentResponse,
+  GenerateIntentRequest,
 } from '@devdigest/shared';
 
 /**
@@ -104,6 +107,38 @@ describe('AI contracts parse fixtures', () => {
     ).not.toThrow();
   });
 
+  it('PrIntentRecord / PrIntentResponse / GenerateIntentRequest (Intent Layer)', () => {
+    // A generated, cached intent — the shape `GET`/`POST /pulls/:id/intent` return.
+    const record = PrIntentRecord.parse({
+      intent: 'Add rate limiting to public API endpoints',
+      in_scope: ['Add middleware for rate limiting'],
+      out_of_scope: ['Authentication changes'],
+      pr_id: 'pr1',
+      confidence: 'low',
+      sources: ['title', 'diff_paths'],
+      ticket_refs: ['LIN-123'],
+      linked_issue: null,
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-v4-flash',
+      head_sha: 'abc123',
+      generated_at: '2026-09-24T00:00:00.000Z',
+      stale: false,
+    });
+    expect(record.confidence).toBe('low');
+
+    // Not yet generated — `intent: null` with a reason, never a throw/404 shape.
+    expect(() =>
+      PrIntentResponse.parse({ intent: null, unavailable_reason: 'not_generated' }),
+    ).not.toThrow();
+    // Generated — `unavailable_reason: null`.
+    expect(() => PrIntentResponse.parse({ intent: record, unavailable_reason: null })).not.toThrow();
+
+    // POST body: `force` is optional, and an empty object (the tolerant-parse
+    // default when the client sends no body) must still parse.
+    expect(GenerateIntentRequest.parse({}).force).toBeUndefined();
+    expect(GenerateIntentRequest.parse({ force: true }).force).toBe(true);
+  });
+
   it('SmartDiff (data.jsx DIFF)', () => {
     const d = SmartDiff.parse({
       groups: [
@@ -166,6 +201,21 @@ describe('AI contracts parse fixtures', () => {
       log: [{ t: '00.00', kind: 'info', msg: 'started' }],
     });
     expect(trace.tool_calls).toHaveLength(1);
+  });
+
+  it('RunTrace persisted before the Intent Layer existed still parses (no prompt_assembly.intent)', () => {
+    const legacy = RunTrace.parse({
+      config: { agent: 'Security Reviewer', version: 'v7', model: 'gpt-4.1', pr: 482, source: 'local' },
+      stats: { duration_ms: 8200, tokens_in: 14820, tokens_out: 1240, findings: 3, grounding: '3/3 passed', cost_usd: 0.06 },
+      // No `intent` key at all — matches a trace persisted before this field existed.
+      prompt_assembly: { system: 's', user: 'u' },
+      tool_calls: [],
+      raw_output: '{}',
+      memory_pulled: [],
+      specs_read: [],
+      log: [],
+    });
+    expect(legacy.prompt_assembly.intent).toBeUndefined();
   });
 });
 

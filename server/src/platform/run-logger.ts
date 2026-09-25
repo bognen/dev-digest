@@ -67,6 +67,18 @@ export class RunLogger {
   }
 
   /**
+   * Debug-only structured log: mirrors to stdout (pino) ONLY — never
+   * published to the SSE bus and never captured in the run's persisted
+   * `run_traces.log`. For detail that's genuinely local-dev-only (e.g. the
+   * prompt-assembly verbose per-section breakdown): it shouldn't show up in
+   * every viewer's Live Log or get written into a document a teammate might
+   * later read, even though the data itself isn't sensitive.
+   */
+  debugOnly(msg: string, data?: Record<string, unknown>): void {
+    this.base?.debug({ ...this.ctx, runIds: this.runIds, ...data }, msg);
+  }
+
+  /**
    * Time an async operation: emits `"<label>…"` up front, then
    * `"<label> done (Nms)"` on success or `"<label> failed (Nms): <err>"` on
    * throw (re-throws). `kind` styles the start/done lines (default 'info';
