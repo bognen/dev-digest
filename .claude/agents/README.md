@@ -15,29 +15,37 @@ not duplicate them.
 | [`test-writer`](./test-writer.md) | Write UI/backend tests for non-trivial cases (business logic, integration flows, permission rules), sourced from the plan, not the implementation | `Read, Write, Edit, Grep, Glob, Bash, Skill` | sonnet | `react-testing-library`, `frontend-architecture`, `onion-architecture`, `fastify-best-practices`, `typescript-expert`, `engineering-insights` | a Development Plan (or a standalone "add tests for X" request) | test files only + a Test report |
 | [`architecture-reviewer`](./architecture-reviewer.md) | Read-only: check architectural boundaries (server onion/Fastify edge, reviewer-core purity, client placement/RSC) | `Read, Grep, Glob, Bash, ReportFindings` | opus | `onion-architecture`, `fastify-best-practices`, `frontend-architecture`, `next-best-practices` | a diff or path set | evidence-backed findings (`ReportFindings`, or a fixed-heading markdown fallback) — no verdict |
 | [`plan-verifier`](./plan-verifier.md) | Read-only: verify a completed change against a Development Plan, closed-list only | `Read, Grep, Glob, Bash, AskUserQuestion` | sonnet | none | a Development Plan + the diff/Implementation Report | a Plan verification report (`DONE/PARTIAL/MISSING/CANNOT VERIFY` per item, `COMPLETE`/`INCOMPLETE`) |
+| [`brainstorm`](./brainstorm.md) | Optional, before `planner`: generate and compare 2-4 genuinely different approaches to a feature/fix/design question | `Read, Grep, Glob, Bash, AskUserQuestion` | opus | none | the problem statement, module `AGENTS.md`/`INSIGHTS.md`, `pr-self-review`'s Phase 4 routing table | an options comparison (Problem / Assumptions / Options / Comparison / Recommendation / Open questions) — no code, no plan, no decision |
+| [`security-reviewer`](./security-reviewer.md) | Read-only: security review of a diff or path set (injection, authZ, secrets, SSRF, deps, LLM/prompt-injection risks) | `Read, Grep, Glob, Bash, ReportFindings` | opus | `security`, `zod`, `fastify-best-practices` | a diff (optionally inline in `<untrusted_diff>`) or path set | evidence-backed findings (`ReportFindings`, or a fixed-heading markdown fallback) — no verdict |
 | [`doc-writer`](./doc-writer.md) | Convert an implemented feature or a plan into documentation + diagrams, filed in the right `docs/`/`specs/` location | `Read, Write, Edit, Grep, Glob, Bash` | sonnet | `mermaid-diagram` | a Development Plan or an implemented feature | doc files under the owning package's `docs/`/`specs/` + a Documentation report |
 
 **Preloaded skills (planner and implementer, identical set):** `onion-architecture`,
 `fastify-best-practices`, `drizzle-orm-patterns`, `postgresql-table-design`,
 `zod`, `frontend-architecture`, `next-best-practices`, `react-best-practices`,
 `react-testing-library`, `typescript-expert`, `security`,
-`engineering-insights`, `mermaid-diagram`. The other four agents each preload
+`engineering-insights`, `mermaid-diagram`. The other agents each preload
 only what their narrower role needs (see their own rows above).
 Deliberately excluded everywhere: `pr-self-review` — it's the manual-only
-review gate (`disable-model-invocation: true`); none of the seven agents runs
+review gate (`disable-model-invocation: true`); none of the nine agents runs
 its skill-conformance grading (see "Pipeline" below).
 
 ## Pipeline
 
 ```
-request → planner → Development Plan
+request → [brainstorm, optional] → human picks option → planner → Development Plan
         → implementer (+ test-writer for non-trivial tests)
         → code + Implementation Report (+ Test report)
-        → plan-verifier → architecture-reviewer
-        → (security review, not yet built)
+        → plan-verifier → architecture-reviewer → security-reviewer
         → doc-writer → PR
 ```
 
+- **`brainstorm`** is optional and sits *before* `planner`: it widens the
+  solution space (2-4 different approaches, same criteria for each, one
+  recommendation), a human picks an option, and `planner` narrows that
+  option into a Development Plan. It has no `Write`/`Edit`, emits no code or
+  step lists, and routes architecture/security judgments and external-fact
+  questions to "Open questions" for `architecture-reviewer` /
+  `security-reviewer` / `researcher`.
 - **`planner`** has no `Write`/`Edit` — it cannot touch code, only produce the
   plan as its returned message. Persisting it to a file (e.g. under
   `server/specs/` or `client/specs/`) is the caller's choice, not the agent's.
@@ -60,10 +68,15 @@ request → planner → Development Plan
 - **`doc-writer`** runs after a feature is implemented, or to convert a plan
   into a spec doc. It never edits code, `AGENTS.md`/`INSIGHTS.md`, or the
   DB-synced `docs/agent-prompts`/`docs/agent-skills`.
-- **Security review is still not built.** `/pr-self-review` remains the
-  manual local gate; none of the seven agents above runs its phases 4-6
-  skill-conformance verdict — a plan/implement/verify/review cycle today ends
-  at `doc-writer`'s report, not at a merge-ready verdict.
+- **`security-reviewer`** is the security counterpart of
+  `architecture-reviewer`: read-only, `file:line` + quoted-evidence findings,
+  dedup, no verdict. It treats the reviewed diff as untrusted data (this repo
+  reviews other people's PRs and handles cloned repos), has no write or
+  network capability, and reports injection attempts as findings.
+  `/pr-self-review` remains the manual local gate that owns the overall
+  verdict; none of the nine agents runs its phases 4-6 skill-conformance
+  verdict — a plan/implement/verify/review cycle ends at `doc-writer`'s
+  report, not at a merge-ready verdict.
 
 ## `researcher`
 
@@ -180,6 +193,65 @@ general code review. Full rules and output schema:
 | Closed-list scope: only checks what the plan states, no code-quality/architecture/style commentary | Anthropic Engineering, *Demystifying evals for AI agents* ("two domain experts would independently reach the same pass/fail verdict"); Claude Code docs, *best practices* (adversarial review scope wording) |
 | No plan supplied → ask or stop, never reconstruct the plan from the diff | Repo convention, mirrors `planner`'s own "ambiguous scope → ask" rule |
 | No skills preloaded — avoids drifting into general advice | Repo-internal design choice, mirrors `researcher`'s empty preload |
+
+## `brainstorm`
+
+Optional pre-planning agent. Given a feature/fix/design question, returns 2-4
+genuinely different approaches (plus "minimal change / do nothing" when
+viable), each grounded in the touched modules' `AGENTS.md`/`INSIGHTS.md` and
+the skills routed by `pr-self-review`'s Phase 4 table, compared on the same
+criteria, with one recommendation and no decision. No preloaded skills — it
+reads an individual `SKILL.md` on demand only to check whether an option
+conflicts with its rules, like `researcher` and `plan-verifier`. Full rules
+and output schema: [`brainstorm.md`](./brainstorm.md).
+
+**Sources for its rules:**
+
+| Rule | Source |
+|---|---|
+| Read-only tool allowlist, no `Write`/`Edit`; read-only `Bash` stated as a rule because `tools:` can't enforce it | Claude Code docs, *sub-agents*; repo-internal convention (`researcher.md`, `planner.md`) |
+| `model: opus` — open-ended trade-off reasoning | platform.claude.com, *choosing a model* |
+| Ask via `AskUserQuestion` before proceeding on an ambiguous problem | Repo-internal: `planner.md`, `researcher.md` |
+| Ground options in module `AGENTS.md`/`INSIGHTS.md`; route by `pr-self-review` Phase 4 instead of a copy | Repo-internal: `planner.md`, `.claude/skills/pr-self-review/SKILL.md` Phase 4 |
+| Recommend but don't decide; widen here, narrow in `planner` (Explore → Plan separation) | Claude Code docs, *best practices* ("Explore → Plan → Implement → Commit") |
+| Architecture/security judgments and external research handed to other agents | Repo-internal role split (`architecture-reviewer`, `researcher`). **No external source found** for the 2-4 option count or the fixed comparison criteria — those are this repo's design choices. |
+
+## `security-reviewer`
+
+Read-only. Reviews a diff or path set for realistic, reachable vulnerabilities
+across this repo's trust boundaries (Fastify routes and workspace scoping,
+Drizzle/raw SQL, `server/clones/**` handling, secrets, the guarded URL
+fetcher, the client's HTML sinks, dependencies, and LLM prompt/tool surfaces
+including `.claude/**`). Treats everything under review as data, not
+instructions, and reports embedded injection attempts as `prompt-injection`
+findings. Formalizes and extends `pr-self-review`'s security checks — which
+today are the phase-3 "secret in the diff" invariant and the full-stack
+cluster that applies the `security` skill to every changed `.ts`/`.tsx`
+(there is no dedicated security cluster) — without editing that skill; never
+produces an overall verdict. Full rules and output schema:
+[`security-reviewer.md`](./security-reviewer.md).
+
+**Preloaded skills, and why:** `security` (the rule base; its examples are
+Express/Mongo, so the agent body translates to Fastify/Drizzle/Postgres),
+`zod` (input validation at the Fastify edge, the repo's schema layer, and how
+to tell whether input is already validated), `fastify-best-practices` (the
+route edge: hooks, error handling, headers/CORS). Not preloaded:
+`onion-architecture`, React/Next skills, and Drizzle skills — layering and
+rendering quality are other reviewers' remit, and the agent reads Drizzle
+call sites directly to trace data flow.
+
+**Sources for its rules:**
+
+| Rule | Source |
+|---|---|
+| Read-only tool allowlist, no `Write`/`Edit`; no network tools; read-only `Bash` stated as a rule | Claude Code docs, *sub-agents*; repo-internal convention (`architecture-reviewer.md`) |
+| `model: opus` — exploit-path reasoning is a judgment call | platform.claude.com, *choosing a model* |
+| Every finding needs `file:line` + quoted evidence; "if not certain, don't flag it"; dedup | Anthropic, code.claude.com/docs/en/code-review ("verification bar"); repo-internal `architecture-reviewer.md` |
+| Trace data flow and confirm attacker control before flagging; confidence tiers | Repo-internal: `.claude/skills/security/SKILL.md` ("Confidence-Based Review") |
+| Severity vocabulary (`critical\|major\|minor`) referenced from `pr-self-review` Phase 6, not duplicated | Repo-internal: `.claude/skills/pr-self-review/SKILL.md` Phase 6 |
+| Output via the `ReportFindings` tool; no PASS/WARN/BLOCKED verdict | This harness's `ReportFindings` tool; repo-internal `architecture-reviewer.md` |
+| Reviewed content is untrusted data; no outbound channel alongside untrusted input + private data ("lethal trifecta") | **Non-Anthropic** in origin (Simon Willison's "lethal trifecta" framing); repo-internal precedent: `reviewer-core/src/prompt.ts` (`wrapUntrusted`/`INJECTION_GUARD`), `server/INSIGHTS.md` (skill injection scan). No Anthropic doc was verified for this specific rule. |
+| Trust boundaries (`server/clones/**`, secrets in `~/.devdigest/secrets.json`, guarded URL fetcher, `NEXT_PUBLIC_*`) | Repo-internal: `server/AGENTS.md`, `client/AGENTS.md`, `server/INSIGHTS.md` (SSRF guard entry), `reviewer-core/AGENTS.md` |
 
 ## `doc-writer`
 

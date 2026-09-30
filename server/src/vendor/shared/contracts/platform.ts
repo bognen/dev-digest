@@ -13,10 +13,13 @@ import { Provider } from './knowledge.js';
 /** System LLM features whose model is selectable in Settings (per-workspace). */
 export const FeatureModelId = z.enum([
   'onboarding',
-  'review_intent',
+  'review_intent', // legacy: replaced by 'standard'; kept so saved settings still validate
   'risk_brief',
   'conformance',
   'conventions',
+  'standard',
+  'eval_reference',
+  'memory_learning',
 ]);
 export type FeatureModelId = z.infer<typeof FeatureModelId>;
 
@@ -49,11 +52,11 @@ export const FEATURE_MODELS: FeatureModelDef[] = [
     defaultModel: 'deepseek/deepseek-v4-flash',
   },
   {
-    id: 'review_intent',
-    label: 'PR Review · Intent',
-    description: 'Derives a PR’s intent and scope before review.',
+    id: 'standard',
+    label: 'Standard Model',
+    description: 'Used for: Intent, Multi-agent review Aggregate, and Blast radius summary.',
     defaultProvider: 'openrouter',
-    defaultModel: 'deepseek/deepseek-v4-flash',
+    defaultModel: 'openai/gpt-4o-mini',
   },
   {
     id: 'risk_brief',
@@ -70,11 +73,25 @@ export const FEATURE_MODELS: FeatureModelDef[] = [
     defaultModel: 'gpt-4.1',
   },
   {
+    id: 'eval_reference',
+    label: 'Eval Reference Agent',
+    description: 'Runs skill eval cases with/without the skill attached.',
+    defaultProvider: 'openrouter',
+    defaultModel: 'deepseek/deepseek-v4-flash',
+  },
+  {
     id: 'conventions',
-    label: 'Conventions classification',
-    description: 'Classifies repository code-style conventions into candidate rules.',
+    label: 'Conventions',
+    description: 'Extracts coding conventions from the repo.',
     defaultProvider: 'openai',
     defaultModel: 'gpt-5.4',
+  },
+  {
+    id: 'memory_learning',
+    label: 'Memory · Learning',
+    description: 'Learns from review outcomes to build project memory.',
+    defaultProvider: 'openrouter',
+    defaultModel: 'deepseek/deepseek-v4-flash',
   },
 ];
 

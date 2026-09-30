@@ -40,3 +40,19 @@ export function formatTokens(tokensIn: number, tokensOut: number): string {
   if (total < 1000) return `${total}`;
   return `${Number((total / 1000).toFixed(1))}k`;
 }
+
+/**
+ * Compact relative age of an ISO timestamp: "now", "5m", "3h", "2d", or "—"
+ * when absent/invalid. Used by the PR brief's provenance line.
+ */
+export function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return "—";
+  const m = Math.max(0, Math.round((Date.now() - then) / 60_000));
+  if (m < 1) return "now";
+  if (m < 60) return `${m}m`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.round(h / 24)}d`;
+}

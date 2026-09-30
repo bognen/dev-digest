@@ -4,6 +4,8 @@ import {
   extractReferences,
   extractEndpoints,
   extractCrons,
+  extractPythonSymbols,
+  extractPythonReferences,
 } from '../src/adapters/codeindex/extract.js';
 
 /**
@@ -98,5 +100,63 @@ jobs.register('poll_repo', handler);
     const crons = extractCrons(src);
     expect(crons.some((c) => c.includes('*/5'))).toBe(true);
     expect(crons).toContain('job:poll_repo');
+  });
+});
+
+describe('Python extraction (blast-radius fallback)', () => {
+  const PY = `import boto3
+from utils import helper
+
+# def commented_out():
+def fetch_data(url):
+    return helper(url)
+
+async def upload(bucket, rows):
+    def inner():
+        return 1
+    return fetch_data(bucket)
+
+class Loader:
+    def __init__(self):
+        self.n = 0
+
+    def run(self, x):
+        return fetch_data(x)
+
+def main():
+    upload("b", [])
+`;
+
+  it('finds module-level functions, classes and class methods; skips nested defs, comments and bare dunders', () => {
+    const syms = extractPythonSymbols(PY);
+    const names = syms.map((s) => `${s.kind}:${s.name}`);
+    expect(names).toContain('function:fetch_data');
+    expect(names).toContain('function:upload');
+    expect(names).toContain('function:main');
+    expect(names).toContain('class:Loader');
+    expect(names).toContain('method:Loader.run');
+    expect(names).toContain('method:run');
+    expect(names).toContain('method:Loader.__init__');
+    expect(names).not.toContain('method:__init__');
+    expect(names).not.toContain('function:inner');
+    expect(names).not.toContain('function:commented_out');
+  });
+
+  it('finds call sites but not the declaration, imports, or comments', () => {
+    const refs = extractPythonReferences(PY, 'fetch_data').map((r) => r.line);
+    expect(refs).toEqual([11, 18]); // `return fetch_data(bucket)`, `return fetch_data(x)`
+    expect(extractPythonReferences(PY, 'helper').map((r) => r.line)).toEqual([6]);
+  });
+
+  it('detects Flask and FastAPI route decorators', () => {
+    const eps = extractEndpoints(`
+@app.route('/health')
+def health(): ...
+@app.route('/items', methods=['POST'])
+def add(): ...
+@router.get('/users/{id}')
+def get_user(): ...
+`);
+    expect(eps).toEqual(expect.arrayContaining(['GET /health', 'POST /items', 'GET /users/{id}']));
   });
 });

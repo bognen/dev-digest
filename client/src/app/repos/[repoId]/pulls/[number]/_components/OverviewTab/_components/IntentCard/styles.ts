@@ -1,6 +1,12 @@
 import type { CSSProperties } from "react";
 
 export const s = {
+  // Same label-row height in Intent and Blast Radius (Intent's optional badge makes its
+  // row taller) so the two panels below start on one line.
+  labelRow: { minHeight: 37 } satisfies CSSProperties,
+  // The section fills its grid cell so the card stretches to match the Blast Radius
+  // panel beside it (equal top edge + equal height).
+  root: { display: "flex", flexDirection: "column", flex: 1 } satisfies CSSProperties,
   card: (lowConfidence: boolean): CSSProperties => ({
     border: "1px solid",
     borderStyle: lowConfidence ? "dashed" : "solid",
@@ -11,6 +17,7 @@ export const s = {
     display: "flex",
     flexDirection: "column",
     gap: 14,
+    flex: 1,
   }),
   statement: {
     fontSize: 14,
@@ -68,6 +75,7 @@ export const s = {
   footerRow: {
     display: "flex",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 10,
     flexWrap: "wrap",
   } satisfies CSSProperties,

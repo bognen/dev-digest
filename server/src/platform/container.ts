@@ -32,6 +32,9 @@ import { SkillsService } from '../modules/skills/service.js';
 import { resolveFeatureModel } from '../modules/settings/feature-models.js';
 import type { RepoIntel } from '../modules/repo-intel/types.js';
 import { RepoIntelService } from '../modules/repo-intel/service.js';
+import { BriefRepository } from '../modules/brief/repository.js';
+import { BriefService } from '../modules/brief/service.js';
+import { readSpecFile } from '../modules/brief/clone.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
 import { type UrlFetcher, HttpUrlFetcher } from '../adapters/url-fetcher/index.js';
@@ -87,6 +90,8 @@ export class Container {
   private _tokenizer?: Tokenizer;
   private _urlFetcher?: UrlFetcher;
   private _priceBook?: PriceBook;
+  private _briefRepo?: BriefRepository;
+  private _briefService?: BriefService;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -121,6 +126,35 @@ export class Container {
       repo: this.skillsRepo,
       urlFetcher: this.urlFetcher,
     }));
+  }
+
+  /** The `pr_brief` table (one row per PR, the current stored brief). */
+  get briefRepo(): BriefRepository {
+    return (this._briefRepo ??= new BriefRepository(this.db));
+  }
+
+  /**
+   * Application service for the PR Why + Risk Brief — `getPage` (0 LLM calls)
+   * and `generate` (the one structured call per generation). A shared getter so
+   * routes read `container.briefService` rather than constructing an instance
+   * per request: the in-flight generation guard only works as a process-wide
+   * singleton.
+   */
+  get briefService(): BriefService {
+    return (this._briefService ??= new BriefService(
+      this.briefRepo,
+      this.repoIntel,
+      (workspaceId, id) => this.resolveFeatureModel(workspaceId, id),
+      (id) => this.llm(id),
+      () => this.github(),
+      readSpecFile,
+      this.tokenizer,
+      (model, tokensIn, tokensOut) => this.priceBook.estimate(model, tokensIn, tokensOut),
+      // No Fastify `app.log` reaches the container (composition-root boundary);
+      // `console` is pino-compatible enough for the one structured line emitted
+      // per generation.
+      console,
+    ));
   }
 
   get reviewRepo(): ReviewRepository {

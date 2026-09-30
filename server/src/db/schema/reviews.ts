@@ -92,9 +92,30 @@ export const prIntent = pgTable(
   }),
 );
 
-export const prBrief = pgTable('pr_brief', {
-  prId: uuid('pr_id')
-    .primaryKey()
-    .references(() => pullRequests.id, { onDelete: 'cascade' }),
-  json: jsonb('json').notNull(),
-});
+export const prBrief = pgTable(
+  'pr_brief',
+  {
+    prId: uuid('pr_id')
+      .primaryKey()
+      .references(() => pullRequests.id, { onDelete: 'cascade' }),
+    json: jsonb('json').notNull(), // the grounded PrBrief (what/why/risk_level/risks/review_focus)
+    generatedAt: timestamp('generated_at', { withTimezone: true }).defaultNow().notNull(),
+    headSha: text('head_sha').notNull(), // the state key
+    // Staleness markers, frozen at generation time.
+    indexSha: text('index_sha'), // an absent/degraded index still generates
+    indexStatus: text('index_status'),
+    indexerVersion: integer('indexer_version'),
+    intentResolvedAt: timestamp('intent_resolved_at', { withTimezone: true }), // intent may be absent
+    // Spend record.
+    provider: text('provider'),
+    model: text('model').notNull(),
+    attempts: integer('attempts').notNull().default(1),
+    tokensIn: integer('tokens_in').notNull().default(0),
+    tokensOut: integer('tokens_out').notNull().default(0),
+    costUsd: doublePrecision('cost_usd'),
+    droppedInputs: integer('dropped_inputs').notNull().default(0),
+  },
+  (t) => ({
+    headShaIdx: index('pr_brief_head_sha_idx').on(t.headSha),
+  }),
+);

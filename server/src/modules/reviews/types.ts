@@ -91,7 +91,7 @@ export interface IntentDeps {
   store: IntentStore;
   /** Resolve an LLM provider by id (the container's factory, injected). */
   llm: (provider: Provider) => Promise<LLMProvider>;
-  /** Settings -> Feature Models override for `review_intent`, else the registry default. */
+  /** Settings -> Feature Models override for `standard`, else the registry default. */
   resolveModel: (workspaceId: string) => Promise<FeatureModelChoice>;
   /** Same-repo issue lookup only — the intent call never needs the rest of GitHubClient. */
   github: () => Promise<Pick<GitHubClient, 'getIssue'>>;

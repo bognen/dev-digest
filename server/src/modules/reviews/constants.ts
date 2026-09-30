@@ -14,7 +14,7 @@ export const REVIEW_STRATEGY = 'single-pass' as const;
 // ============================================================ Intent Layer
 
 /** Settings -> Feature Models id for the intent-derivation call. */
-export const INTENT_FEATURE = 'review_intent' as const;
+export const INTENT_FEATURE = 'standard' as const;
 
 /**
  * Bumping this changes `intentInputHash`'s output for every PR, forcing a

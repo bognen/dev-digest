@@ -19,8 +19,8 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
 
   if (isLoading) {
     return (
-      <section>
-        <SectionLabel icon="Target">{t("title")}</SectionLabel>
+      <section style={s.root}>
+        <div style={s.labelRow}><SectionLabel icon="Target">{t("title")}</SectionLabel></div>
         <Skeleton height={110} />
       </section>
     );
@@ -35,19 +35,28 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
   if (!record) {
     if (unavailable_reason === "provider_not_configured") {
       return (
-        <section>
-          <SectionLabel icon="Target">{t("title")}</SectionLabel>
+        <section style={s.root}>
+          <div style={s.labelRow}><SectionLabel icon="Target">{t("title")}</SectionLabel></div>
           <div style={s.inlineNote}>
             <Icon.Info size={14} />
             <span>{t("providerNotConfigured")}</span>
+            <Button
+              kind="secondary"
+              size="sm"
+              icon="RefreshCw"
+              loading={regenerate.isPending}
+              onClick={() => regenerate.mutate()}
+            >
+              {t("notAnalysed.run")}
+            </Button>
           </div>
         </section>
       );
     }
     if (unavailable_reason === "generation_failed") {
       return (
-        <section>
-          <SectionLabel icon="Target">{t("title")}</SectionLabel>
+        <section style={s.root}>
+          <div style={s.labelRow}><SectionLabel icon="Target">{t("title")}</SectionLabel></div>
           <div style={s.inlineNote}>
             <Icon.AlertTriangle size={14} />
             <span>{t("generationFailed")}</span>
@@ -64,10 +73,28 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
         </section>
       );
     }
-    // 'not_generated': the hook auto-POSTs once, so this is a brief transient
-    // state between the GET and the POST resolving — render nothing rather
-    // than flash a state that's about to change.
-    return null;
+    // 'not_generated': intent is only derived by an agent run or by this button
+    // — never on page load — so show the prompt + "Run Intent" action.
+    return (
+      <section style={s.root}>
+        <div style={s.labelRow}><SectionLabel icon="Target">{t("title")}</SectionLabel></div>
+        <div style={s.card(false)}>
+          <p style={s.statement}>{t("notAnalysed.title")}</p>
+          <div style={s.muted}>{t("notAnalysed.body")}</div>
+          <div>
+            <Button
+              kind="secondary"
+              size="sm"
+              icon="RefreshCw"
+              loading={regenerate.isPending}
+              onClick={() => regenerate.mutate()}
+            >
+              {regenerate.isPending ? t("notAnalysed.running") : t("notAnalysed.run")}
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   const lowConfidence = record.confidence === "low";
@@ -84,8 +111,8 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
   const whySourcesText = joinWithAnd(why.sources.map((src) => t(`why.source.${SOURCE_I18N_KEY[src]}`)));
 
   return (
-    <section>
-      <SectionLabel
+    <section style={s.root}>
+      <div style={s.labelRow}><SectionLabel
         icon="Target"
         right={
           lowConfidence ? (
@@ -96,7 +123,7 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
         }
       >
         {t("title")}
-      </SectionLabel>
+      </SectionLabel></div>
 
       <div style={s.card(lowConfidence)}>
         <p style={s.statement}>{record.intent}</p>
@@ -155,22 +182,26 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
           </>
         )}
 
-        {record.stale && (
-          <div style={s.footerRow}>
+        {/* "Run Intent" is always available on a derived intent (re-derive on
+            demand); the stale chip only explains why re-running is worthwhile. */}
+        <div style={s.footerRow}>
+          {record.stale ? (
             <Chip icon="AlertOctagon" color="var(--warn)">
               {t("stale")}
             </Chip>
-            <Button
-              kind="secondary"
-              size="sm"
-              icon="RefreshCw"
-              loading={regenerate.isPending}
-              onClick={() => regenerate.mutate()}
-            >
-              {t("regenerate")}
-            </Button>
-          </div>
-        )}
+          ) : (
+            <span />
+          )}
+          <Button
+            kind="secondary"
+            size="sm"
+            icon="RefreshCw"
+            loading={regenerate.isPending}
+            onClick={() => regenerate.mutate()}
+          >
+            {regenerate.isPending ? t("notAnalysed.running") : t("notAnalysed.run")}
+          </Button>
+        </div>
       </div>
     </section>
   );

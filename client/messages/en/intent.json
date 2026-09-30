@@ -9,7 +9,7 @@
   "regenerate": "Regenerate",
   "retry": "Retry",
   "loading": "Loading intent…",
-  "providerNotConfigured": "No model configured for PR Review · Intent. Set one in Settings → Models.",
+  "providerNotConfigured": "No model configured for the Standard Model. Set one in Settings → Feature Models.",
   "generationFailed": "Couldn't derive intent for this PR.",
   "referencesLabel": "References: {refs}",
   "why": {
@@ -31,5 +31,11 @@
     "fromDescription": "From PR description",
     "fromDescriptionAndIssue": "From description + #{number}",
     "fromIssue": "From linked issue #{number}"
+  },
+  "notAnalysed": {
+    "title": "Intent not yet analysed",
+    "body": "Run review agents to analyse the intent and scope of this pull request.",
+    "run": "Run Intent",
+    "running": "Running…"
   }
 }

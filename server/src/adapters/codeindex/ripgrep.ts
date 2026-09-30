@@ -9,7 +9,12 @@ import type {
   CodeReference,
   GitClient,
 } from '@devdigest/shared';
-import { extractSymbols, extractReferences } from './extract.js';
+import {
+  extractSymbols,
+  extractReferences,
+  extractPythonSymbols,
+  extractPythonReferences,
+} from './extract.js';
 
 /**
  * CodeIndex — ripgrep search + an ENHANCED regex symbol/reference
@@ -22,8 +27,18 @@ import { extractSymbols, extractReferences } from './extract.js';
  * back to a pure-Node recursive scan so it works with zero native deps (tests).
  */
 
-const CODE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
-const IGNORE_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '.next', 'coverage']);
+const CODE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py']);
+const IGNORE_DIRS = new Set([
+  '.git',
+  'node_modules',
+  'dist',
+  'build',
+  '.next',
+  'coverage',
+  '__pycache__',
+  '.venv',
+  'venv',
+]);
 
 let rgPathCache: string | null | undefined;
 async function resolveRg(): Promise<string | null> {
@@ -103,7 +118,8 @@ export class RipgrepCodeIndex implements CodeIndex {
       if (!CODE_EXT.has(extname(file))) continue;
       const content = await readFile(file, 'utf8').catch(() => '');
       const rel = relative(root, file);
-      for (const s of extractSymbols(content)) {
+      const extracted = extname(file) === '.py' ? extractPythonSymbols(content) : extractSymbols(content);
+      for (const s of extracted) {
         out.push({ path: rel, name: s.name, kind: s.kind, line: s.line });
       }
     }
@@ -118,7 +134,11 @@ export class RipgrepCodeIndex implements CodeIndex {
       if (!CODE_EXT.has(extname(file))) continue;
       const content = await readFile(file, 'utf8').catch(() => '');
       const rel = relative(root, file);
-      for (const r of extractReferences(content, symbol)) {
+      const found =
+        extname(file) === '.py'
+          ? extractPythonReferences(content, symbol)
+          : extractReferences(content, symbol);
+      for (const r of found) {
         out.push({ fromPath: rel, toSymbol: symbol, line: r.line });
       }
     }

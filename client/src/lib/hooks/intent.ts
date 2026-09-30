@@ -19,26 +19,23 @@ export function prIntentKey(prId: string | null | undefined) {
 }
 
 /**
- * A PR's derived intent. Composes GET -> POST (once) inside `queryFn` itself
- * (no `useEffect`): read the cached record first, and only issue the
- * (LLM-costing) POST when the server reports `not_generated` — so the card
- * still renders correctly before any review has ever run for this PR.
+ * A PR's derived intent — a plain GET of the cached record, NEVER a generation.
+ * Intent is produced in exactly two ways: the user presses "Run Intent" on the
+ * card (`useRegenerateIntent`), or an agent run derives it (the run-settled
+ * invalidation in `page.tsx` then refetches this query). Opening the page must
+ * not spend an LLM call.
  */
 export function usePrIntent(prId: string | null | undefined) {
   return useQuery({
     queryKey: prIntentKey(prId),
-    queryFn: async () => {
-      const first = await api.get<PrIntentResponse>(`/pulls/${prId}/intent`);
-      if (first.unavailable_reason !== "not_generated") return first;
-      return api.post<PrIntentResponse>(`/pulls/${prId}/intent`);
-    },
+    queryFn: () => api.get<PrIntentResponse>(`/pulls/${prId}/intent`),
     enabled: !!prId,
     retry: false,
     staleTime: INTENT_STALE_TIME_MS,
   });
 }
 
-/** Force-regenerate a PR's intent (the card's "Regenerate"/"Retry" actions). */
+/** Derive/regenerate a PR's intent (the card's "Run Intent"/"Regenerate"/"Retry" actions). */
 export function useRegenerateIntent(prId: string | null | undefined) {
   const qc = useQueryClient();
   return useMutation({

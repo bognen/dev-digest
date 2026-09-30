@@ -65,8 +65,8 @@ d('Settings: feature models + secrets status (Testcontainers pg)', () => {
     // The Settings -> Models row is the registry entry with the sharpened copy.
     const def = FEATURE_MODELS.find((f) => f.id === 'conventions');
     expect(def).toMatchObject({
-      label: 'Conventions classification',
-      description: 'Classifies repository code-style conventions into candidate rules.',
+      label: 'Conventions',
+      description: 'Extracts coding conventions from the repo.',
     });
 
     // Until a model is picked, the container port yields the registry default...
