@@ -11,3 +11,4 @@ export * from "./repo-intel";
 export * from "./intent";
 export * from "./blast-radius";
 export * from "./brief";
+export * from "./smart-diff";

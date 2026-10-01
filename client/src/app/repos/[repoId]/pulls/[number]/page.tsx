@@ -19,6 +19,7 @@ import { usePullDetail, usePulls } from "@/lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun } from "@/lib/hooks/reviews";
 import { prIntentKey } from "@/lib/hooks/intent";
+import { smartDiffKey } from "@/lib/hooks/smart-diff";
 import { useActiveRepo, useRepoNotFound } from "@/lib/repo-context";
 import { ApiError } from "@/lib/api";
 import { githubPrUrl } from "@/lib/github-urls";
@@ -61,6 +62,11 @@ export default function PRDetailPage() {
   // refresh the Overview tab's Intent card too.
   const invalidateIntent = () => {
     if (prId) qc.invalidateQueries({ queryKey: prIntentKey(prId) });
+  };
+
+  // Smart-diff `finding_lines` depend on the PR's findings — refresh after a run.
+  const invalidateSmartDiff = () => {
+    if (prId) qc.invalidateQueries({ queryKey: smartDiffKey(prId) });
   };
 
   const tab = search.get("tab") ?? "overview";
@@ -176,6 +182,7 @@ export default function PRDetailPage() {
               invalidateActiveRuns();
               invalidateRunHistory();
               invalidateIntent();
+              invalidateSmartDiff();
               refetchReviews();
             }}
           />
@@ -187,6 +194,9 @@ export default function PRDetailPage() {
             filesCount={pr.files_count}
             files={pr.files}
             canComment={pr.status === "open"}
+            headSha={pr.head_sha}
+            reviews={runs}
+            repoFullName={repoFullName}
           />
         )}
       </div>

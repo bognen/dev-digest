@@ -90,3 +90,31 @@ export function lineSignFor(kind: Line["kind"]): CSSProperties {
     flexShrink: 0,
   };
 }
+
+/** Review-findings extras (dot on the file header, rail for inline cards). */
+export const fs = {
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    background: "var(--crit)",
+    flexShrink: 0,
+  } satisfies CSSProperties,
+  /** Indented rail for inline FindingCards, aligned under the code. */
+  rail: { margin: "6px 14px 8px 58px" } satisfies CSSProperties,
+  outsideWrap: {
+    borderTop: "1px solid var(--border)",
+    margin: "4px 14px 4px 58px",
+    paddingTop: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  } satisfies CSSProperties,
+  outsideTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    color: "var(--text-muted)",
+  } satisfies CSSProperties,
+} as const;

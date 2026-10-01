@@ -59,7 +59,19 @@
     "largeBody": "Consider splitting it into smaller, focused PRs for easier review:",
     "filesCount": "{count} files",
     "findingLines": "{count} finding-lines",
-    "groupedByRole": "Smart Diff · grouped by role"
+    "groupedByRole": "Smart Diff · grouped by role",
+    "testsLabel": "Tests",
+    "docsLabel": "Docs",
+    "coreDescription": "Main logic changes",
+    "testsDescription": "Test coverage for the change",
+    "wiringDescription": "Routing, registration and glue code",
+    "docsDescription": "Documentation and comments",
+    "boilerplateDescription": "Generated, lockfile and config noise",
+    "smartOrder": "Smart order",
+    "originalOrder": "Original order",
+    "orderToggleLabel": "File order",
+    "filesWithFindings": "{count, plural, one {# file with findings} other {# files with findings}}",
+    "reviewerOrderedDiff": "Files reordered by role so reviewers read the core changes first"
   },
   "list": {
     "breadcrumb": "Pull Requests",

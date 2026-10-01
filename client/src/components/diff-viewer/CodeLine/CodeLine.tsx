@@ -5,20 +5,27 @@
 import React from "react";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
 import { type Line } from "../helpers";
-import { s, lineRowFor, lineSignFor } from "../styles";
+import { topSeverity, type FindingAnchor } from "../findings";
+import { s, fs, lineRowFor, lineSignFor } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
+import { FindingPill } from "../FindingPill";
 
 export function CodeLine({
   ln,
   path,
   threads,
   commenting,
+  findingAnchors,
+  renderFinding,
 }: {
   ln: Line;
   path: string;
   threads: CommentThread[];
   commenting?: DiffCommentApi;
+  /** Review findings pinned to this line (independent of showComments). */
+  findingAnchors?: FindingAnchor[];
+  renderFinding?: (id: string) => React.ReactNode;
 }) {
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
@@ -62,7 +69,17 @@ export function CodeLine({
         <span className="mono" style={s.lineText}>
           {ln.text || " "}
         </span>
+        {findingAnchors && findingAnchors.length > 0 && (
+          <FindingPill severity={topSeverity(findingAnchors)} />
+        )}
       </div>
+
+      {renderFinding &&
+        findingAnchors?.map((a) => (
+          <div key={a.id} style={fs.rail}>
+            {renderFinding(a.id)}
+          </div>
+        ))}
 
       {commenting &&
         commenting.showComments &&

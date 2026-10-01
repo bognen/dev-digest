@@ -16,6 +16,15 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-09-30 — Inline findings reach the shared diff-viewer through a render prop
+`src/components/diff-viewer` must not import a route's `_components` (FindingCard lives in the PR route), so it takes `DiffFindingApi { anchorsFor, hasOpenFindings, renderFinding(id) }` and the route (`DiffTab`) supplies the card. Anchoring mirrors `partitionThreads`: key `RIGHT:<start_line>`, unmatched ones render in a "Findings outside the visible diff" block (`diff-viewer/findings.ts`).
+
+### 2026-09-30 — Dismissed findings render inline but never count as open
+`latestOpenFindingsByPath` (`DiffTab/helpers.ts`) keeps dismissed findings so FindingCard shows them muted, but `hasOpenFinding` ignores them, so the file dot (and not the inline card) disappears once everything is dismissed. Run dedupe is `kind==='review'`, newest first, one per `agent_id ?? id` — same rule as the server smart-diff, keep them in sync.
+
+### 2026-09-30 — DiffViewer rows are keyed by path, not index
+Smart/Original toggling reorders and re-partitions the file list; with `key={i}` the FileCard open/closed state stuck to the position and leaked onto a different file. `DiffViewer` now uses `key={f.path}`. Smart-diff query is keyed `["smart-diff", prId, headSha]` and invalidated by `smartDiffKey(prId)` from finding actions and run completion.
+
 ### 2026-09-24 — `usePrIntent` composes GET → POST inside `queryFn` itself, not a `useEffect`
 The Intent card needs to work before any review has ever run, so `lib/hooks/intent.ts`'s `queryFn` does a plain `GET /pulls/:id/intent` and, only when the response's `unavailable_reason === "not_generated"`, follows up with one `POST` (which derives it) — all inside the same async `queryFn`, so TanStack Query sees ONE query lifecycle (one loading state, one cache entry) instead of the derived-state-via-effect anti-pattern of triggering a second query/mutation from an effect keyed on the first result. `retry: false` is intentional too: a missing provider key or LLM failure is a 200 with `unavailable_reason` set, never a thrown/rejected request, so there is nothing here that a retry would fix.
 
@@ -249,6 +258,9 @@ symlink. A schema change made in one and not the other desyncs request/response
 contracts with no compiler error until a runtime mismatch shows up.
 
 ## Tool & Library Notes
+
+### 2026-09-30 — `@testing-library/user-event` is not installed in `client/`; use `fireEvent`
+Importing it fails to resolve (and `tsc` raises TS2307). Existing tests (`FindingCard.test.tsx`, `DiffTab.test.tsx`) use `fireEvent` from `@testing-library/react`. Adding `user-event` means a `package.json` change, so do it deliberately rather than inside a test-only task.
 
 ### 2026-09-20 — `@devdigest/ui` gotchas hit while adding modals, badges and toggles
 `Modal` is not a portal: render `ConfirmDialog` as a *sibling* of a clickable or `opacity`-dimmed card (not inside it), or clicks bubble to the card and the dialog inherits the dimming. `IconBtn.onClick` gets no event, so wrap it in a `stopPropagation` span. `Toggle`/`Checkbox` have no `disabled` prop — use `SkillEnabledToggle` (inert + dimmed) and wrap in a `<label>` for an accessible name. The toast has no warning kind. `ToastProvider` already owns a `role="status"` region, so don't add that role to badges. Any test rendering `SkillEnabledToggle` or `InjectionBadge` needs the `skills` namespace in its messages or next-intl logs MISSING_MESSAGE.

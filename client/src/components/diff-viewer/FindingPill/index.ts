@@ -1,0 +1,1 @@
+export { FindingPill } from "./FindingPill";

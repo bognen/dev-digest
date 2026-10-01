@@ -15,7 +15,8 @@ import {
   type CommentThread,
   type DiffCommentApi,
 } from "../comments";
-import { s, chevronFor } from "../styles";
+import { partitionFindingAnchors, type DiffFindingApi, type FindingAnchor } from "../findings";
+import { s, fs, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
 
@@ -30,7 +31,26 @@ function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): Commen
   return out;
 }
 
-export function FileCard({ file, commenting }: { file: PrFile; commenting?: DiffCommentApi }) {
+/** Finding anchors pinned to a given parsed line (new side only). */
+function anchorsForLine(ln: Line, matched: Map<string, FindingAnchor[]>): FindingAnchor[] {
+  if (matched.size === 0) return [];
+  const out: FindingAnchor[] = [];
+  for (const key of keysForLine(ln)) {
+    const list = matched.get(key);
+    if (list) out.push(...list);
+  }
+  return out;
+}
+
+export function FileCard({
+  file,
+  commenting,
+  findings,
+}: {
+  file: PrFile;
+  commenting?: DiffCommentApi;
+  findings?: DiffFindingApi;
+}) {
   const t = useTranslations("shell");
   const [open, setOpen] = React.useState(
     (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
@@ -48,6 +68,17 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
     return partitionThreads(fileThreads, renderedKeys);
   }, [comments, file.path, lines]);
 
+  // Same split for review findings: anchored to a rendered new-side line vs not.
+  const { findingsByKey, unanchored } = React.useMemo(() => {
+    const empty = new Map<string, FindingAnchor[]>();
+    if (!findings) return { findingsByKey: empty, unanchored: [] as FindingAnchor[] };
+    const renderedKeys = new Set<string>();
+    for (const ln of lines) for (const k of keysForLine(ln)) renderedKeys.add(k);
+    const part = partitionFindingAnchors(findings.anchorsFor(file.path), renderedKeys);
+    return { findingsByKey: part.matched, unanchored: part.unanchored };
+  }, [findings, file.path, lines]);
+  const hasFindings = !!findings && findings.hasOpenFindings(file.path);
+
   const commentCount = commenting
     ? commenting.comments.filter((c) => c.path === file.path).length
     : 0;
@@ -64,6 +95,7 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
           <span style={s.addText}>+{file.additions}</span>{" "}
           <span style={s.delText}>−{file.deletions}</span>
         </span>
+        {hasFindings && <span role="img" aria-label={t("diffViewer.hasFindings")} style={fs.dot} />}
         {commentCount > 0 && (
           <span
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-muted)" }}
@@ -85,10 +117,20 @@ export function FileCard({ file, commenting }: { file: PrFile; commenting?: Diff
                 path={file.path}
                 threads={threadsForLine(ln, matched)}
                 commenting={commenting}
+                findingAnchors={anchorsForLine(ln, findingsByKey)}
+                renderFinding={findings?.renderFinding}
               />
             ))
           )}
           {commenting && commenting.showComments && <OutdatedComments threads={outdated} />}
+          {findings && unanchored.length > 0 && (
+            <div style={fs.outsideWrap}>
+              <span style={fs.outsideTitle}>{t("diffViewer.findingsOutsideDiff")}</span>
+              {unanchored.map((a) => (
+                <React.Fragment key={a.id}>{findings.renderFinding(a.id)}</React.Fragment>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
