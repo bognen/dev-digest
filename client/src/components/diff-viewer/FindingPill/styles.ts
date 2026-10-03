@@ -8,7 +8,6 @@ export function pillFor(color: string, background: string): CSSProperties {
     gap: 4,
     alignSelf: "center",
     flexShrink: 0,
-    margin: "0 10px 0 auto",
     padding: "0 7px",
     borderRadius: 5,
     fontSize: 11,

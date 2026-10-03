@@ -100,6 +100,27 @@ export const fs = {
     background: "var(--crit)",
     flexShrink: 0,
   } satisfies CSSProperties,
+  /** One pill per finding on a line, stacked top-to-bottom at the row's right edge. */
+  pillStack: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    alignSelf: "center",
+    gap: 3,
+    margin: "3px 10px 3px auto",
+    flexShrink: 0,
+  } satisfies CSSProperties,
+  jump: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    padding: "2px 4px",
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    fontSize: 12,
+    color: "var(--crit)",
+  } satisfies CSSProperties,
   /** Indented rail for inline FindingCards, aligned under the code. */
   rail: { margin: "6px 14px 8px 58px" } satisfies CSSProperties,
   outsideWrap: {

@@ -19,6 +19,12 @@ export interface DiffFindingApi {
   anchorsFor: (path: string) => FindingAnchor[];
   /** True when `path` has at least one non-dismissed finding (drives the dot). */
   hasOpenFindings: (path: string) => boolean;
+  /** Number of open (not dismissed) findings on a file — feeds group-header totals. */
+  openFindingCount?: (path: string) => number;
+  /** Per-finding collapsed state (inline card hidden, severity pill stays). */
+  isHidden?: (id: string) => boolean;
+  /** Show/hide the inline cards of these findings. */
+  onToggleHidden?: (ids: string[]) => void;
   /** Render prop: the route supplies the finding card. */
   renderFinding: (id: string) => ReactNode;
 }

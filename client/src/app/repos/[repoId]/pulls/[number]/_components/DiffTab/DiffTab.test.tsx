@@ -122,11 +122,14 @@ describe("DiffTab smart order", () => {
     expect(screen.getByText("README.md")).toBeInTheDocument();
   });
 
-  it("omits a header for a role with no files", () => {
+  it("still shows a disabled header for a role with no files", () => {
     smartDiffState = { data: { ...SMART, groups: SMART.groups.filter((g) => g.role !== "wiring") } };
     renderTab({ files: FILES.filter((f) => f.path !== "src/routes.ts") });
-    expect(headerNames().some((n) => n.includes("Wiring"))).toBe(false);
-    expect(headerNames()).toHaveLength(4);
+    const names = headerNames();
+    expect(names).toHaveLength(5);
+    expect(names[2]).toContain("Wiring");
+    expect(names[2]).toContain("0 files");
+    expect(screen.getByRole("button", { name: /Wiring/ })).toBeDisabled();
   });
 });
 
@@ -139,11 +142,11 @@ describe("DiffTab findings", () => {
     renderTab({ reviews: [review([finding("f1")])] });
 
     const core = screen.getByRole("button", { name: /Core/ });
-    expect(within(core).getByLabelText("1 file with findings")).toBeInTheDocument();
-    expect(within(screen.getByRole("button", { name: /Tests/ })).queryByLabelText(/with findings/)).toBeNull();
+    expect(within(core).getByLabelText("1 finding")).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: /Tests/ })).queryByLabelText(/finding/)).toBeNull();
 
     // file card dot only on the file with an open finding
-    expect(screen.getAllByRole("img", { name: "Has review findings" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Go to first finding" })).toHaveLength(1);
 
     // finding card is rendered beneath its line, expanded, plus a severity pill
     expect(screen.getByText("Title f1")).toBeInTheDocument();
@@ -155,7 +158,7 @@ describe("DiffTab findings", () => {
 
   it("dismissed-only file has no dot", () => {
     renderTab({ reviews: [review([finding("d1", { dismissed_at: "2026-01-02T00:00:00Z" })])] });
-    expect(screen.queryByRole("img", { name: "Has review findings" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Go to first finding" })).not.toBeInTheDocument();
   });
 
   it("a finding whose line is not in the patch appears in the outside-the-diff block", () => {
@@ -256,5 +259,40 @@ describe("DiffTab edge cases", () => {
       expect(paths[i - 1]!.compareDocumentPosition(paths[i]!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
     expect(screen.getByText("Title f1")).toBeInTheDocument();
+  });
+});
+
+describe("DiffTab finding visibility + jump", () => {
+  beforeEach(() => {
+    smartDiffState = { data: SMART };
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it("toolbar button hides and re-shows all inline findings", () => {
+    renderTab({ reviews: [review([finding("f1")])] });
+    expect(screen.getByText("Title f1")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide findings (1)" }));
+    expect(screen.queryByText("Title f1")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show findings (1)" }));
+    expect(screen.getByText("Title f1")).toBeInTheDocument();
+  });
+
+  it("clicking the severity pill collapses and reopens that finding", () => {
+    renderTab({ reviews: [review([finding("f1")])] });
+    const pill = screen.getByRole("button", { name: "Show or hide this finding" });
+    fireEvent.click(pill);
+    expect(screen.queryByText("Title f1")).not.toBeInTheDocument();
+    fireEvent.click(pill);
+    expect(screen.getByText("Title f1")).toBeInTheDocument();
+  });
+
+  it("clicking the file's finding indicator reveals a hidden finding and scrolls to it", () => {
+    renderTab({ reviews: [review([finding("f1")])] });
+    fireEvent.click(screen.getByRole("button", { name: "Hide findings (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Go to first finding" }));
+    expect(screen.getByText("Title f1")).toBeInTheDocument();
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
   });
 });

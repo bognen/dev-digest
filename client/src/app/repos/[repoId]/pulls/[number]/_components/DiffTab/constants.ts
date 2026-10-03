@@ -17,6 +17,9 @@ export const ROLE_META: Record<
   },
 };
 
+/** Display order of the role groups; all of them render, even when empty. */
+export const ROLE_ORDER: readonly SmartDiffRole[] = ["core", "tests", "wiring", "docs", "boilerplate"];
+
 /** Roles that start collapsed, even when they contain findings. */
 export const COLLAPSED_BY_DEFAULT: readonly SmartDiffRole[] = ["docs", "boilerplate"];
 

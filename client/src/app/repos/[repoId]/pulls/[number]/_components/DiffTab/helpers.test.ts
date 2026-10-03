@@ -54,7 +54,7 @@ const review = (
 });
 
 describe("mergeSmartOrder", () => {
-  it("takes patches from pr.files, appends unknown files to core, drops unknown smart paths, omits empty groups", () => {
+  it("takes patches from pr.files, appends unknown files to core, drops unknown smart paths, keeps empty groups", () => {
     const files = [file("a.ts"), file("b.test.ts"), file("extra.ts")];
     const groups = mergeSmartOrder(
       files,
@@ -64,15 +64,16 @@ describe("mergeSmartOrder", () => {
         { role: "docs", files: [sf("gone.md")] },
       ]),
     );
-    expect(groups.map((g) => g.role)).toEqual(["core", "tests"]);
+    expect(groups.map((g) => g.role)).toEqual(["core", "tests", "wiring", "docs", "boilerplate"]);
+    expect(groups.slice(2).every((g) => g.files.length === 0)).toBe(true);
     expect(groups[0]!.files.map((f) => f.path)).toEqual(["a.ts", "extra.ts"]);
     expect(groups[0]!.files[0]).toBe(files[0]); // real PrFile (with patch), not the smart-diff entry
     expect(groups[1]!.files.map((f) => f.path)).toEqual(["b.test.ts"]);
   });
 
-  it("creates a core group first when the smart-diff has none", () => {
+  it("puts unclassified files in core when the smart-diff has no core group", () => {
     const groups = mergeSmartOrder([file("x.ts"), file("y.md")], smart([{ role: "docs", files: [sf("y.md")] }]));
-    expect(groups.map((g) => g.role)).toEqual(["core", "docs"]);
+    expect(groups.map((g) => g.role)).toEqual(["core", "tests", "wiring", "docs", "boilerplate"]);
     expect(groups[0]!.files.map((f) => f.path)).toEqual(["x.ts"]);
   });
 });

@@ -11,6 +11,13 @@
  */
 export const REVIEW_STRATEGY = 'single-pass' as const;
 
+/**
+ * Deadline for ONE agent run's review engine (prompt assembly → LLM calls →
+ * grounding). A hung provider call or tool loop past this fails the run instead
+ * of leaving it `running` forever.
+ */
+export const AGENT_RUN_TIMEOUT_MS = 5 * 60_000;
+
 // ============================================================ Intent Layer
 
 /** Settings -> Feature Models id for the intent-derivation call. */

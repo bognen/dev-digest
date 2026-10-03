@@ -16,10 +16,15 @@ export function DiffViewer({
   files,
   commenting,
   findings,
+  isOpen,
+  onToggleFile,
 }: {
   files: PrFile[];
   commenting?: DiffCommentApi;
   findings?: DiffFindingApi;
+  /** Controlled per-file open state; omit and each card manages its own. */
+  isOpen?: (file: PrFile) => boolean;
+  onToggleFile?: (file: PrFile) => void;
 }) {
   const t = useTranslations("shell");
   if (!files || files.length === 0) {
@@ -28,7 +33,14 @@ export function DiffViewer({
   return (
     <div style={s.list}>
       {files.map((f) => (
-        <FileCard key={f.path} file={f} commenting={commenting} findings={findings} />
+        <FileCard
+          key={f.path}
+          file={f}
+          commenting={commenting}
+          findings={findings}
+          open={isOpen?.(f)}
+          onToggle={onToggleFile ? () => onToggleFile(f) : undefined}
+        />
       ))}
     </div>
   );

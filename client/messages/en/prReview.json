@@ -70,6 +70,11 @@
     "smartOrder": "Smart order",
     "originalOrder": "Original order",
     "orderToggleLabel": "File order",
+    "showFindings": "Show findings ({count})",
+    "hideFindings": "Hide findings ({count})",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "findingsCount": "{count, plural, one {# finding} other {# findings}}",
     "filesWithFindings": "{count, plural, one {# file with findings} other {# files with findings}}",
     "reviewerOrderedDiff": "Files reordered by role so reviewers read the core changes first"
   },

@@ -20,6 +20,11 @@ import { s, fs, chevronFor } from "../styles";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
 
+/** Whether a file starts expanded when nobody has toggled it. */
+export function isAutoExpanded(file: PrFile): boolean {
+  return (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES;
+}
+
 /** Threads anchored to a given parsed line (RIGHT=new, LEFT=old). */
 function threadsForLine(ln: Line, matched: Map<string, CommentThread[]>): CommentThread[] {
   if (matched.size === 0) return [];
@@ -46,15 +51,20 @@ export function FileCard({
   file,
   commenting,
   findings,
+  open: controlledOpen,
+  onToggle,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
   findings?: DiffFindingApi;
+  /** Controlled open state (e.g. a group's expand/collapse all); omit for local state. */
+  open?: boolean;
+  onToggle?: () => void;
 }) {
   const t = useTranslations("shell");
-  const [open, setOpen] = React.useState(
-    (file.additions ?? 0) + (file.deletions ?? 0) <= AUTO_EXPAND_MAX_LINES
-  );
+  const [localOpen, setLocalOpen] = React.useState(isAutoExpanded(file));
+  const open = controlledOpen ?? localOpen;
+  const toggle = onToggle ?? (() => setLocalOpen((o) => !o));
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
 
   // Group this file's comments into threads, then split into ones we can anchor
@@ -79,13 +89,33 @@ export function FileCard({
   }, [findings, file.path, lines]);
   const hasFindings = !!findings && findings.hasOpenFindings(file.path);
 
+  const findingTotal = findings?.openFindingCount?.(file.path) ?? 0;
+  // First finding by line; clicking the header indicator jumps to it.
+  const firstFinding = React.useMemo(
+    () => (findings ? [...findings.anchorsFor(file.path)].sort((a, b) => a.line - b.line)[0] : undefined),
+    [findings, file.path],
+  );
+  const [pendingJump, setPendingJump] = React.useState(false);
+  React.useEffect(() => {
+    if (!pendingJump || !open || !firstFinding) return;
+    setPendingJump(false);
+    document.getElementById(`finding-${firstFinding.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [pendingJump, open, firstFinding]);
+  const jumpToFinding = (e: React.MouseEvent) => {
+    e.stopPropagation(); // don't toggle the card header
+    if (!firstFinding) return;
+    if (!open) toggle();
+    if (findings?.isHidden?.(firstFinding.id)) findings.onToggleHidden?.([firstFinding.id]);
+    setPendingJump(true);
+  };
+
   const commentCount = commenting
     ? commenting.comments.filter((c) => c.path === file.path).length
     : 0;
 
   return (
     <div style={s.fileCard}>
-      <div onClick={() => setOpen((o) => !o)} style={s.fileHeader}>
+      <div onClick={toggle} style={s.fileHeader}>
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
         <Icon.FileText size={14} style={s.fileIcon} />
         <span className="mono" style={s.filePath}>
@@ -95,7 +125,18 @@ export function FileCard({
           <span style={s.addText}>+{file.additions}</span>{" "}
           <span style={s.delText}>−{file.deletions}</span>
         </span>
-        {hasFindings && <span role="img" aria-label={t("diffViewer.hasFindings")} style={fs.dot} />}
+        {hasFindings && (
+          <button
+            type="button"
+            onClick={jumpToFinding}
+            title={t("diffViewer.goToFinding")}
+            aria-label={t("diffViewer.goToFinding")}
+            style={fs.jump}
+          >
+            <span aria-hidden="true" style={fs.dot} />
+            {findingTotal > 0 && <span className="mono tnum">{findingTotal}</span>}
+          </button>
+        )}
         {commentCount > 0 && (
           <span
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-muted)" }}
@@ -119,6 +160,9 @@ export function FileCard({
                 commenting={commenting}
                 findingAnchors={anchorsForLine(ln, findingsByKey)}
                 renderFinding={findings?.renderFinding}
+                isHidden={findings?.isHidden}
+                onToggleHidden={findings?.onToggleHidden}
+                toggleLabel={t("diffViewer.toggleFinding")}
               />
             ))
           )}
@@ -126,9 +170,13 @@ export function FileCard({
           {findings && unanchored.length > 0 && (
             <div style={fs.outsideWrap}>
               <span style={fs.outsideTitle}>{t("diffViewer.findingsOutsideDiff")}</span>
-              {unanchored.map((a) => (
-                <React.Fragment key={a.id}>{findings.renderFinding(a.id)}</React.Fragment>
-              ))}
+              {unanchored
+                .filter((a) => !findings.isHidden?.(a.id))
+                .map((a) => (
+                  <div key={a.id} id={`finding-${a.id}`}>
+                    {findings.renderFinding(a.id)}
+                  </div>
+                ))}
             </div>
           )}
         </div>

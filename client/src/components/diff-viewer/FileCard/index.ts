@@ -1,1 +1,1 @@
-export { FileCard } from "./FileCard";
+export { FileCard, isAutoExpanded } from "./FileCard";

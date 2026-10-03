@@ -9,6 +9,7 @@ export const s = {
     gap: 12,
     margin: "0 0 12px",
   } satisfies CSSProperties,
+  controlsRight: { display: "inline-flex", alignItems: "center", gap: 8 } satisfies CSSProperties,
   hint: { fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
   groups: { display: "flex", flexDirection: "column", gap: 16 } satisfies CSSProperties,
   notice: {

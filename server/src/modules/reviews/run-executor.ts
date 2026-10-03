@@ -2,10 +2,11 @@ import type { Container } from '../../platform/container.js';
 import type { Provider, Review, RunTrace, UnifiedDiff } from '@devdigest/shared';
 import { reviewPullRequest, countBlockers, type PromptIntent } from '@devdigest/reviewer-core';
 import { RunLogger } from '../../platform/run-logger.js';
+import { withTimeout } from '../../platform/resilience.js';
 import * as schema from '../../db/schema.js';
 import type { AgentRow } from '../../db/rows.js';
 import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './repository.js';
-import { REVIEW_STRATEGY } from './constants.js';
+import { AGENT_RUN_TIMEOUT_MS, REVIEW_STRATEGY } from './constants.js';
 import { taskLine, summarizePromptAssembly } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
 import { hunkContexts, toPromptIntent } from './pipeline/intent-signals.js';
@@ -237,7 +238,12 @@ export class ReviewRunExecutor {
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
       // above, and persistence + observability below.
-      const outcome = await reviewPullRequest({
+      // Run-level deadline: if the engine hangs, the race rejects with a
+      // TimeoutError (-> the catch below marks the run failed) and `timedOut`
+      // stops the abandoned engine from issuing further LLM calls.
+      let timedOut = false;
+      const outcome = await withTimeout(
+        reviewPullRequest({
         systemPrompt: agent.systemPrompt,
         model: agent.model,
         diff,
@@ -263,8 +269,13 @@ export class ReviewRunExecutor {
         sessionId: `${repo.owner}/${repo.name}#${pull.number}:${agent.name}`,
         onEvent: (e) => runLog.event(e.kind, e.msg, e.data),
         checkCancelled: () => {
-          if (this.container.runBus.isCancelled(runId)) throw new RunCancelledError();
+          if (timedOut || this.container.runBus.isCancelled(runId)) throw new RunCancelledError();
         },
+      }),
+        AGENT_RUN_TIMEOUT_MS,
+      ).catch((err) => {
+        timedOut = true;
+        throw err;
       });
       const { tokensIn, tokensOut, grounding, costUsd } = outcome;
 

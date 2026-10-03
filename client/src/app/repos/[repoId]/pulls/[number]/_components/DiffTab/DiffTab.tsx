@@ -10,7 +10,7 @@ import type { FindingRecord, PrFile, ReviewRecord } from "@devdigest/shared";
 import { FindingCard } from "../FindingCard";
 import { OrderToggle, type DiffOrder } from "./_components/OrderToggle";
 import { RoleGroup } from "./_components/RoleGroup";
-import { hasOpenFinding, latestOpenFindingsByPath, mergeSmartOrder, toAnchors } from "./helpers";
+import { countOpenFindings, hasOpenFinding, latestOpenFindingsByPath, mergeSmartOrder, toAnchors } from "./helpers";
 import { s } from "./styles";
 
 interface DiffTabProps {
@@ -45,6 +45,25 @@ export function DiffTab({ prId, filesCount, files, canComment, headSha, reviews,
     return m;
   }, [findingsByPath]);
 
+  // Findings whose inline card is collapsed (pill stays); the toolbar button flips all.
+  const [hiddenIds, setHiddenIds] = React.useState<ReadonlySet<string>>(new Set());
+  const openFindingIds = React.useMemo(
+    () => [...findingsById.values()].filter((f) => !f.dismissed_at).map((f) => f.id),
+    [findingsById],
+  );
+  const allHidden = openFindingIds.length > 0 && openFindingIds.every((id) => hiddenIds.has(id));
+  const toggleHidden = (ids: string[]) =>
+    setHiddenIds((prev) => {
+      const next = new Set(prev);
+      const hide = ids.some((id) => !prev.has(id));
+      for (const id of ids) {
+        if (hide) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  const toggleAllHidden = () => setHiddenIds(allHidden ? new Set() : new Set(findingsById.keys()));
+
   const commenting: DiffCommentApi = {
     comments: comments ?? [],
     canComment: !!canComment && !!prId,
@@ -65,6 +84,9 @@ export function DiffTab({ prId, filesCount, files, canComment, headSha, reviews,
   const findings: DiffFindingApi = {
     anchorsFor: (path) => toAnchors(findingsByPath.get(path)),
     hasOpenFindings: (path) => hasOpenFinding(findingsByPath.get(path)),
+    openFindingCount: (path) => countOpenFindings(findingsByPath.get(path)),
+    isHidden: (id) => hiddenIds.has(id),
+    onToggleHidden: toggleHidden,
     renderFinding: (id) => {
       const f = findingsById.get(id);
       if (!f) return null;
@@ -117,10 +139,19 @@ export function DiffTab({ prId, filesCount, files, canComment, headSha, reviews,
           </ul>
         </div>
       )}
-      {groups && (
+      {(groups || openFindingIds.length > 0) && (
         <div style={s.controls}>
-          <span style={s.hint}>{order === "smart" ? t("smartDiff.reviewerOrderedDiff") : ""}</span>
-          <OrderToggle order={order} onChange={setOrder} />
+          <span style={s.hint}>{groups && order === "smart" ? t("smartDiff.reviewerOrderedDiff") : ""}</span>
+          <span style={s.controlsRight}>
+            {groups && <OrderToggle order={order} onChange={setOrder} />}
+            {openFindingIds.length > 0 && (
+              <Button kind="ghost" size="sm" icon={allHidden ? "Eye" : "EyeOff"} onClick={toggleAllHidden}>
+                {t(allHidden ? "smartDiff.showFindings" : "smartDiff.hideFindings", {
+                  count: openFindingIds.length,
+                })}
+              </Button>
+            )}
+          </span>
         </div>
       )}
       {groups && order === "smart" ? (
