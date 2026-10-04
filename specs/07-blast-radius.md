@@ -48,7 +48,7 @@ without touching `pr_brief`), this spec reuses `BlastRadius` as the route's resp
 
 `mcp-server`'s `get_blast_radius` tool is currently an intentional stub — zero backend
 calls — specifically because no HTTP route exposes `RepoIntel.getBlastRadius` yet.
-`mcp-server/CLAUDE.md` and [06-mcp-server.md §3.5](06-mcp-server.md) both flag it as
+`mcp-server/AGENTS.md` and [06-mcp-server.md §3.5](06-mcp-server.md) both flag it as
 blocked on exactly this work.
 
 ## Scope
@@ -100,7 +100,7 @@ placing `IntentCard`/`BlastRadiusCard` side by side).
 
 **mcp-server**: `src/tools/get-blast-radius.ts` (edit — replace stub body + description),
 `src/tools/index.ts` (edit — handler signature), `test/tools/get-blast-radius.test.ts`
-(full rewrite — inverts the "fetch never called" assertion), `CLAUDE.md` (edit — remove
+(full rewrite — inverts the "fetch never called" assertion), `mcp-server/AGENTS.md` (edit — remove
 `get_blast_radius` from Do-not-touch), `specs/06-mcp-server.md §3.5` (minimal factual
 update — "no HTTP endpoint exists" becomes false).
 
@@ -119,9 +119,9 @@ update — "no HTTP endpoint exists" becomes false).
 - Root `CLAUDE.md` Do-not-touch: `server/src/vendor/shared` and `client/src/vendor/shared`
   are independent, unsynced copies — the `BlastCaller`/`BlastRadius` edits must be applied
   to both, by hand.
-- `mcp-server/CLAUDE.md`: no `@devdigest/shared` alias there — the real `get_blast_radius`
-  defines its own local `Raw...` interfaces mirroring the new route's response, same as
-  every other tool in that package. Tool descriptions and `tools/index.ts` registration
+- `mcp-server/AGENTS.md`: no `@devdigest/shared` alias there — the real `get_blast_radius`
+  defines its own local Zod schema (`BlastResponseSchema` in `src/api-schemas.ts`) mirroring
+  the new route's response, same as every other tool in that package. Tool descriptions and `tools/index.ts` registration
   order must stay byte-identical/stable except for this one deliberate, reviewed edit.
 
 ## Approach
@@ -196,14 +196,15 @@ already do. A stats row (symbol/caller/endpoint/cron counts, derived client-side
 ### mcp-server
 
 `get-blast-radius.ts`: replace the stub body with the `get-findings.ts` pattern —
-`resolveRepo` → `resolvePull` (handle `PullNotFoundError` the same way) →
-`http.get<RawBlastRadiusResponse>('/pulls/${pull.id}/blast')` → map to a concise result
+`resolveRepo` → `resolvePull` (a missing PR surfaces as `NotFoundError("pr", ...)` from
+`resolvePull`) → ``deps.api.get(`/pulls/${pathSegment(pull.id)}/blast`, opts)`` →
+`parseResponse("GET /pulls/:id/blast", BlastResponseSchema, ...)` → map to a concise result
 (`status`, `degraded_reason`, `changed_symbols`, `downstream: [{symbol, callers: [{file,
-line, rank}], endpoints_affected, crons_affected}]`). Local `Raw...` interfaces only.
-Rewrite `GET_BLAST_RADIUS_DESCRIPTION` as a new VERBATIM-marked real description (tone
-matches `GET_FINDINGS_DESCRIPTION`). `tools/index.ts` swaps
-`makeGetBlastRadiusHandler()` for `makeGetBlastRadiusHandler(http, apiBaseUrl)`, same
-position/order.
+line, rank}], endpoints_affected, crons_affected}]`). Local Zod schema in
+`src/api-schemas.ts` only; no http client import. Rewrite the module's exported plain
+`DESCRIPTION` as a new VERBATIM-marked real description (tone matches `get-findings.ts`'s
+`DESCRIPTION`). `tools/index.ts` swaps `makeGetBlastRadiusHandler()` for
+`makeGetBlastRadiusHandler(deps: ToolDeps)`, same position/order.
 
 ## Verification
 

@@ -1,0 +1,50 @@
+# MCP server suite — local stdio MCP server (@devdigest/mcp-server).
+# Typecheck + unit tests (vitest). Hermetic: no API, no DB — fetch is mocked and
+# the MCP protocol is exercised over an in-memory client/server transport.
+name: mcp-server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mcp-server/**'
+      - '.github/workflows/mcp-server.yml'
+  pull_request:
+    paths:
+      - 'mcp-server/**'
+      - '.github/workflows/mcp-server.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-server-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp-server
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mcp-server/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm test

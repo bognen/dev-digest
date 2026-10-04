@@ -7,7 +7,7 @@ Local-first AI PR review. Course overview + architecture diagram: [README.md](./
 > loads the same content — edit `AGENTS.md`, never the stub.
 
 ## Repo shape
-**Four standalone packages, no workspace** — each has its own `package.json` +
+**Five standalone packages, no workspace** — each has its own `package.json` +
 lockfile; cross-package code is shared via tsconfig path aliases, not published
 modules or a monorepo tool.
 
@@ -17,6 +17,7 @@ modules or a monorepo tool.
 | `client/` | `@devdigest/web` | Next.js 15 studio | 3000 | [client/AGENTS.md](./client/AGENTS.md) |
 | `reviewer-core/` | `@devdigest/reviewer-core` | Pure review engine | — | [reviewer-core/AGENTS.md](./reviewer-core/AGENTS.md) |
 | `e2e/` | `@devdigest/e2e` | Browser e2e (agent-browser) | — | [e2e/AGENTS.md](./e2e/AGENTS.md) |
+| `mcp-server/` | `@devdigest/mcp-server` | Local stdio MCP server (HTTP client of the API) | stdio | [mcp-server/AGENTS.md](./mcp-server/AGENTS.md) |
 
 `repo-intel` (codebase indexer) lives inside `server/`:
 [server/src/modules/repo-intel/AGENTS.md](./server/src/modules/repo-intel/AGENTS.md).
@@ -29,7 +30,7 @@ launches API (:3001) + web (:3000). Flags: `--no-seed` `--no-client` `--db-only`
 Only Postgres runs in Docker; API and web run on the host.
 
 ## Non-default conventions
-- **Node ≥22, pnpm ≥10** for `server/`/`client/`; `reviewer-core/`/`e2e/` use npm.
+- **Node ≥22, pnpm ≥10** for `server/`/`client/`/`mcp-server/`; `reviewer-core/`/`e2e/` use npm.
 - **Migrations never run on boot** — `cd server && pnpm db:migrate` after every
   pull that touches the schema.
 - Shared Zod contracts (`@devdigest/shared`) are **vendored separately** into both
@@ -47,5 +48,6 @@ Only Postgres runs in Docker; API and web run on the host.
 [README](./README.md) · [TESTING.md](./TESTING.md) ·
 [server](./server/AGENTS.md) · [client](./client/AGENTS.md) ·
 [reviewer-core](./reviewer-core/AGENTS.md) · [e2e](./e2e/AGENTS.md) ·
+[mcp-server](./mcp-server/AGENTS.md) ·
 [repo-intel](./server/src/modules/repo-intel/AGENTS.md) ·
 [agent-prompts](./docs/agent-prompts/AGENTS.md)

@@ -1,6 +1,6 @@
 # Testing & CI strategy
 
-DevDigest is four independent packages (no workspace), so testing is organised
+DevDigest is five independent packages (no workspace), so testing is organised
 as **one suite per package**, each with its own CI workflow, runner, and path
 filter. A package's suite runs only when that package (or a package it depends
 on at type-check time) changes.
@@ -31,6 +31,7 @@ If a test wouldn't catch a class of regression we care about, we don't write it.
 | server-integration | `server/` | integration (real Postgres) | vitest | `server-integration.yml` | **yes** |
 | reviewer-core | `reviewer-core/` | unit (engine) | vitest | `reviewer-core.yml` | no |
 | e2e web | `e2e/` | browser e2e (deterministic) | agent-browser + `run.ts` | `e2e-web.yml` | yes (stack) |
+| mcp-server | `mcp-server/` | unit (mocked fetch, in-memory MCP client) | vitest | `mcp-server.yml` | no |
 
 ## What each suite covers
 
@@ -56,12 +57,18 @@ and a `run` with a stubbed model → grounded findings. No DB / GitHub / FS.
 main journeys (boot → PR list → PR detail; agents) against a real seeded stack.
 No `chat`, no model key.
 
+**mcp-server** — the stdio MCP server's config, API-client error mapping,
+repo/PR/agent resolution, response shaping and wait logic, plus a server-contract
+test that drives the 5 tools through an in-memory MCP client (verbatim
+descriptions, fixed order, token budgets). `fetch` is mocked; no API or DB.
+
 ## Running locally
 
 ```sh
 # per package
 cd client        && pnpm test           # + pnpm typecheck
 cd reviewer-core && npm test
+cd mcp-server    && pnpm test           # + pnpm typecheck
 
 # server — the unit/integration split (see note below)
 cd server && pnpm exec vitest run --exclude '**/*.it.test.ts'   # unit, no Docker
