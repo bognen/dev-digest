@@ -107,6 +107,100 @@ export default class Defaulted {}
     expect(hidden?.exported).toBe(true);
   });
 
+  describe('identifier-form exports promote the class and its methods by line range', () => {
+    const rows = (src: string) => parseSymbols('src/x.ts', src);
+    const exportedOf = (src: string) =>
+      Object.fromEntries(rows(src).map((s) => [`${s.name}@${s.line}`, s.exported]));
+
+    it('`export default Locals;` exports the class and all its methods (qualified and bare)', () => {
+      const src = 'class Locals { static config() {} static init() {} }\nexport default Locals;\n';
+      const syms = rows(src);
+      for (const name of ['Locals', 'Locals.config', 'config', 'Locals.init', 'init']) {
+        const row = syms.find((s) => s.name === name);
+        expect(row, name).toBeDefined();
+        expect(row!.exported, name).toBe(true);
+      }
+    });
+
+    it('multi-line `export default Locals;` exports the class and all its methods', () => {
+      const src = 'class Locals {\n  static config() {}\n  static init() {}\n}\nexport default Locals;\n';
+      const syms = rows(src);
+      for (const name of ['Locals', 'Locals.config', 'config', 'Locals.init', 'init']) {
+        expect(syms.find((s) => s.name === name)?.exported, name).toBe(true);
+      }
+    });
+
+    it('promotes by class range, not by name: sibling class with same method names stays private', () => {
+      const src = [
+        'class A {',
+        '  run() {}',
+        '}',
+        'class B {',
+        '  run() {}',
+        '}',
+        'export default A;',
+        '',
+      ].join('\n');
+      const byKey = exportedOf(src);
+      expect(byKey['A@1']).toBe(true);
+      expect(byKey['A.run@2']).toBe(true);
+      expect(byKey['run@2']).toBe(true);
+      expect(byKey['B@4']).toBe(false);
+      expect(byKey['B.run@5']).toBe(false);
+      expect(byKey['run@5']).toBe(false);
+    });
+
+    it('`export { Locals };` exports the class and all its methods', () => {
+      const src = 'class Locals { static config() {} static init() {} }\nexport { Locals };\n';
+      const syms = rows(src);
+      for (const name of ['Locals', 'Locals.config', 'config', 'Locals.init', 'init']) {
+        expect(syms.find((s) => s.name === name)?.exported, name).toBe(true);
+      }
+    });
+
+    it('`export default somethingElse;` leaves an unrelated class and its methods private', () => {
+      const src = 'class Foo { m() {} }\nexport default somethingElse;\n';
+      const syms = rows(src);
+      expect(syms.length).toBeGreaterThan(0);
+      for (const s of syms) expect(s.exported, s.name).toBe(false);
+    });
+
+    it('`export { Foo as Bar };` still exports Foo and its methods', () => {
+      const src = 'class Foo { m() {} }\nexport { Foo as Bar };\n';
+      const syms = rows(src);
+      for (const name of ['Foo', 'Foo.m', 'm']) {
+        expect(syms.find((s) => s.name === name)?.exported, name).toBe(true);
+      }
+    });
+
+    it('`export default foo;` exports function and arrow-const declarations', () => {
+      const fn = rows('function foo() {}\nexport default foo;\n');
+      expect(fn.find((s) => s.name === 'foo')?.exported).toBe(true);
+      const arrow = rows('const f = () => {};\nexport default f;\n');
+      expect(arrow.find((s) => s.name === 'f')?.exported).toBe(true);
+    });
+
+    it('regression: inline export forms stay exported with unchanged row counts', () => {
+      const cls = rows('export default class Foo { m() {} }\n');
+      expect(cls.map((s) => s.name).sort()).toEqual(['Foo', 'Foo.m', 'm']);
+      expect(cls.every((s) => s.exported)).toBe(true);
+
+      const fn = rows('export default function foo() {}\n');
+      expect(fn.map((s) => s.name)).toEqual(['foo']);
+      expect(fn[0]!.exported).toBe(true);
+
+      const named = rows('export class Foo {}\n');
+      expect(named.map((s) => s.name)).toEqual(['Foo']);
+      expect(named[0]!.exported).toBe(true);
+    });
+
+    it('a non-exported class with no export statement keeps every row private', () => {
+      const syms = rows('class Foo { m() {} }\n');
+      expect(syms.map((s) => s.name).sort()).toEqual(['Foo', 'Foo.m', 'm']);
+      expect(syms.every((s) => s.exported === false)).toBe(true);
+    });
+  });
+
   it('trims signatures to MAX_SIGNATURE_CHARS', () => {
     const longTypeParams = 'A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X';
     const longArgs = 'a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number';

@@ -16,6 +16,7 @@
  * Docker-gated, self-skips without a reachable daemon (see helpers/pg.ts).
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { startPg, dockerAvailable, type PgFixture } from './helpers/pg.js';
 import { seed } from '../src/db/seed.js';
 import * as t from '../src/db/schema.js';
@@ -117,6 +118,55 @@ d('RepoIntelService.getBlastRadius — persistent-index fixes', () => {
     expect(result.callers).toHaveLength(1);
     expect(result.callers[0]!.file).toBe(callerFile);
     expect(result.callers[0]!.viaSymbol).toBe('helper');
+  });
+
+  it('re-locates callers on the PR head: shifted lines are corrected and every call line is kept', async () => {
+    const repoId = await makeRepo('head-relocation');
+    await pg.handle.db.update(t.repos).set({ clonePath: '/mock/clones/acme/head-relocation' }).where(eq(t.repos.id, repoId));
+    const declFile = 'src/utils/helper.ts';
+    const callerFile = 'src/providers/App.ts';
+
+    await repo.insertSymbols([
+      { repoId, path: declFile, name: 'helper', kind: 'function', line: 1, endLine: 3, exported: true, signature: 'function helper()', contentHash: 'h1' },
+    ]);
+    await repo.replaceEdges(repoId, [{ fromFile: callerFile, toFile: declFile }]);
+    // Indexed (default-branch) line: 33. On the PR head the call is on 2 lines, 4 and 5.
+    await repo.insertReferences([{ repoId, fromPath: callerFile, toSymbol: 'helper', line: 33, contentHash: 'r1' }]);
+    await repo.resolveReferences(repoId, { reset: true });
+    await repo.replaceFileRank(repoId, [{ filePath: callerFile, pagerank: 1, hotness: 0, rank: 1, percentile: 50 }]);
+    await markIndexed(repoId);
+
+    const headSource = [
+      'export function boot() {',
+      '  const x = 1;',
+      '',
+      '  helper(x);',
+      '  helper(x + 1);',
+      '}',
+      '',
+    ].join('\n');
+    const git = {
+      hasCommit: async () => true,
+      fetchPullHead: async () => {},
+      readFileAtRef: async (_r: unknown, _sha: string, path: string) => (path === callerFile ? headSource : null),
+    };
+    const svc = new RepoIntelService({ config: { repoIntelEnabled: true }, db: pg.handle.db, git } as unknown as Container);
+
+    const result = await svc.getBlastRadius(repoId, [declFile], { sha: 'headsha', prNumber: 1 });
+
+    expect(result.callers.map((c) => c.line).sort()).toEqual([4, 5]);
+    expect(result.callers.every((c) => c.symbol === 'boot')).toBe(true);
+
+    // File removed by the PR → its callers disappear.
+    const gone = new RepoIntelService({
+      config: { repoIntelEnabled: true },
+      db: pg.handle.db,
+      git: { ...git, readFileAtRef: async () => null },
+    } as unknown as Container);
+    expect((await gone.getBlastRadius(repoId, [declFile], { sha: 'headsha', prNumber: 1 })).callers).toHaveLength(0);
+
+    // No head ref → indexed lines, unchanged behaviour.
+    expect((await service.getBlastRadius(repoId, [declFile])).callers.map((c) => c.line)).toEqual([33]);
   });
 
   it('caps callers PER changed symbol, so a hot symbol cannot starve another symbol of slots', async () => {

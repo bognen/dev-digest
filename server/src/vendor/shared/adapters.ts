@@ -224,6 +224,13 @@ export interface GitClient {
   blame(repo: RepoRef, path: string): Promise<BlameLine[]>;
   log(repo: RepoRef, path?: string): Promise<GitCommit[]>;
   readFile(repo: RepoRef, path: string): Promise<string>;
+  /** True when `sha` is present in the local clone's object store. */
+  hasCommit(repo: RepoRef, sha: string): Promise<boolean>;
+  /**
+   * File content at a specific commit (`git show <ref>:<path>`) without moving
+   * the working tree. `null` when the path doesn't exist at that commit.
+   */
+  readFileAtRef(repo: RepoRef, ref: string, path: string): Promise<string | null>;
   clonePathFor(repo: RepoRef): string;
 }
 

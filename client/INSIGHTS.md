@@ -16,6 +16,10 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-05 — Blast graph is a hand-laid-out inline SVG; label truncation and layout are pure helpers
+
+BlastGraph (BlastRadiusCard/BlastGraph/) uses no chart/graph lib: `buildGraphLayout` in helpers.ts computes 3-column coordinates, caller cap is `MAX_GRAPH_CALLERS` (client-owned, not the server limit). SVG <a> links need `rel=noopener noreferrer`; the Tree view stays the default and the toggle is hidden when there are no rows.
+
 ### 2026-09-30 — Inline findings reach the shared diff-viewer through a render prop
 `src/components/diff-viewer` must not import a route's `_components` (FindingCard lives in the PR route), so it takes `DiffFindingApi { anchorsFor, hasOpenFindings, renderFinding(id) }` and the route (`DiffTab`) supplies the card. Anchoring mirrors `partitionThreads`: key `RIGHT:<start_line>`, unmatched ones render in a "Findings outside the visible diff" block (`diff-viewer/findings.ts`).
 
@@ -278,6 +282,9 @@ Browsers and Node have them, jsdom (vitest env) doesn't, so `extractSkillFile` (
 Seen while writing `extract.ts`: an escape written into a regex/string landed as a real NUL in the file. Grep for it after generating text-processing code: `grep -rlP '\x00' src`.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-05 — Agent edits turned em dashes into raw 0x97 bytes and flipped CRLF to LF
+While building the Blast Radius card, an implementer pass wrote cp1252 `0x97` instead of UTF-8 `E2 80 94` into `BlastRadiusCard/constants.ts` (banner text rendered as a replacement character, invisible to typecheck and vitest) and the `Edit` tool silently converted CRLF files to LF. After any agent edits a file with non-ASCII text, run `LC_ALL=C grep -c $'\x97' <file>` and `git diff --stat` for whole-file line-ending churn; fix by rewriting the bytes, not the text.
 
 ### 2026-09-20 — Skill Config tab's Save wrote a stale `enabled` back over a toggle flipped elsewhere
 Three surfaces edit `skills.enabled`: the `/skills` list toggle and side-panel toggle (both PUT `{enabled}` immediately) and the Config tab, which copies it into local state once per `skill.id` and always sends it on Save. Enabling from the list and then saving the open Config tab re-disabled the skill (`test-coverage-nudge` sat at `enabled=f, version=3`). Fixed with a second effect keyed on `skill.enabled` in `SkillConfigTab.tsx`. Any form that holds a server-owned flag in local state AND sends it on save needs this re-sync. Related: the agent Skills tab's "N of M enabled" counts `agent_skills` links, not `skills.enabled`, so a globally disabled skill still counts.

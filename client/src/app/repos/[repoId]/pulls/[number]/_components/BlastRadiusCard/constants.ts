@@ -1,35 +1,51 @@
 import type { BlastIndexStatus } from "@/lib/hooks/blast-radius";
 
+/** Message keys (under the `blast` namespace) for the non-blocking index banner. */
+export type BlastBannerKey =
+  | "banner.partial"
+  | "banner.degraded"
+  | "banner.failed"
+  | "banner.reasonOnly"
+  | "banner.unsupportedLanguage";
+
 /**
- * Non-blocking banner copy per index status — distinct wording per state, shown
- * ABOVE the (still real, just incomplete) results rather than masking them
- * behind a blocking screen. `full`/`failed` render no banner here — `failed`
- * has no separate copy in v1 (specs/07-blast-radius.md only calls out
- * `partial`/`degraded`).
+ * Non-blocking banner message key per index status — distinct wording per state,
+ * shown ABOVE the (still real, just incomplete) results rather than masking them
+ * behind a blocking screen. `full` has no status copy of its own; it only gets
+ * a banner when a `degradedReason` is present (see `blastBanner`).
  */
-export const STATUS_BANNER: Partial<Record<BlastIndexStatus, string>> = {
-  partial:
-    "This repo's index is only partially built — some callers or impacted endpoints may be missing.",
-  degraded:
-    "This repo's index isn't available yet — showing a best-effort, less precise blast radius.",
+export const STATUS_BANNER: Partial<Record<BlastIndexStatus, BlastBannerKey>> = {
+  partial: "banner.partial",
+  degraded: "banner.degraded",
+  failed: "banner.failed",
 };
 
-/**
- * Banner shown above the list. A `partial` index that reports `no_data` means the
- * indexer parsed ZERO files — the repo's language isn't covered by the code index
- * (it only parses TypeScript/JavaScript) — so the results come from the
- * best-effort file scan. That gets its own plain wording and no internal reason
- * code; every other state keeps its status copy plus the reason.
- */
-export const UNSUPPORTED_LANGUAGE_BANNER =
-  "Best-effort scan — this repo's language isn't covered by the code index, so some callers or endpoints may be missing.";
+/** Fallback key for a reason reported on a `full` index. */
+export const REASON_ONLY_BANNER: BlastBannerKey = "banner.reasonOnly";
 
+/**
+ * Key for a `partial` index that reports `no_data`: the indexer parsed ZERO files,
+ * so the repo's language isn't covered by the code index (it only parses
+ * TypeScript/JavaScript) and the results come from the best-effort file scan.
+ */
+export const UNSUPPORTED_LANGUAGE_BANNER: BlastBannerKey = "banner.unsupportedLanguage";
+
+/**
+ * Banner shown above the list, as a message key (the component renders it via
+ * `t`). The unsupported-language case gets its own plain wording and no internal
+ * reason code; every other state keeps its status copy plus the reason.
+ */
 export function blastBanner(
   status: BlastIndexStatus,
   degradedReason?: string,
-): { text: string; reason?: string } | null {
-  if (status === "partial" && degradedReason === "no_data") return { text: UNSUPPORTED_LANGUAGE_BANNER };
-  const text = STATUS_BANNER[status];
-  if (!text) return null;
-  return degradedReason ? { text, reason: degradedReason } : { text };
+): { key: BlastBannerKey; reason?: string } | null {
+  if (status === "partial" && degradedReason === "no_data") return { key: UNSUPPORTED_LANGUAGE_BANNER };
+  const key = STATUS_BANNER[status] ?? (degradedReason ? REASON_ONLY_BANNER : undefined);
+  if (!key) return null;
+  return degradedReason ? { key, reason: degradedReason } : { key };
 }
+
+/** Card views, in toggle order. `tree` is the default. */
+export const BLAST_VIEWS = ["tree", "graph"] as const;
+export type BlastView = (typeof BLAST_VIEWS)[number];
+export const DEFAULT_BLAST_VIEW: BlastView = "tree";

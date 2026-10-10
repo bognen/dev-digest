@@ -1,6 +1,7 @@
-import type { BlastRadius } from '@devdigest/shared';
+import type { BlastRadiusResponse } from '@devdigest/shared';
 import { NotFoundError } from '../../platform/errors.js';
-import type { BlastCallerRow, BlastResult, DegradedReason, IndexStatus, RepoIntel } from '../repo-intel/types.js';
+import type { DegradedReason, IndexStatus, RepoIntel } from '../repo-intel/types.js';
+import { toBlastRadius } from './helpers.js';
 
 /**
  * What blast needs from the PR/file side — declared HERE, not imported from
@@ -16,15 +17,25 @@ import type { BlastCallerRow, BlastResult, DegradedReason, IndexStatus, RepoInte
  * directly from `repo-intel/types.ts` below rather than re-declared here.
  */
 export interface PrFileLookup {
-  getPull(workspaceId: string, prId: string): Promise<{ id: string; repoId: string } | undefined>;
+  getPull(
+    workspaceId: string,
+    prId: string,
+  ): Promise<{ id: string; repoId: string; number: number; headSha: string } | undefined>;
   getPrFiles(prId: string): Promise<{ path: string }[]>;
 }
 
-/** `GET /pulls/:id/blast` response envelope (specs/07-blast-radius.md §API). */
-export interface BlastEnvelope {
-  status: IndexStatus;
-  degradedReason?: DegradedReason;
-  data: BlastRadius;
+/**
+ * Compile-time guard: repo-intel's status/reason unions must stay assignable
+ * to the wire contract in `@devdigest/shared` (the shared kernel owns the
+ * envelope; repo-intel owns the vocabulary).
+ */
+type _StatusAssignable = IndexStatus extends BlastRadiusResponse['status'] ? true : never;
+type _ReasonAssignable = DegradedReason extends NonNullable<BlastRadiusResponse['degradedReason']> ? true : never;
+export type BlastContractCheck = [_StatusAssignable, _ReasonAssignable];
+
+/** Minimal structural logger (Fastify's `req.log` satisfies it). */
+export interface BlastLog {
+  info(obj: object, msg: string): void;
 }
 
 /**
@@ -37,7 +48,11 @@ export class BlastService {
     private repoIntel: RepoIntel,
   ) {}
 
-  async getBlast(workspaceId: string, prId: string): Promise<BlastEnvelope> {
+  async getBlast(
+    workspaceId: string,
+    prId: string,
+    opts?: { log?: BlastLog },
+  ): Promise<BlastRadiusResponse> {
     const pull = await this.prFiles.getPull(workspaceId, prId);
     if (!pull) throw new NotFoundError('Pull request not found');
 
@@ -45,58 +60,31 @@ export class BlastService {
     const paths = files.map((f) => f.path);
 
     const [blast, indexState] = await Promise.all([
-      this.repoIntel.getBlastRadius(pull.repoId, paths),
+      this.repoIntel.getBlastRadius(pull.repoId, paths, { sha: pull.headSha, prNumber: pull.number }),
       this.repoIntel.getIndexState(pull.repoId),
     ]);
 
-    const envelope: BlastEnvelope = {
+    const data = toBlastRadius(blast);
+    const envelope: BlastRadiusResponse = {
       status: indexState.status,
-      data: toBlastRadius(blast),
+      data,
     };
     const degradedReason = blast.reason ?? indexState.degradedReason;
     if (degradedReason) envelope.degradedReason = degradedReason;
+    // Counts/ids only — never file contents.
+    opts?.log?.info(
+      {
+        prId,
+        repoId: pull.repoId,
+        changedFiles: paths.length,
+        source: blast.degraded ? 'fallback' : 'index',
+        status: envelope.status,
+        degradedReason,
+        symbols: data.changed_symbols.length,
+        callers: data.downstream.reduce((n, g) => n + g.callers.length, 0),
+      },
+      'blast radius computed',
+    );
     return envelope;
   }
-}
-
-/**
- * Pure mapper: groups the flat `callers[]` into `downstream[]` by `viaSymbol`,
- * attaching each group's `endpoints_affected`/`crons_affected` from the facts
- * of that group's OWN caller files (`factsByFile` is keyed by caller file —
- * see `repo-intel/types.ts`'s `BlastResult.factsByFile` doc comment). No LLM
- * call, so `summary` is left unset (contract has it as `.nullish()`).
- */
-function toBlastRadius(result: BlastResult): BlastRadius {
-  const changed_symbols = result.changedSymbols.map((s) => ({
-    name: s.name,
-    file: s.file,
-    kind: s.kind,
-  }));
-
-  const byViaSymbol = new Map<string, BlastCallerRow[]>();
-  for (const c of result.callers) {
-    const arr = byViaSymbol.get(c.viaSymbol);
-    if (arr) arr.push(c);
-    else byViaSymbol.set(c.viaSymbol, [c]);
-  }
-
-  const facts = result.factsByFile ?? {};
-  const downstream = [...byViaSymbol.entries()].map(([symbol, callers]) => {
-    const endpoints = new Set<string>();
-    const crons = new Set<string>();
-    for (const c of callers) {
-      const f = facts[c.file];
-      if (!f) continue;
-      for (const e of f.endpoints) endpoints.add(e);
-      for (const cr of f.crons) crons.add(cr);
-    }
-    return {
-      symbol,
-      callers: callers.map((c) => ({ name: c.symbol, file: c.file, line: c.line, rank: c.rank })),
-      endpoints_affected: [...endpoints],
-      crons_affected: [...crons],
-    };
-  });
-
-  return { changed_symbols, downstream };
 }

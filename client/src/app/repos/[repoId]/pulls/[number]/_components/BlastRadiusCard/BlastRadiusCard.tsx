@@ -11,10 +11,13 @@
 "use client";
 
 import React from "react";
-import { SectionLabel, Badge, MonoLink, EmptyState, Skeleton, Icon } from "@devdigest/ui";
+import { useTranslations } from "next-intl";
+import { SectionLabel, Badge, MonoLink, EmptyState, Skeleton, Icon, IconBtn, Modal } from "@devdigest/ui";
 import { useBlastRadius } from "@/lib/hooks/blast-radius";
 import { githubBlobUrl } from "@/lib/github-urls";
-import { blastBanner } from "./constants";
+import { BlastGraph } from "./BlastGraph";
+import { ViewToggle } from "./ViewToggle";
+import { blastBanner, DEFAULT_BLAST_VIEW, type BlastView } from "./constants";
 import { s } from "./styles";
 
 interface BlastRadiusCardProps {
@@ -24,14 +27,14 @@ interface BlastRadiusCardProps {
 }
 
 export function BlastRadiusCard({ prId, repoFullName, headSha }: BlastRadiusCardProps) {
+  const t = useTranslations("blast");
   const { data: envelope, isLoading } = useBlastRadius(prId);
   const [open, setOpen] = React.useState<Set<string>>(new Set());
+  const [modalOpen, setModalOpen] = React.useState(false);
+  const [view, setView] = React.useState<BlastView>(DEFAULT_BLAST_VIEW);
 
-  const label = (
-    <div style={s.labelRow}>
-      <SectionLabel icon="GitBranch">Blast Radius</SectionLabel>
-    </div>
-  );
+  const title = <SectionLabel icon="GitBranch">Blast Radius</SectionLabel>;
+  const label = <div style={s.labelRow}>{title}</div>;
 
   if (isLoading || !envelope) {
     return (
@@ -77,16 +80,13 @@ export function BlastRadiusCard({ prId, repoFullName, headSha }: BlastRadiusCard
       return next;
     });
 
-  return (
-    <section style={s.root}>
-      {label}
-
-      <div style={s.panel}>
+  const renderContent = (expanded: boolean) => (
+    <>
         {banner && (
           <div style={s.banner} role="status">
             <Icon.AlertTriangle size={13} style={{ color: "var(--warn)", flexShrink: 0, marginTop: 2 }} />
             <span>
-              {banner.text}
+              {t(banner.key)}
               {banner.reason ? ` (${banner.reason})` : ""}
             </span>
           </div>
@@ -101,25 +101,27 @@ export function BlastRadiusCard({ prId, repoFullName, headSha }: BlastRadiusCard
         ) : (
           <>
             <div style={s.statsLine}>
-              <span>
-                {rows.length} symbol{rows.length === 1 ? "" : "s"}
-              </span>
-              <span>
-                {callerCount} caller{callerCount === 1 ? "" : "s"}
-              </span>
-              {endpointCount > 0 && (
-                <span style={s.statAccent}>
-                  {endpointCount} endpoint{endpointCount === 1 ? "" : "s"}
-                </span>
-              )}
-              {cronCount > 0 && (
-                <span>
-                  {cronCount} cron{cronCount === 1 ? "" : "s"}
-                </span>
-              )}
+              <span>{t("stat.symbols", { count: rows.length })}</span>
+              <span>{t("stat.callers", { count: callerCount })}</span>
+              {endpointCount > 0 && <span style={s.statAccent}>{t("stat.endpoints", { count: endpointCount })}</span>}
+              {cronCount > 0 && <span>{t("stat.crons", { count: cronCount })}</span>}
             </div>
 
-            <ul style={s.list}>
+            {callerCount === 0 && (
+              <div style={s.statsLine} role="status">
+                {t("noDownstream", { count: rows.length })}
+              </div>
+            )}
+
+            {view === "graph" ? (
+              <BlastGraph
+                expanded={expanded}
+                symbols={rows.map((r) => ({ key: r.key, name: r.name, group: r.group }))}
+                repoFullName={repoFullName}
+                headSha={headSha}
+              />
+            ) : (
+            <ul style={expanded ? s.listExpanded : s.list}>
               {rows.map((row) => {
                 const callers = row.group?.callers ?? [];
                 const expandable = callers.length > 0;
@@ -139,7 +141,7 @@ export function BlastRadiusCard({ prId, repoFullName, headSha }: BlastRadiusCard
                         {row.name}
                       </span>
                       <span style={s.callerCount}>
-                        {callers.length} caller{callers.length === 1 ? "" : "s"}
+                        {t("callerCount", { count: callers.length })}
                       </span>
                     </button>
 
@@ -183,9 +185,33 @@ export function BlastRadiusCard({ prId, repoFullName, headSha }: BlastRadiusCard
                 );
               })}
             </ul>
+            )}
           </>
         )}
-      </div>
+    </>
+  );
+
+  return (
+    <section style={s.root}>
+      {rows.length > 0 ? (
+        <div style={s.labelRow}>
+          {title}
+          <div style={s.labelActions}>
+            <ViewToggle value={view} onChange={setView} />
+            <IconBtn icon="Maximize2" label={t("expand")} size={26} onClick={() => setModalOpen(true)} />
+          </div>
+        </div>
+      ) : (
+        label
+      )}
+
+      <div style={s.panel}>{renderContent(false)}</div>
+
+      {modalOpen && (
+        <Modal width={1100} title="Blast Radius" onClose={() => setModalOpen(false)}>
+          <div style={s.modalBody}>{renderContent(true)}</div>
+        </Modal>
+      )}
     </section>
   );
 }
