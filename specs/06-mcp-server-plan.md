@@ -28,9 +28,9 @@ answer to Q1 changes the conventions source; otherwise it is final.
 
 | Tool | Description (verbatim) |
 |---|---|
-| `list_agents` | List configured DevDigest reviewer agents (id, name, model). Call this first to get a valid `agent` for run_agent_on_pr / get_findings. |
+| `list_agents` | List configured DevDigest reviewer agents (id, name, description, model, enabled). Call this first to get a valid `agent` for run_agent_on_pr / get_findings. |
 | `run_agent_on_pr` | Run one reviewer agent on a PR and WAIT for it to finish (often 1–4 min; spends LLM credits). Returns {verdict, score, findings[]}. Reuses an in-flight run of the same agent. The only tool that writes. Use get_findings to re-read results. |
-| `get_findings` | Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions. |
+| `get_findings` | Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions. all_runs=true returns every run, not only the latest per agent. |
 | `get_conventions` | Accepted house conventions for a repo (the repo-conventions from the DevDigest Conventions scan, L02). Read-only. Use them when writing or reviewing code in that repo. |
 | `get_blast_radius` | Impact map for a PR from the DevDigest code index: changed symbols, their callers (file:line), and the HTTP endpoints/crons that depend on them. Read-only, no LLM, no cost. Returns status/degraded_reason when the index is incomplete. |
 
@@ -95,7 +95,7 @@ Common flat args: `repo` string (owner/name; bare name allowed if unique), `pr` 
 `resolveAgent` via `GET /agents` (id exact, else name case-insensitive exact; resolve BEFORE POST because
 `RunRequest.agentId` is unvalidated). Disabled agents allowed (flagged `agent_enabled:false`). No caching in v1.
 
-**list_agents** — `include_disabled?`. `GET /agents`. Returns `{agents:[{id,name,description<=140,provider,model,enabled}], count, hidden_disabled}`; strips `system_prompt`, `output_schema`. Empty = hint, not error. readOnly/idempotent.
+**list_agents** — `include_disabled?`. `GET /agents`. Returns `{agents:[{id,name,description<=140,model,enabled}], count, hidden_disabled}`; strips `system_prompt`, `output_schema`. Empty = hint, not error. readOnly/idempotent.
 
 **run_agent_on_pr** — `repo, pr, agent`. Algorithm: resolve -> `GET /pulls/:id/runs/active`, reuse same-agent in-flight run
 (`reused_active_run:true`) else `POST /pulls/:id/review {agentId}` (no auto-retry; spends credits) -> `waitForRun`
@@ -105,9 +105,9 @@ but does NOT cancel server run) -> on `done` `GET /pulls/:id/reviews`, match `ru
 -> concise shape. Deadline reached = NOT an error: `{status:"running", run_id, agent, waited_s, hint:"Still running. Call get_findings with repo, pr and run_id=<id> in ~1 min."}`.
 README: set `MCP_TOOL_TIMEOUT` >= `DEVDIGEST_RUN_WAIT_MS` + 30s. Annotations: readOnlyHint:false, destructiveHint:false, idempotentHint:false, openWorldHint:true.
 
-**get_findings** — `repo, pr, agent?, run_id?(uuid), detail?(concise|full), limit?(1..50, default 20)`. Selection: `run_id` > `agent`
-(newest) > latest-per-agent (server INSIGHTS 2026-09-18; null agent_id kept separately). Missing run explained via `/runs`
-(running / failed / not on PR). Output: `{repo, pr, verdict, score, counts, findings:[{severity,category,title,file,line,end_line?,agent?}], truncated, hidden_dismissed}`;
+**get_findings** — `repo, pr, agent?, run_id?(uuid), all_runs?(boolean), detail?(concise|full), limit?(1..50, default 20)`. Selection: `run_id` > `agent`
+(newest) > latest-per-agent; `all_runs=true` keeps every run (newest first, each finding carries `run_id`) instead of latest-per-agent (server INSIGHTS 2026-09-18; null agent_id kept separately). Missing run explained via `/runs`
+(running / failed / not on PR). Output: `{repo, pr, runs? (all_runs only), verdict, score, counts, total_findings (all active findings before limit), findings:[{severity,category,title,file,line,end_line?,agent?,run_id?}], truncated, hidden_dismissed}`;
 overall verdict = worst, score = min; sorted CRITICAL>WARNING>SUGGESTION then file/line; dismissed hidden + counted.
 `full` adds id, rationale(<=600), suggestion(<=400). Implementer must check what produces `kind='summary'` rows (Q8). readOnly/idempotent.
 

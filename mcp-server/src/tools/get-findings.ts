@@ -26,13 +26,14 @@ export const NAME = "get_findings";
 
 // VERBATIM
 export const DESCRIPTION =
-  "Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions.";
+  "Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions. all_runs=true returns every run, not only the latest per agent.";
 
 export const inputSchema = z.object({
   repo: repoParam,
   pr: prParam,
   agent: agentParam.optional(),
   run_id: z.string().uuid().optional().describe("Run id from run_agent_on_pr (narrows to that run)"),
+  all_runs: z.boolean().optional().describe("Include every run, not only the latest per agent"),
   detail: z.enum(["concise", "full"]).optional().describe("full adds id, rationale, suggestion"),
   limit: z.coerce.number().int().min(1).max(50).optional().describe("Max findings, 1-50 (default 20)"),
 });
@@ -90,6 +91,10 @@ export function makeGetFindingsHandler(deps: ToolDeps) {
           parseResponse("GET /pulls/:id/runs", RunSummariesSchema, await deps.api.get(`${pullPath}/runs`, opts)),
         );
 
+      // all_runs keeps every review (newest first); default keeps the latest per agent.
+      const pick = (rows: readonly ApiReview[]): ApiReview[] =>
+        args.all_runs ? [...rows].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)) : latestPerAgent(rows);
+
       let selected: ApiReview[];
       if (args.run_id !== undefined) {
         selected = reviews.filter((r) => r.run_id === args.run_id);
@@ -103,7 +108,7 @@ export function makeGetFindingsHandler(deps: ToolDeps) {
         }
       } else if (args.agent !== undefined) {
         const agent = await resolveAgent(deps.api, args.agent, opts);
-        selected = latestPerAgent(reviews.filter((r) => r.agent_id === agent.id));
+        selected = pick(reviews.filter((r) => r.agent_id === agent.id));
         if (selected.length === 0) {
           const run = (await loadRuns()).find((r) => r.agent_id === agent.id);
           return toolError(
@@ -113,7 +118,7 @@ export function makeGetFindingsHandler(deps: ToolDeps) {
           );
         }
       } else {
-        selected = latestPerAgent(reviews);
+        selected = pick(reviews);
         if (selected.length === 0) {
           const running = (await loadRuns()).find((r) => r.status === "running");
           return toolError(
@@ -128,8 +133,17 @@ export function makeGetFindingsHandler(deps: ToolDeps) {
         detail: args.detail ?? "concise",
         limit: args.limit ?? MAX_FINDINGS_DEFAULT,
         withAgent: selected.length > 1,
+        withRun: args.all_runs === true && args.run_id === undefined,
       });
-      return cappedResult({ repo: cleanField(repo.fullName, FILE_MAX), pr: pull.number, ...shaped }, "findings");
+      return cappedResult(
+        {
+          repo: cleanField(repo.fullName, FILE_MAX),
+          pr: pull.number,
+          ...(args.all_runs && args.run_id === undefined ? { runs: selected.length } : {}),
+          ...shaped,
+        },
+        "findings",
+      );
     },
   );
 }

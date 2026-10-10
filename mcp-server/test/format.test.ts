@@ -110,7 +110,7 @@ describe("agent and convention shaping", () => {
       system_prompt: "SECRET PROMPT",
     } as ApiAgent;
     const out = toConciseAgent(raw);
-    expect(Object.keys(out).sort()).toEqual(["description", "enabled", "id", "model", "name", "provider"]);
+    expect(Object.keys(out).sort()).toEqual(["description", "enabled", "id", "model", "name"]);
     expect(out.description).toHaveLength(140);
     expect(toConciseAgent({ ...raw, description: null }).description).toBe("");
   });

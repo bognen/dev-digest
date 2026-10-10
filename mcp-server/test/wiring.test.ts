@@ -33,7 +33,7 @@ describe("createServer wiring", () => {
     const res = await client.callTool({ name: "list_agents", arguments: {} });
     const text = (res.content as { text: string }[])[0]!.text;
     expect(JSON.parse(text).agents).toEqual([
-      { id: "a1", name: "Sec", description: "", provider: "anthropic", model: "m", enabled: true },
+      { id: "a1", name: "Sec", description: "", model: "m", enabled: true },
     ]);
 
     await client.close();

@@ -24,6 +24,8 @@ describe("list_agents", () => {
     expect(text).not.toContain("TOP-SECRET-PROMPT");
     expect(text).not.toContain("SCHEMA-LEAK");
     expect(text).not.toContain("system_prompt");
+    expect(text).not.toContain("provider");
+    expect(Object.keys(jsonOf(res).agents[0]).sort()).toEqual(["description", "enabled", "id", "model", "name"]);
     const out = jsonOf(res);
     expect(out.agents.map((a: { id: string }) => a.id)).toEqual(["a1"]);
     expect(out).toMatchObject({ count: 1, hidden_disabled: 1 });

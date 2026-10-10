@@ -70,9 +70,9 @@ Arguments are flat scalars. `repo` is `owner/name` (a bare name works if unique)
 
 | Tool | Purpose | Sample arguments |
 |---|---|---|
-| `list_agents` | List reviewer agents (id, name, model) | `{}` or `{"include_disabled": true}` |
+| `list_agents` | List reviewer agents (id, name, description, model, enabled) | `{}` or `{"include_disabled": true}` |
 | `run_agent_on_pr` | Run an agent on a PR and wait for the result (writes; costs credits) | `{"repo": "acme/api", "pr": 42, "agent": "Security reviewer"}` |
-| `get_findings` | Read finished review results, no new run | `{"repo": "acme/api", "pr": 42}`; narrow with `"agent"` or `"run_id"`, `"detail": "full"`, `"limit": 20` |
+| `get_findings` | Read finished review results, no new run | `{"repo": "acme/api", "pr": 42}`; narrow with `"agent"` or `"run_id"`, or pass `"all_runs": true` for every run; `"detail": "full"`, `"limit": 20`. Response includes `total_findings` |
 | `get_conventions` | Accepted repo conventions, read-only | `{"repo": "acme/api", "category": "naming", "limit": 40}` |
 | `get_blast_radius` | Impact map for a PR (changed symbols, callers with file:line, affected endpoints/crons) from the code index; read-only, free; reports status/degraded_reason + a hint when the index is incomplete | `{"repo": "acme/api", "pr": 42}` |
 

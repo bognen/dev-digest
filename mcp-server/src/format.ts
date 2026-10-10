@@ -89,6 +89,8 @@ export interface ConciseFinding {
   line: number;
   end_line?: number;
   agent?: string;
+  /** Set only with get_findings all_runs=true. */
+  run_id?: string;
 }
 
 export interface FullFinding extends ConciseFinding {
@@ -163,7 +165,6 @@ export interface ConciseAgent {
   id: string;
   name: string;
   description: string;
-  provider: string;
   model: string;
   enabled: boolean;
 }
@@ -174,7 +175,6 @@ export function toConciseAgent(a: ApiAgent): ConciseAgent {
     id: a.id,
     name: cleanField(a.name, AGENT_NAME_MAX),
     description: cleanField(a.description ?? "", AGENT_DESCRIPTION_MAX),
-    provider: cleanField(a.provider, AGENT_NAME_MAX),
     model: cleanField(a.model, AGENT_NAME_MAX),
     enabled: a.enabled,
   };

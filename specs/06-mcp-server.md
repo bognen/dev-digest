@@ -96,9 +96,9 @@ wrapped by `safeHandler` so exceptions never escape. Flat args: `repo` ("Repo as
 `test/server-contract.test.ts:10-23`.
 
 ### 3.1 `list_agents`
-- Description: "List configured DevDigest reviewer agents (id, name, model). Call this first to get a valid `agent` for run_agent_on_pr / get_findings."
+- Description: "List configured DevDigest reviewer agents (id, name, description, model, enabled). Call this first to get a valid `agent` for run_agent_on_pr / get_findings."
 - Input: `include_disabled?: boolean` (default false). Calls `GET /agents`.
-- Output: `{untrusted, agents:[{id,name,description<=140,provider,model,enabled}], count, hidden_disabled}`. Whitelist
+- Output: `{untrusted, agents:[{id,name,description<=140,model,enabled}], count, hidden_disabled}`. Whitelist
   shaping drops `system_prompt`/`output_schema` (`format.ts:172-181`). Zero shown agents is a non-error with a `hint`
   (`src/tools/list-agents.ts:33-43`).
 - Annotations: readOnly true, destructive false, idempotent true, openWorld false.
@@ -158,7 +158,7 @@ sequenceDiagram
 ```
 
 ### 3.3 `get_findings`
-- Description: "Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions."
+- Description: "Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions. all_runs=true returns every run, not only the latest per agent."
 - Input: `repo`, `pr`, `agent?`, `run_id?` (uuid), `detail?` (`concise`|`full`), `limit?` (1-50, default 20).
 - Selection (`src/tools/get-findings.ts:93-125`): `run_id` > `agent` (newest of that agent) > latest review per agent
   (null `agent_id` kept separately, `format.ts:128-143`). Only `kind==='review'` rows are used.

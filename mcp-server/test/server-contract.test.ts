@@ -9,11 +9,11 @@ import { REPO, baseRoutes, fakeApi, finding, makeDeps, review, type Route } from
 const EXPECTED_ORDER = ["list_agents", "run_agent_on_pr", "get_findings", "get_conventions", "get_blast_radius"];
 const EXPECTED_DESCRIPTIONS: Record<string, string> = {
   list_agents:
-    "List configured DevDigest reviewer agents (id, name, model). Call this first to get a valid `agent` for run_agent_on_pr / get_findings.",
+    "List configured DevDigest reviewer agents (id, name, description, model, enabled). Call this first to get a valid `agent` for run_agent_on_pr / get_findings.",
   run_agent_on_pr:
     "Run one reviewer agent on a PR and WAIT for it to finish (often 1–4 min; spends LLM credits). Returns {verdict, score, findings[]}. Reuses an in-flight run of the same agent. The only tool that writes. Use get_findings to re-read results.",
   get_findings:
-    "Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions.",
+    "Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions. all_runs=true returns every run, not only the latest per agent.",
   get_conventions:
     "Accepted house conventions for a repo (the repo-conventions from the DevDigest Conventions scan, L02). Read-only. Use them when writing or reviewing code in that repo.",
   get_blast_radius:

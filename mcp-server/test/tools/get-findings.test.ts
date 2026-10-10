@@ -57,6 +57,45 @@ describe("get_findings selection", () => {
     expect(out.findings.map((f: { title: string }) => f.title)).toEqual(["RUN-B"]);
   });
 
+  it("all_runs returns every run (newest first, labelled with run_id) instead of latest per agent", async () => {
+    const { handler } = setup([
+      review({ id: "old", agent_id: "ag-a", run_id: RUN_ID, created_at: "2026-01-01T00:00:00Z", findings: [finding({ id: "x1", title: "OLD" })] }),
+      review({ id: "new", agent_id: "ag-a", run_id: RUN_B, created_at: "2026-02-01T00:00:00Z", findings: [finding({ id: "x2", title: "NEW" })] }),
+    ]);
+    const out = jsonOf(await handler({ ...ARGS, all_runs: true }));
+    expect(out.runs).toBe(2);
+    expect(out.findings.map((f: { title: string; run_id: string }) => [f.title, f.run_id]).sort()).toEqual([
+      ["NEW", RUN_B],
+      ["OLD", RUN_ID],
+    ]);
+    // default is unchanged: latest only, no run labels
+    const latest = jsonOf(await handler(ARGS));
+    expect(latest.findings.map((f: { title: string }) => f.title)).toEqual(["NEW"]);
+    expect(latest.findings[0].run_id).toBeUndefined();
+    expect(latest.runs).toBeUndefined();
+  });
+
+  it("all_runs + agent keeps only that agent's runs; run_id still wins over all_runs", async () => {
+    const { handler } = setup([
+      review({ id: "a1", agent_id: "ag-a", run_id: RUN_ID, created_at: "2026-01-01T00:00:00Z", findings: [finding({ title: "A1" })] }),
+      review({ id: "a2", agent_id: "ag-a", run_id: RUN_B, created_at: "2026-02-01T00:00:00Z", findings: [finding({ title: "A2" })] }),
+      review({ id: "b", agent_id: "ag-b", agent_name: "Style", run_id: "33333333-3333-4333-8333-333333333333", findings: [finding({ title: "B" })] }),
+    ]);
+    const byAgent = jsonOf(await handler({ ...ARGS, all_runs: true, agent: "Security" }));
+    expect(byAgent.findings.map((f: { title: string }) => f.title).sort()).toEqual(["A1", "A2"]);
+    const byRun = jsonOf(await handler({ ...ARGS, all_runs: true, run_id: RUN_ID }));
+    expect(byRun.findings.map((f: { title: string }) => f.title)).toEqual(["A1"]);
+    expect(byRun.runs).toBeUndefined();
+  });
+
+  it("total_findings counts all active findings, not just the returned page", async () => {
+    const many = Array.from({ length: 5 }, (_, i) => finding({ id: `f${i}`, title: `T${i}` }));
+    const { handler } = setup([review({ id: "r", agent_id: "ag-a", findings: [...many, finding({ id: "d", title: "DISMISSED", dismissed_at: "2026-01-01T00:00:00Z" })] })]);
+    const out = jsonOf(await handler({ ...ARGS, limit: 2 }));
+    expect(out.findings).toHaveLength(2);
+    expect(out).toMatchObject({ total_findings: 5, truncated: 3, hidden_dismissed: 1 });
+  });
+
   it("summary-kind rows are ignored", async () => {
     const { handler } = setup([
       review({ id: "s", kind: "summary", verdict: "request_changes", score: 1, findings: [finding({ title: "SUMMARY" })] }),

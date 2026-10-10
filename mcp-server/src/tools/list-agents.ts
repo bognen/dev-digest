@@ -8,7 +8,7 @@ export const NAME = "list_agents";
 
 // VERBATIM
 export const DESCRIPTION =
-  "List configured DevDigest reviewer agents (id, name, model). Call this first to get a valid `agent` for run_agent_on_pr / get_findings.";
+  "List configured DevDigest reviewer agents (id, name, description, model, enabled). Call this first to get a valid `agent` for run_agent_on_pr / get_findings.";
 
 export const inputSchema = z.object({
   include_disabled: z.boolean().optional().describe("Also list disabled agents (default false)"),
