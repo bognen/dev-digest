@@ -1,8 +1,15 @@
-import type { GitHubClient, PrMeta, PrDetail, PrReviewComment, PrCommentInput } from '@devdigest/shared';
+import type { GitHubClient, PrMeta, PrDetail, PrReviewComment, PrCommentInput, SmartDiff } from '@devdigest/shared';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import { deriveReviewStatus, type SeverityCounts } from './status.js';
 import { BACKFILL_LIMIT } from './constants.js';
-import { computeScoreAndVerdictByPr, computeFindingsByPr, computeCostByPr, toPrMetaDto } from './helpers.js';
+import {
+  computeScoreAndVerdictByPr,
+  computeFindingsByPr,
+  computeCostByPr,
+  toPrMetaDto,
+  buildSmartDiff,
+  openFindingLinesByPath,
+} from './helpers.js';
 import type { PullsRepo, RepoRef, PullRecord } from './types.js';
 
 /** Structural logger — services never import Fastify's `FastifyBaseLogger`. */
@@ -190,6 +197,20 @@ export class PullsService {
     const repo = await this.deps.repo.getRepoById(pr.repoId);
     if (!repo) throw new NotFoundError('Repo not found');
     return { pr, repo };
+  }
+
+  /**
+   * `GET /pulls/:id/smart-diff`: classify the PR's persisted files into roles
+   * and anchor OPEN findings from each agent's latest review. DB-only — no
+   * GitHub call.
+   */
+  async getSmartDiff(workspaceId: string, pullId: string): Promise<SmartDiff> {
+    const { pr } = await this.resolvePrAndRepo(workspaceId, pullId);
+    const files = await this.deps.repo.listPrFileStats(pr.id);
+    const reviewRows = await this.deps.repo.reviewRollupForPulls([pr.id]);
+    const { latestReviewIds } = computeScoreAndVerdictByPr(reviewRows);
+    const anchors = await this.deps.repo.findingAnchorsForReviewIds(latestReviewIds);
+    return buildSmartDiff(files, openFindingLinesByPath(anchors));
   }
 
   /** Inline review comments (Files changed tab) — proxied live to GitHub, no local persistence. */

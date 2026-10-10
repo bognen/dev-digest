@@ -1,5 +1,5 @@
 /**
- * Enhanced regex symbol/reference extractor for TS/JS (A3, L04).
+ * Enhanced regex symbol/reference extractor for TS/JS (A3, L04) and Python.
  *
  * DESIGN NOTE (tree-sitter vs. regex): the F1 scaffolding left a TODO to wire
  * `web-tree-sitter` for accurate blast-radius. Under the parallel-phase rules
@@ -185,7 +185,14 @@ export function extractEndpoints(content: string): string[] {
   const verbRe =
     /\b(?:app|router|fastify|server|api)\.(get|post|put|patch|delete|options|head)\s*(?:<[^>]*>)?\s*\(\s*(['"`])([^'"`]+)\2/i;
   const routeObjRe = /method\s*:\s*['"`](GET|POST|PUT|PATCH|DELETE)['"`][\s\S]*?url\s*:\s*['"`]([^'"`]+)['"`]/i;
+  // Python: FastAPI `@router.get('/x')` and Flask `@app.route('/x', methods=['POST'])`.
+  const pyVerbRe = /^\s*@(?:app|router|bp|blueprint|api)\.(get|post|put|patch|delete)\s*\(\s*(['"])([^'"]+)\2/i;
+  const pyRouteRe = /^\s*@(?:app|bp|blueprint)\.route\s*\(\s*(['"])([^'"]+)\1(?:[^)]*methods\s*=\s*\[\s*(['"])(\w+)\3)?/i;
   for (const raw of lines) {
+    const pv = raw.match(pyVerbRe);
+    if (pv) out.add(`${pv[1]!.toUpperCase()} ${pv[3]}`);
+    const pr = raw.match(pyRouteRe);
+    if (pr) out.add(`${(pr[4] ?? 'GET').toUpperCase()} ${pr[2]}`);
     const m = raw.match(verbRe);
     if (m) out.add(`${m[1]!.toUpperCase()} ${m[3]}`);
     const r = raw.match(routeObjRe);
@@ -211,4 +218,102 @@ export function extractCrons(content: string): string[] {
     if (j && /poll|index|clone|digest|cron|sync|schedule|job/i.test(raw)) out.add(`job:${j[1]}`);
   }
   return [...out];
+}
+
+// ---------------------------------------------------------------------------
+// Python (.py) — same regex approach as TS/JS above, indentation-aware instead
+// of brace-aware. Covers what blast-radius needs from a script/service repo:
+// top-level `def`/`async def`/`class`, class methods, call sites, and
+// Flask/FastAPI route decorators. Deliberately conservative (comment, import,
+// and declaration lines never count as references).
+// ---------------------------------------------------------------------------
+
+const PY_COMMENT = /^\s*#/;
+const PY_IMPORT = /^\s*(?:import\s|from\s+\S+\s+import\b)/;
+const PY_DEF = /^(\s*)(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(/;
+const PY_CLASS = /^(\s*)class\s+([A-Za-z_]\w*)/;
+
+function pyIndent(ws: string): number {
+  return ws.replace(/\t/g, '    ').length;
+}
+
+/** Strip a trailing `# comment` and blank string contents (crude, like sanitizeLine). */
+function sanitizePyLine(line: string): string {
+  let s = line.replace(/(["'])(?:\\.|(?!\1).)*\1/g, '""');
+  s = s.replace(/#.*$/, '');
+  return s;
+}
+
+/**
+ * Extract declared symbols from a Python file: module-level functions and
+ * classes, plus class methods reported as `<Class>.<method>` AND bare `<method>`
+ * (dunder methods are reported qualified only, so `__init__` never becomes a
+ * bare, everywhere-matching symbol). Functions nested inside functions are
+ * skipped, mirroring the TS extractor's "top level only" model.
+ */
+export function extractPythonSymbols(content: string): ExtractedSymbol[] {
+  const out: ExtractedSymbol[] = [];
+  const lines = content.split('\n');
+  // `bodyIndent` = indent of the class body's first statement; a `def` at exactly
+  // that indent is a direct method (deeper ones are nested helpers — skipped).
+  let currentClass: { name: string; indent: number; bodyIndent: number | null } | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i]!;
+    if (PY_COMMENT.test(raw) || raw.trim() === '') continue;
+    const line = sanitizePyLine(raw);
+    const indent = pyIndent(/^\s*/.exec(raw)![0]);
+
+    // Leaving the class body: any non-blank line at or above the class indent.
+    if (currentClass && indent <= currentClass.indent) currentClass = null;
+    if (currentClass && currentClass.bodyIndent === null) currentClass.bodyIndent = indent;
+
+    const cm = line.match(PY_CLASS);
+    if (cm) {
+      if (pyIndent(cm[1]!) === 0) {
+        out.push({ name: cm[2]!, kind: 'class', line: i + 1 });
+        currentClass = { name: cm[2]!, indent: 0, bodyIndent: null };
+      }
+      continue;
+    }
+
+    const dm = line.match(PY_DEF);
+    if (!dm) continue;
+    const name = dm[2]!;
+    if (pyIndent(dm[1]!) === 0) {
+      out.push({ name, kind: 'function', line: i + 1 });
+    } else if (currentClass && indent === currentClass.bodyIndent) {
+      out.push({ name: `${currentClass.name}.${name}`, kind: 'method', line: i + 1 });
+      if (!name.startsWith('__')) out.push({ name, kind: 'method', line: i + 1 });
+    }
+  }
+  return dedupeSymbols(out);
+}
+
+/**
+ * Find references (call sites) of `symbol` in a Python file: `sym(`, `.sym(`,
+ * and decorator use `@sym`. Skips comments, import lines, and the declaration.
+ */
+export function extractPythonReferences(content: string, symbol: string): ExtractedReference[] {
+  const bare = symbol.includes('.') ? symbol.split('.').pop()! : symbol;
+  const escaped = bare.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const callRe = new RegExp(`(?<![\\w])${escaped}\\s*\\(`); // sym(  and  .sym(
+  const decoRe = new RegExp(`^\\s*@${escaped}\\b`); // @sym
+  const declRe = new RegExp(`^\\s*(?:async\\s+)?def\\s+${escaped}\\b|^\\s*class\\s+${escaped}\\b`);
+
+  const out: ExtractedReference[] = [];
+  const lines = content.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i]!;
+    if (PY_COMMENT.test(raw) || PY_IMPORT.test(raw)) continue;
+    if (declRe.test(raw)) continue;
+    const line = sanitizePyLine(raw);
+    if (callRe.test(line) || decoRe.test(line)) out.push({ toSymbol: symbol, line: i + 1 });
+  }
+  return out;
+}
+
+/** Source file extension → language family for the regex extractor. */
+export function isPythonFile(path: string): boolean {
+  return path.toLowerCase().endsWith('.py');
 }

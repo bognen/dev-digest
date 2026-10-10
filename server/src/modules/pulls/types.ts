@@ -67,6 +67,20 @@ export interface RunCostRow {
   costUsd: number | null;
 }
 
+/** A PR file's diff stats WITHOUT the (large) patch text — feeds Smart Diff. */
+export interface PrFileStat {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+/** Where a finding anchors in a file, plus whether the user dismissed it. */
+export interface FindingAnchorRow {
+  file: string;
+  startLine: number;
+  dismissedAt: Date | null;
+}
+
 export interface PullsRepo {
   getRepoForWorkspace(workspaceId: string, repoId: string): Promise<RepoRef | undefined>;
   getRepoById(repoId: string): Promise<RepoRef | undefined>;
@@ -104,5 +118,9 @@ export interface PullsRepo {
   getPrFilesAndCommits(
     pullId: string,
   ): Promise<{ files: PrFileRecord[]; commits: PrCommitRecord[] }>;
+  /** Per-file stats for a PR, no patch column. Order is unspecified. */
+  listPrFileStats(pullId: string): Promise<PrFileStat[]>;
+  /** Anchors of `kind='finding'` rows only (lethal_trifecta excluded); [] for empty input. */
+  findingAnchorsForReviewIds(reviewIds: string[]): Promise<FindingAnchorRow[]>;
   touchRepoPolledAt(repoId: string): Promise<void>;
 }

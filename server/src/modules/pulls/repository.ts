@@ -11,6 +11,8 @@ import type {
   ReviewRollupRow,
   FindingSeverityRow,
   RunCostRow,
+  PrFileStat,
+  FindingAnchorRow,
 } from './types.js';
 
 /**
@@ -44,6 +46,14 @@ function toPullRecord(row: typeof t.pullRequests.$inferSelect): PullRecord {
     openedAt: row.openedAt,
     updatedAt: row.updatedAt,
   };
+}
+
+function toPrFileStat(row: { path: string; additions: number; deletions: number }): PrFileStat {
+  return { path: row.path, additions: row.additions, deletions: row.deletions };
+}
+
+function toFindingAnchorRow(row: { file: string; startLine: number; dismissedAt: Date | null }): FindingAnchorRow {
+  return { file: row.file, startLine: row.startLine, dismissedAt: row.dismissedAt };
 }
 
 function toPrFileRecord(row: typeof t.prFiles.$inferSelect): PrFileRecord {
@@ -216,6 +226,23 @@ export class PullsRepository implements PullsRepo {
       this.db.select().from(t.prCommits).where(eq(t.prCommits.prId, pullId)),
     ]);
     return { files: files.map(toPrFileRecord), commits: commits.map(toPrCommitRecord) };
+  }
+
+  async listPrFileStats(pullId: string): Promise<PrFileStat[]> {
+    const rows = await this.db
+      .select({ path: t.prFiles.path, additions: t.prFiles.additions, deletions: t.prFiles.deletions })
+      .from(t.prFiles)
+      .where(eq(t.prFiles.prId, pullId));
+    return rows.map(toPrFileStat);
+  }
+
+  async findingAnchorsForReviewIds(reviewIds: string[]): Promise<FindingAnchorRow[]> {
+    if (reviewIds.length === 0) return [];
+    const rows = await this.db
+      .select({ file: t.findings.file, startLine: t.findings.startLine, dismissedAt: t.findings.dismissedAt })
+      .from(t.findings)
+      .where(and(inArray(t.findings.reviewId, reviewIds), eq(t.findings.kind, 'finding')));
+    return rows.map(toFindingAnchorRow);
   }
 
   async touchRepoPolledAt(repoId: string): Promise<void> {

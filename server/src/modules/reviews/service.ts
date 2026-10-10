@@ -1,5 +1,5 @@
 import type { Container } from '../../platform/container.js';
-import type { FindingActionKind, RunEventKind, RunTrace } from '@devdigest/shared';
+import type { FindingActionKind, PrIntentResponse, RunEventKind, RunTrace } from '@devdigest/shared';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import type { AgentRow } from '../../db/rows.js';
 import { ReviewRepository } from './repository.js';
@@ -7,6 +7,10 @@ import { type ReviewDto, type ReviewDtoFinding } from './helpers.js';
 import { ReviewRunExecutor, type Logger } from './run-executor.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
 import { reviewToDto } from './helpers.js';
+import { IntentService } from './pipeline/intent.js';
+import { INTENT_FEATURE } from './constants.js';
+import { hunkContexts, toIntentRecord } from './pipeline/intent-signals.js';
+import type { IntentDeps } from './types.js';
 
 // Re-export DTO types + converters for backward-compatible imports from
 // './service.js' (these previously lived here; logic now in ./helpers.ts).
@@ -29,11 +33,21 @@ export class ReviewService {
   private repo: ReviewRepository;
   private agents: Container['agentsRepo'];
   private executor: ReviewRunExecutor;
+  private intent: IntentService;
 
   constructor(private container: Container) {
     this.repo = new ReviewRepository(container.db);
     this.agents = container.agentsRepo;
-    this.executor = new ReviewRunExecutor(container, this.repo, this.agents);
+    // Intent Layer: an explicit Deps bundle built from the Container (never the
+    // whole Container itself) — see onion-architecture's inner-no-container.
+    const intentDeps: IntentDeps = {
+      store: this.repo,
+      llm: (p) => container.llm(p),
+      resolveModel: (ws) => container.resolveFeatureModel(ws, INTENT_FEATURE),
+      github: () => container.github(),
+    };
+    this.intent = new IntentService(intentDeps);
+    this.executor = new ReviewRunExecutor(container, this.repo, this.agents, this.intent);
   }
 
   // ===========================================================================
@@ -175,5 +189,52 @@ export class ReviewService {
 
   async getRunTrace(runId: string): Promise<RunTrace | undefined> {
     return this.repo.getRunTrace(runId);
+  }
+
+  // ===========================================================================
+  // Intent Layer — GET/POST /pulls/:id/intent
+  // ===========================================================================
+
+  /** Read path: no LLM/GitHub calls. 404s if the PR isn't in the workspace. */
+  async getIntent(workspaceId: string, prId: string): Promise<PrIntentResponse> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    return this.intent.get(workspaceId, prId);
+  }
+
+  /**
+   * Derive (or regenerate) the PR's intent. A missing provider key or LLM
+   * failure returns 200 with the previous row (or null) + a reason — never 5xx
+   * — so the Overview tab never toasts just because a model isn't configured.
+   */
+  async generateIntent(
+    workspaceId: string,
+    prId: string,
+    opts: { force?: boolean },
+    logger?: Logger,
+  ): Promise<PrIntentResponse> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    const repo = await this.repo.getRepo(pull.repoId);
+    if (!repo) throw new NotFoundError('Repo not found');
+
+    const prFiles = await this.repo.getPrFiles(prId);
+    const files = prFiles.map((f) => ({ path: f.path, additions: f.additions, deletions: f.deletions }));
+    const hunkHeaders = hunkContexts(prFiles.map((f) => f.patch ?? '').join('\n'));
+
+    const result = await this.intent.ensure(
+      { workspaceId, pull, repo: { owner: repo.owner, name: repo.name }, files, hunkHeaders },
+      { force: opts.force, trigger: opts.force ? 'regenerate' : 'overview', log: logger },
+    );
+
+    if (result.status === 'ok') {
+      return { intent: toIntentRecord(result.intent, false), unavailable_reason: null };
+    }
+    // Reaching 'unavailable' with a previous row means we attempted a
+    // regeneration (force, or the cache was already stale) — mark it stale.
+    return {
+      intent: result.previous ? toIntentRecord(result.previous, true) : null,
+      unavailable_reason: result.reason,
+    };
   }
 }

@@ -40,6 +40,10 @@
     "reply": "Reply",
     "viewOnGitHub": "View on GitHub",
     "postedToGitHub": "Posts to GitHub immediately",
-    "outdatedTitle": "{count} comment(s) on older revisions"
+    "outdatedTitle": "{count} comment(s) on older revisions",
+    "hasFindings": "Has review findings",
+    "goToFinding": "Go to first finding",
+    "toggleFinding": "Show or hide this finding",
+    "findingsOutsideDiff": "Findings outside the visible diff"
   }
 }

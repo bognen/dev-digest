@@ -1,8 +1,10 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { z } from 'zod';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
-import type { Intent } from '@devdigest/shared';
+import { IntentConfidence, IntentSource, Provider, type Intent } from '@devdigest/shared';
 import type { PullRow } from '../../../db/rows.js';
+import type { IntentMeta, StoredIntent } from '../types.js';
 
 // ---- PR lookup (workspace-scoped) -----------------------------------------
 
@@ -46,23 +48,66 @@ export async function markReviewed(db: Db, prId: string, sha: string): Promise<v
 
 // ---- intent ---------------------------------------------------------------
 
-export async function upsertIntent(db: Db, prId: string, intent: Intent): Promise<void> {
-  await db
-    .insert(t.prIntent)
-    .values({
-      prId,
-      intent: intent.intent,
-      inScope: intent.in_scope,
-      outOfScope: intent.out_of_scope,
-    })
-    .onConflictDoUpdate({
-      target: t.prIntent.prId,
-      set: { intent: intent.intent, inScope: intent.in_scope, outOfScope: intent.out_of_scope },
-    });
+/** Map a Drizzle `pr_intent` row to the domain shape — Zod-narrows the two
+ *  free-text/jsonb columns whose values are otherwise just `string`/`unknown`. */
+function toStoredIntent(row: typeof t.prIntent.$inferSelect): StoredIntent {
+  return {
+    prId: row.prId,
+    intent: row.intent,
+    inScope: row.inScope,
+    outOfScope: row.outOfScope,
+    confidence: IntentConfidence.parse(row.confidence),
+    sources: z.array(IntentSource).parse(row.sources),
+    ticketRefs: row.ticketRefs,
+    linkedIssue: row.linkedIssue,
+    provider: row.provider ? Provider.parse(row.provider) : null,
+    model: row.model,
+    inputHash: row.inputHash,
+    headSha: row.headSha,
+    generatedAt: row.generatedAt,
+  };
 }
 
-export async function getIntent(db: Db, prId: string): Promise<Intent | undefined> {
+/** Insert-or-replace the PR's intent row: the LLM-authored Intent fields plus
+ *  every metadata column, with `generated_at` always bumped to now(). */
+export async function upsertIntent(
+  db: Db,
+  prId: string,
+  intent: Intent,
+  meta: IntentMeta,
+): Promise<void> {
+  const common = {
+    intent: intent.intent,
+    inScope: intent.in_scope,
+    outOfScope: intent.out_of_scope,
+    confidence: meta.confidence,
+    sources: meta.sources,
+    ticketRefs: meta.ticketRefs,
+    linkedIssue: meta.linkedIssue,
+    provider: meta.provider,
+    model: meta.model,
+    inputHash: meta.inputHash,
+    headSha: meta.headSha,
+    generatedAt: sql`now()`,
+  };
+  await db
+    .insert(t.prIntent)
+    .values({ prId, ...common })
+    .onConflictDoUpdate({ target: t.prIntent.prId, set: common });
+}
+
+export async function getIntent(db: Db, prId: string): Promise<StoredIntent | undefined> {
   const [row] = await db.select().from(t.prIntent).where(eq(t.prIntent.prId, prId));
-  if (!row) return undefined;
-  return { intent: row.intent, in_scope: row.inScope, out_of_scope: row.outOfScope };
+  return row ? toStoredIntent(row) : undefined;
+}
+
+/** First-line commit subjects for a PR, newest first, already limited to `limit` rows. */
+export async function getPrCommitSubjects(db: Db, prId: string, limit: number): Promise<string[]> {
+  const rows = await db
+    .select({ message: t.prCommits.message })
+    .from(t.prCommits)
+    .where(eq(t.prCommits.prId, prId))
+    .orderBy(desc(t.prCommits.committedAt))
+    .limit(limit);
+  return rows.map((r) => r.message.split('\n')[0] ?? '');
 }
