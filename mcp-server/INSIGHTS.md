@@ -12,6 +12,9 @@
 
 ## Codebase Patterns
 
+### 2026-10-05 — get_blast_radius own `hint` is overwritten when the cap truncates
+`capResponse` (format.ts) sets its own `hint` when it drops `downstream` items, replacing the "Index incomplete" hint from `shapeBlast`. `status`/`degraded_reason` stay in the payload, so the signal is not lost, but do not rely on `hint` alone for degradation (`src/tools/blast-payload.ts`).
+
 ### 2026-10-03 — Security hardening decisions (untrusted field, loopback default, single-flight)
 - Prompt-injection labeling is a constant first-key `untrusted` field on findings/conventions/agents payloads (`format.ts` `withUntrusted`, applied in `cappedResult`), NOT description wording: tool descriptions and server instructions are frozen VERBATIM (tested, token budgets). `capResponse` re-spreads the payload, so the key survives truncation; its last-resort path now emits a minimal valid JSON object instead of a raw slice (a slice could yield unparseable text).
 - All API-sourced strings are sanitized (`sanitize.ts`: C0/C1, bidi, zero-width, BOM, U+2028/9, Unicode tag chars U+E0000-E007F need the `u` flag) and per-field capped in SUCCESS payloads too, not just error paths. Rationale/suggestion keep newlines (`stripUnsafe`); single-line fields are whitespace-collapsed.

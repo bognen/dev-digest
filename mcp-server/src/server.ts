@@ -6,7 +6,7 @@ export const SERVER_VERSION = "0.1.0";
 
 // VERBATIM
 export const INSTRUCTIONS =
-  "DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius is not implemented yet.";
+  "DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius shows what else a PR's changes may affect (free).";
 
 /**
  * Build the MCP server with all tools registered. Transport-agnostic: index.ts

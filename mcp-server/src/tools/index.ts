@@ -63,7 +63,7 @@ const TOOLS: Registrar[] = [
   registrar(runAgentOnPr, runAgentOnPr.makeRunAgentOnPrHandler),
   registrar(getFindings, getFindings.makeGetFindingsHandler),
   registrar(getConventions, getConventions.makeGetConventionsHandler),
-  registrar(getBlastRadius, () => getBlastRadius.makeGetBlastRadiusHandler()),
+  registrar(getBlastRadius, getBlastRadius.makeGetBlastRadiusHandler),
 ];
 
 /** The single registration point for all tools. */

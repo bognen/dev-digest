@@ -71,7 +71,7 @@ export class SimpleGitClient implements GitClient {
 
   async fetchPullHead(repo: RepoRef, n: number): Promise<void> {
     // Fetch the PR head ref into a local ref (GitHub exposes pull/<n>/head).
-    await this.git(repo).fetch(['origin', `pull/${n}/head:pr-${n}`]);
+    await this.git(repo).fetch(['origin', `+pull/${n}/head:pr-${n}`]);
   }
 
   async sync(repo: RepoRef, branch: string): Promise<{ head: string }> {
@@ -128,6 +128,23 @@ export class SimpleGitClient implements GitClient {
 
   async readFile(repo: RepoRef, path: string): Promise<string> {
     return readFile(join(this.clonePathFor(repo), path), 'utf8');
+  }
+
+  async hasCommit(repo: RepoRef, sha: string): Promise<boolean> {
+    try {
+      await this.git(repo).raw(['cat-file', '-e', `${sha}^{commit}`]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async readFileAtRef(repo: RepoRef, ref: string, path: string): Promise<string | null> {
+    try {
+      return await this.git(repo).raw(['show', `${ref}:${path}`]);
+    } catch {
+      return null; // path absent at that commit
+    }
   }
 }
 

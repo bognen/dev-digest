@@ -25,8 +25,8 @@ export const BlastCaller = z.object({
   name: z.string(),
   file: z.string(),
   line: z.number().int(),
-  /** file_rank.rank of the caller file; `0` = no rank data (degraded path). */
-  rank: z.number().int(),
+  /** file_rank.rank of the caller file; `0` = no rank data (degraded path). Fractional (PageRank). */
+  rank: z.number(),
 });
 export type BlastCaller = z.infer<typeof BlastCaller>;
 

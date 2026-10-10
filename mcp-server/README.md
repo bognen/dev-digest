@@ -74,7 +74,7 @@ Arguments are flat scalars. `repo` is `owner/name` (a bare name works if unique)
 | `run_agent_on_pr` | Run an agent on a PR and wait for the result (writes; costs credits) | `{"repo": "acme/api", "pr": 42, "agent": "Security reviewer"}` |
 | `get_findings` | Read finished review results, no new run | `{"repo": "acme/api", "pr": 42}`; narrow with `"agent"` or `"run_id"`, `"detail": "full"`, `"limit": 20` |
 | `get_conventions` | Accepted repo conventions, read-only | `{"repo": "acme/api", "category": "naming", "limit": 40}` |
-| `get_blast_radius` | Not implemented yet (stub, no API calls) | `{"repo": "acme/api", "pr": 42}` |
+| `get_blast_radius` | Impact map for a PR (changed symbols, callers with file:line, affected endpoints/crons) from the code index; read-only, free; reports status/degraded_reason + a hint when the index is incomplete | `{"repo": "acme/api", "pr": 42}` |
 
 Typical flow: `list_agents` -> `run_agent_on_pr` -> `get_findings` to re-read.
 

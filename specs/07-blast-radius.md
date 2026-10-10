@@ -1,6 +1,6 @@
 # Blast Radius
 
-**Status:** v1 draft, not yet implemented. Curriculum slot: L04.
+**Status:** v1 implemented (server route, UI card, MCP tool `get_blast_radius`). Curriculum slot: L04.
 
 ## Context
 

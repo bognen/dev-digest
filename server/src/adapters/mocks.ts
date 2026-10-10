@@ -267,6 +267,12 @@ export class MockGitClient implements GitClient {
     return { path: this.clonePathFor(repo) };
   }
   async fetchPullHead(): Promise<void> {}
+  async hasCommit(): Promise<boolean> {
+    return true;
+  }
+  async readFileAtRef(): Promise<string | null> {
+    return null;
+  }
   async sync(repo: RepoRef, branch: string): Promise<{ head: string }> {
     this.syncs.push({ repo, branch });
     // After a sync, HEAD advances to syncedHead (or stays at head if unset).

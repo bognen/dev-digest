@@ -7,7 +7,7 @@ Produced by the `planner` agent; amended with onion-architecture and final tool 
 New standalone package `mcp-server/` (`@devdigest/mcp-server`): Node/TypeScript MCP server, **stdio only**, an
 **HTTP client** of the DevDigest API (default `http://localhost:3001`). No DB access, no imports from server code.
 Exactly 5 tools, fixed order: `list_agents`, `run_agent_on_pr`, `get_findings`, `get_conventions`, `get_blast_radius`
-(the last is a stub that makes zero backend calls).
+(the last reads `GET /pulls/:id/blast`, read-only).
 
 Out of scope: HTTP/SSE transport, real blast-radius implementation (homework, specs/07), any change to `server/`,
 `client/`, `reviewer-core/`, `e2e/`, wiring into `scripts/dev.sh`, harness config (pr-self-review routing table,
@@ -32,11 +32,11 @@ answer to Q1 changes the conventions source; otherwise it is final.
 | `run_agent_on_pr` | Run one reviewer agent on a PR and WAIT for it to finish (often 1–4 min; spends LLM credits). Returns {verdict, score, findings[]}. Reuses an in-flight run of the same agent. The only tool that writes. Use get_findings to re-read results. |
 | `get_findings` | Read results of an already-finished DevDigest review on a PR. No new run, no cost. Default: latest review per agent. Pass agent or run_id to narrow, detail=full for rationale/suggestions. |
 | `get_conventions` | Accepted house conventions for a repo (the repo-conventions from the DevDigest Conventions scan, L02). Read-only. Use them when writing or reviewing code in that repo. |
-| `get_blast_radius` | NOT IMPLEMENTED YET: placeholder for the PR impact map (planned). Returns a not-implemented notice; use get_findings meanwhile. |
+| `get_blast_radius` | Impact map for a PR from the DevDigest code index: changed symbols, their callers (file:line), and the HTTP endpoints/crons that depend on them. Read-only, no LLM, no cost. Returns status/degraded_reason when the index is incomplete. |
 
 Server `instructions` (verbatim, target <= 450 chars):
 
-> DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius is not implemented yet.
+> DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius shows what else a PR's changes may affect (free).
 
 Parameter descriptions: <= 80 chars each, e.g. `repo`: "Repo as owner/name, e.g. acme/api"; `pr`: "PR number, e.g. 42"; `agent`: "Agent id or exact name from list_agents".
 

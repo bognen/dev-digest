@@ -136,3 +136,28 @@ export function parseResponse<S extends z.ZodType>(
   if (!result.success) throw new ApiSchemaError(endpoint);
   return result.data;
 }
+
+/**
+ * GET /pulls/:id/blast — consumed fields only. status/degradedReason stay
+ * plain strings (not enums) so a new server-side value never breaks parsing.
+ * Wire key `degradedReason` is camelCase; everything inside `data` is snake_case.
+ */
+export const BlastResponseSchema = z.object({
+  status: z.string(),
+  degradedReason: z.string().nullish(),
+  data: z.object({
+    changed_symbols: z.array(z.object({ name: z.string(), file: z.string(), kind: z.string() })),
+    downstream: z.array(
+      z.object({
+        symbol: z.string(),
+        callers: z.array(
+          z.object({ name: z.string(), file: z.string(), line: z.number().int(), rank: z.number() }),
+        ),
+        endpoints_affected: z.array(z.string()),
+        crons_affected: z.array(z.string()),
+      }),
+    ),
+    summary: z.string().nullish(),
+  }),
+});
+export type ApiBlast = z.infer<typeof BlastResponseSchema>;

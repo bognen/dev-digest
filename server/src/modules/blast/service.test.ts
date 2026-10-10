@@ -8,12 +8,12 @@ import type { BlastResult, IndexState, RepoIntel } from '../repo-intel/types.js'
  * container. Same "fake repo, no DB" approach as reviews/service.test.ts.
  */
 
-const PULL = { id: 'pr1', repoId: 'repo1' };
+const PULL = { id: 'pr1', repoId: 'repo1', number: 7, headSha: 'headsha1' };
 const FILES = [{ path: 'src/utils/helper.ts' }];
 
 function buildService(overrides?: {
-  getPull?: () => Promise<{ id: string; repoId: string } | undefined>;
-  getBlastRadius?: () => Promise<BlastResult>;
+  getPull?: () => Promise<typeof PULL | undefined>;
+  getBlastRadius?: (...args: unknown[]) => Promise<BlastResult>;
   getIndexState?: () => Promise<IndexState>;
 }) {
   const prFiles: PrFileLookup = {
@@ -44,6 +44,18 @@ describe('BlastService.getBlast', () => {
   it('throws NotFoundError when the pull does not exist', async () => {
     const { service } = buildService({ getPull: async () => undefined });
     await expect(service.getBlast('ws1', 'missing')).rejects.toThrow(NotFoundError);
+  });
+
+  it('asks repo-intel to report caller lines against the PR head commit', async () => {
+    const calls: unknown[][] = [];
+    const { service } = buildService({
+      getBlastRadius: async (...args) => {
+        calls.push(args);
+        return { changedSymbols: [], callers: [], impactedEndpoints: [], degraded: false };
+      },
+    });
+    await service.getBlast('ws1', 'pr1');
+    expect(calls[0]).toEqual(['repo1', ['src/utils/helper.ts'], { sha: 'headsha1', prNumber: 7 }]);
   });
 
   it('groups callers by viaSymbol and attaches facts from the group\'s own caller files', async () => {
@@ -81,7 +93,7 @@ describe('BlastService.getBlast', () => {
     ]);
     expect(helperGroup.endpoints_affected).toEqual(['GET /x']);
     expect(helperGroup.crons_affected).toEqual(['nightly-job']);
-    expect(result.data.summary).toBeUndefined();
+    expect(result.data.summary).toBe('2 symbols · 2 callers · 1 endpoint · 1 cron');
   });
 
   it('prefers the blast result\'s own degraded reason over the index state\'s', async () => {
@@ -132,5 +144,32 @@ describe('BlastService.getBlast', () => {
 
     expect(result.status).toBe('degraded');
     expect(result.degradedReason).toBe('index_failed');
+  });
+
+  it('logs source "index" when not degraded and "fallback" when degraded, via the injected logger', async () => {
+    const logs: { obj: Record<string, unknown>; msg: string }[] = [];
+    const log = { info: (obj: object, msg: string) => void logs.push({ obj: obj as Record<string, unknown>, msg }) };
+
+    const ok = buildService();
+    await ok.service.getBlast('ws1', 'pr1', { log });
+    const degraded = buildService({
+      getBlastRadius: async () => ({
+        changedSymbols: [],
+        callers: [],
+        impactedEndpoints: [],
+        degraded: true,
+        reason: 'flag_off',
+      }),
+    });
+    await degraded.service.getBlast('ws1', 'pr1', { log });
+
+    expect(logs).toHaveLength(2);
+    expect(logs[0]!.obj.source).toBe('index');
+    expect(logs[1]!.obj.source).toBe('fallback');
+  });
+
+  it('does not throw when opts (and so the logger) are omitted', async () => {
+    const { service } = buildService();
+    await expect(service.getBlast('ws1', 'pr1')).resolves.toMatchObject({ status: 'full' });
   });
 });

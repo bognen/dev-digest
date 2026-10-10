@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 export const s = {
   // Same label-row height in Intent and Blast Radius (Intent's optional badge makes its
   // row taller) so the two panels below start on one line.
-  labelRow: { minHeight: 37 } satisfies CSSProperties,
+  labelRow: { minHeight: 37, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 } satisfies CSSProperties,
   root: { display: "flex", flexDirection: "column", flex: 1 } satisfies CSSProperties,
   loadingStack: {
     display: "flex",
@@ -51,6 +51,13 @@ export const s = {
     maxHeight: 360,
     overflowY: "auto",
   } satisfies CSSProperties,
+  listExpanded: {
+    listStyle: "none",
+    margin: 0,
+    padding: 0,
+  } satisfies CSSProperties,
+  labelActions: { display: "flex", alignItems: "center", gap: 8 } satisfies CSSProperties,
+  modalBody: { padding: "14px 24px 20px" } satisfies CSSProperties,
   item: {
     borderTop: "1px solid var(--border)",
   } satisfies CSSProperties,

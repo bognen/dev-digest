@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Finding, Verdict } from './findings.js';
-import { Intent, IntentConfidence, IntentSource, SmartDiff } from './brief.js';
+import { BlastRadius, Intent, IntentConfidence, IntentSource, SmartDiff } from './brief.js';
 import { Provider } from './knowledge.js';
 
 /**
@@ -100,3 +100,25 @@ export type GenerateIntentRequest = z.infer<typeof GenerateIntentRequest>;
 /** Smart-diff response for a PR (the SmartDiff). */
 export const SmartDiffResponse = SmartDiff;
 export type SmartDiffResponse = z.infer<typeof SmartDiffResponse>;
+
+/** Index completeness for a Blast Radius read (mirrors repo-intel IndexStatus). */
+export const BlastIndexStatus = z.enum(["full", "partial", "degraded", "failed"]);
+export type BlastIndexStatus = z.infer<typeof BlastIndexStatus>;
+
+/** Why a Blast Radius read is degraded (mirrors repo-intel DegradedReason). */
+export const BlastDegradedReason = z.enum([
+  "flag_off",
+  "index_failed",
+  "index_partial",
+  "repo_too_large",
+  "no_data",
+]);
+export type BlastDegradedReason = z.infer<typeof BlastDegradedReason>;
+
+/** `GET /pulls/:id/blast` response envelope (specs/07-blast-radius.md). */
+export const BlastRadiusResponse = z.object({
+  status: BlastIndexStatus,
+  degradedReason: BlastDegradedReason.optional(),
+  data: BlastRadius,
+});
+export type BlastRadiusResponse = z.infer<typeof BlastRadiusResponse>;

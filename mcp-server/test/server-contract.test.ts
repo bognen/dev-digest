@@ -17,10 +17,10 @@ const EXPECTED_DESCRIPTIONS: Record<string, string> = {
   get_conventions:
     "Accepted house conventions for a repo (the repo-conventions from the DevDigest Conventions scan, L02). Read-only. Use them when writing or reviewing code in that repo.",
   get_blast_radius:
-    "NOT IMPLEMENTED YET: placeholder for the PR impact map (planned). Returns a not-implemented notice; use get_findings meanwhile.",
+    "Impact map for a PR from the DevDigest code index: changed symbols, their callers (file:line), and the HTTP endpoints/crons that depend on them. Read-only, no LLM, no cost. Returns status/degraded_reason when the index is incomplete.",
 };
 const EXPECTED_INSTRUCTIONS =
-  "DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius is not implemented yet.";
+  "DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius shows what else a PR's changes may affect (free).";
 
 const closers: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -103,6 +103,17 @@ describe("server contract: calls", () => {
     expect(res.isError).toBeFalsy();
     expect(JSON.parse(textOf(res))).toMatchObject({ pr: 42 });
     expect(api.calls.length).toBeGreaterThan(0);
+  });
+
+  it("get_blast_radius coerces pr:'42' (string) to a number and only GETs", async () => {
+    const { client, api } = await connect({
+      ...baseRoutes(),
+      "GET /pulls/p1/blast": { status: "full", data: { changed_symbols: [], downstream: [] } },
+    });
+    const res = await client.callTool({ name: "get_blast_radius", arguments: { repo: "acme/api", pr: "42" } });
+    expect(res.isError).toBeFalsy();
+    expect(JSON.parse(textOf(res))).toMatchObject({ pr: 42, status: "full" });
+    expect(api.calls.some((c) => c.method === "POST")).toBe(false);
   });
 
   it("invalid input yields an isError result and never calls the API", async () => {

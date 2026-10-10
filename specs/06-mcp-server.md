@@ -14,7 +14,7 @@ coding agent (Claude Code) drive DevDigest PR reviews. It is an **HTTP client** 
 source directly (no build step) (`mcp-server/package.json`).
 
 It exposes exactly five tools in fixed order (`src/tools/index.ts:61-67`): `list_agents`, `run_agent_on_pr`,
-`get_findings`, `get_conventions`, `get_blast_radius` (a stub).
+`get_findings`, `get_conventions`, `get_blast_radius`.
 
 Out of scope: HTTP/SSE transport, a real blast-radius implementation (L04 homework, [07-blast-radius.md](07-blast-radius.md)),
 and any change to the API packages.
@@ -178,21 +178,11 @@ sequenceDiagram
 - Annotations: readOnly true, destructive false, idempotent true, openWorld false.
 
 ### 3.5 `get_blast_radius`
-Stub, makes zero HTTP calls, to be implemented in the L04 homework by wiring `GET /pulls/:id/blast`. The full
-design for that work is in [07-blast-radius.md](07-blast-radius.md); it is blocked because no HTTP route exposes
-`RepoIntel.getBlastRadius` yet (07, lines 49-52).
-
-- Description: "NOT IMPLEMENTED YET: placeholder for the PR impact map (planned). Returns a not-implemented notice; use get_findings meanwhile."
-- Input: `repo`, `pr` (same flat shape as the future real tool) (`src/tools/get-blast-radius.ts:15-18`).
-- Output: always `isError:true` with "get_blast_radius is not implemented yet in devdigest-mcp. Use get_findings(repo, pr) for review results." (leads onward to `get_findings`).
-- The handler factory takes no dependencies (`makeGetBlastRadiusHandler()`, registered as `() => ...` in
-  `tools/index.ts:66`) so it cannot reach the API; `test/tools/get-blast-radius.test.ts` asserts the network is never touched.
-- Annotations: readOnly true, destructive false, idempotent true, openWorld false.
-- Marked "Do not touch" in `mcp-server/AGENTS.md` until the homework.
+No longer a stub: read-only tool that resolves repo and PR, calls `GET /pulls/:id/blast` (see [07-blast-radius.md](07-blast-radius.md)) and returns `{untrusted, repo, pr, status, degraded_reason?, summary, changed_symbols, downstream, hint?}` (callers keep name, file:line, rank; `changed_symbols` capped at 100 with `changed_symbols_truncated`). When the index is incomplete (`status != full` or a reason is present) a `hint` points to Resync in the UI; the tool never POSTs `/resync`. Description is the verbatim text in `06-mcp-server-plan.md` section 3. Annotations: readOnly true, destructive false, idempotent true, openWorld false. Code: `src/tools/get-blast-radius.ts`, `src/tools/blast-payload.ts`.
 
 ## 4. Token-budget measures
 
-Server `instructions` (verbatim, `src/server.ts:8-9`): "DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius is not implemented yet."
+Server `instructions` (verbatim, `src/server.ts:8-9`): "DevDigest: local AI PR reviews. Identify repos as owner/name and PRs by number. Flow: list_agents to get an agent → run_agent_on_pr (slow, minutes; spends LLM credits; the only tool that writes) → get_findings to re-read results for free. Prefer get_findings when a review already exists. get_blast_radius shows what else a PR's changes may affect (free)."
 
 | Measure | Enforcement |
 |---|---|
@@ -275,7 +265,6 @@ No secrets. Project-scoped servers need approval in Claude Code (`mcp-server/REA
   `/mcp` listing, `/context` deltas and a manual `run_agent_on_pr` on a seeded PR (plan section 11) are not
   documented as done in `INSIGHTS.md`.
 - Schema drift is detected only at runtime (local Zod schemas).
-- `get_blast_radius` is a stub (section 3.5).
 - Smoke client does not forward `DEVDIGEST_API_URL` to the spawned child (`INSIGHTS.md` 2026-10-03).
 - Non-`review` rows (`kind='summary'`) are ignored; nothing in server code writes them (`INSIGHTS.md`).
 - Tool results are capped at 16000 chars; large reviews are truncated with `truncated`/`hint`.

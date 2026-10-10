@@ -5,24 +5,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
-import type { BlastRadius } from "@devdigest/shared";
+import type { BlastRadiusResponse } from "@devdigest/shared";
 
-/** Mirrors the server's repo-intel `IndexStatus`/`DegradedReason` unions —
-    kept local since those types live server-side, not in @devdigest/shared
-    (same pattern as hooks/repo-intel.ts's `RepoIntelState`). */
-export type BlastIndexStatus = "full" | "partial" | "degraded" | "failed";
-export type BlastDegradedReason =
-  | "flag_off"
-  | "index_failed"
-  | "index_partial"
-  | "repo_too_large"
-  | "no_data";
-
-export interface BlastRadiusResponse {
-  status: BlastIndexStatus;
-  degradedReason?: BlastDegradedReason;
-  data: BlastRadius;
-}
+export type { BlastRadiusResponse };
+/** Derived from the shared contract so the UI vocabulary cannot drift. */
+export type BlastIndexStatus = BlastRadiusResponse["status"];
+export type BlastDegradedReason = NonNullable<BlastRadiusResponse["degradedReason"]>;
 
 export function useBlastRadius(prId: string | null | undefined) {
   return useQuery({

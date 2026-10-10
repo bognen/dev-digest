@@ -23,14 +23,16 @@ import { extractEndpoints } from '../../adapters/codeindex/extract.js';
 import {
   parseImports,
   parseInvocationHeads,
+  parseReferences,
   parseSymbols,
   langForFile,
 } from '../../adapters/astgrep/index.js';
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import { RepoIntelRepository, type FullSymbolRow } from './repository.js';
+import { RepoIntelRepository, type FullSymbolRow, type ResolvedCallerRow } from './repository.js';
 import type {
   BlastCallerRow,
+  BlastHeadRef,
   BlastChangedSymbol,
   BlastResult,
   FileRankRow,
@@ -217,11 +219,15 @@ export class RepoIntelService implements RepoIntel {
    * every caller gets `rank: 0` and HTTP impact is detected by re-reading the
    * clone (not the index). T2 promotes this path to the persistent layer.
    */
-  async getBlastRadius(repoId: string, changedFiles: string[]): Promise<BlastResult> {
+  async getBlastRadius(
+    repoId: string,
+    changedFiles: string[],
+    head?: BlastHeadRef,
+  ): Promise<BlastResult> {
     // T3: serve from the persistent index when it's built. Falls through to the
     // ripgrep best-effort below when the flag is off / index is absent.
     if (this.container.config.repoIntelEnabled && changedFiles.length > 0) {
-      const persistent = await this.tryPersistentBlast(repoId, changedFiles);
+      const persistent = await this.tryPersistentBlast(repoId, changedFiles, head);
       if (persistent) return persistent;
     }
 
@@ -315,6 +321,7 @@ export class RepoIntelService implements RepoIntel {
   private async tryPersistentBlast(
     repoId: string,
     changedFiles: string[],
+    head?: BlastHeadRef,
   ): Promise<BlastResult | null> {
     const state = await this.repo.tryGetIndexState(repoId);
     if (!state || (state.status !== 'full' && state.status !== 'partial')) return null;
@@ -343,15 +350,27 @@ export class RepoIntelService implements RepoIntel {
     // (bare-name) symbols at all, but that alone doesn't mean zero impact:
     // the reverse-import walk below still runs off the changed FILES, not the
     // symbols, so file-level (endpoint/cron) impact is still detected.
-    const callerRows =
+    let callerRows =
       nameSet.size > 0
         ? await this.repo.getResolvedCallers(repoId, changedFiles, [...nameSet])
         : [];
+
+    // The index reflects the default branch; re-locate callers on the PR head
+    // so reported `file:line` matches the files the PR actually contains.
+    const relocated = head ? await this.relocateCallersAtHead(repoId, callerRows, head) : null;
+    if (relocated) callerRows = relocated.rows;
     const callerFiles = [...new Set(callerRows.map((c) => c.fromPath))];
 
-    // Enclosing caller symbol from the callers' persistent symbol rows.
-    const callerSymRows = await this.repo.getSymbolRows(repoId, callerFiles);
+    // Enclosing caller symbol from the callers' symbol rows (persistent, or
+    // parsed from the PR head when relocated).
     const symsByFile = new Map<string, FullSymbolRow[]>();
+    if (relocated) {
+      for (const [file, syms] of relocated.symsByFile) symsByFile.set(file, syms);
+    }
+    const callerSymRows = await this.repo.getSymbolRows(
+      repoId,
+      callerFiles.filter((f) => !symsByFile.has(f)),
+    );
     for (const s of callerSymRows) {
       const arr = symsByFile.get(s.path);
       if (arr) arr.push(s);
@@ -365,7 +384,7 @@ export class RepoIntelService implements RepoIntel {
         enclosingFromRows(symsByFile.get(c.fromPath) ?? [], c.line) ??
         c.fromPath.split('/').pop() ??
         c.fromPath;
-      const key = `${c.fromPath}|${enclosing}|${c.toSymbol}`;
+      const key = `${c.fromPath}|${enclosing}|${c.toSymbol}|${c.line}`;
       if (seenCaller.has(key)) continue;
       seenCaller.add(key);
       callers.push({
@@ -416,6 +435,71 @@ export class RepoIntelService implements RepoIntel {
       factsByFile,
       degraded: false,
     };
+  }
+
+  /**
+   * Re-locate resolved callers on the PR head commit. For each caller file the
+   * index flagged (file, symbol) pairs for, read the file at `head.sha`
+   * (fetching the PR head into the clone if needed), re-extract references and
+   * keep every line that calls one of those symbols. Files absent at head are
+   * dropped (the PR removed them). Returns `null` (caller keeps indexed lines)
+   * when the head isn't obtainable.
+   */
+  private async relocateCallersAtHead(
+    repoId: string,
+    callerRows: ResolvedCallerRow[],
+    head: BlastHeadRef,
+  ): Promise<{ rows: ResolvedCallerRow[]; symsByFile: Map<string, FullSymbolRow[]> } | null> {
+    if (callerRows.length === 0) return null;
+    try {
+      const repo = await this.repo.getRepoBasics(repoId);
+      if (!repo || !repo.clonePath) return null;
+      const ref: RepoRef = { owner: repo.owner, name: repo.name };
+      const git = this.container.git;
+      if (!(await git.hasCommit(ref, head.sha))) {
+        await git.fetchPullHead(ref, head.prNumber);
+        if (!(await git.hasCommit(ref, head.sha))) return null;
+      }
+
+      const byFile = new Map<string, ResolvedCallerRow[]>();
+      for (const c of callerRows) {
+        const arr = byFile.get(c.fromPath);
+        if (arr) arr.push(c);
+        else byFile.set(c.fromPath, [c]);
+      }
+
+      const rows: ResolvedCallerRow[] = [];
+      const symsByFile = new Map<string, FullSymbolRow[]>();
+      for (const [file, indexed] of byFile) {
+        const source = await git.readFileAtRef(ref, head.sha, file);
+        if (source == null) continue; // not on the PR head
+        if (!langForFile(file)) {
+          rows.push(...indexed);
+          continue;
+        }
+        const rankOf = new Map(indexed.map((c) => [c.toSymbol, c.rank]));
+        for (const r of parseReferences(file, source)) {
+          const rank = rankOf.get(r.toSymbol);
+          if (rank === undefined) continue;
+          rows.push({ fromPath: file, toSymbol: r.toSymbol, line: r.line, rank });
+        }
+        symsByFile.set(
+          file,
+          parseSymbols(file, source).map((s) => ({
+            path: file,
+            name: s.name,
+            kind: s.kind,
+            line: s.line,
+            endLine: s.endLine,
+            exported: s.exported,
+            signature: s.signature,
+          })),
+        );
+      }
+      return { rows, symsByFile };
+    } catch {
+      return null; // never fail blast over a line-number refinement
+    }
   }
 
   /**

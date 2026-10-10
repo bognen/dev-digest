@@ -184,6 +184,9 @@ whoever has the skip-worktree bit set.
 
 ## Recurring Errors & Fixes
 
+### 2026-10-07 — Blast Radius showed 0 callers: three independent indexer causes (Windows paths, default branch, default exports)
+All must hold before callers resolve: (1) `adapters/depgraph/index.ts` `toRel` must return POSIX paths — on Windows `relative()` yields backslashes, none match the walked file set, so `file_edges` stays empty and `resolveReferences` links nothing (the adapter swallows the error and returns `[]`). (2) `repos.default_branch` must match the real branch (a `master` fork stored as `main` makes `resyncRepo` fail at `git fetch origin main`; the job still reports `done` and writes no state). (3) `astgrep` must treat `export default Foo;` / `export { Foo }` as exporting the class and its methods; `resolveReferences` only links `symbols.exported = true`. Diagnose with: `select count(*) from file_edges`, and `count(decl_file)` vs `count(*)` on `"references"`. Resync is incremental and a no-op when the SHA is unchanged — to force a full reindex after an indexer fix, delete that repo's `repo_index_state` row and resync. Also: `BlastRadiusResponse` caught a contract bug — caller `rank` is a fractional PageRank, so it must be `z.number()`, not `.int()`.
+
 ### 2026-09-20 — Fixed: `reviews.it` "run all" now mocks every provider; `run-skills.it` polls for post-`done` writes
 Corrects the 2026-09-19 `reviews.it` entry below: `appWith` (`test/reviews.it.test.ts`) now registers mocks for `openai`, `anthropic` AND `openrouter`, so `all: true` no longer reaches a real adapter (an earlier test in the same shared DB creates an enabled `anthropic` agent, which was a second unmocked provider — mocking only openrouter left the total at 0.009 vs 0.010). Separately, `run-executor` writes `agent_run_skills` and the trace AFTER flipping the run to `done`, so `waitForPrRuns` returning does not mean those rows exist: `run-skills.it` failed ~2 runs in 3 under a loaded machine until it wrapped both reads in `vi.waitFor`. Any new test reading run side-effects (skills, trace) right after `waitForPrRuns` needs the same poll.
 
@@ -229,6 +232,9 @@ a buried non-fatal startup warning, `relation "agent_runs" does not exist`.
 another `tsx`-run CLI script with this entrypoint pattern, use the fixed form
 from the start; grep for `import.meta.url === ` before assuming a "successful"
 CLI script run actually did anything on Windows.
+
+### 2026-10-09 — Blast Radius caller `file:line` was off: the index is the default branch, the link is the PR head
+`references.line` comes from the index (built at the default branch, e.g. master `e4985d5`), but the UI links `githubBlobUrl(…, headSha, file, line)`. Any PR that shifts lines in a caller file made links land 1-3 lines off, and the `(file, enclosing fn, symbol)` dedup also hid a second call in the same function. **Fix:** `getBlastRadius(repoId, files, {sha, prNumber})` → `RepoIntelService.relocateCallersAtHead` reads each caller file at the PR head (`git.readFileAtRef`, after `fetchPullHead` if `hasCommit` is false), re-runs `parseReferences`/`parseSymbols`, keeps only (file, symbol) pairs the index already resolved, and drops files the PR deleted. Dedup key now includes the line. Falls back to indexed lines if the head can't be fetched. `fetchPullHead` uses `+pull/N/head:pr-N` so force-pushed PRs refetch. `GitClient` gained `hasCommit`/`readFileAtRef` — mirrored into `client/src/vendor/shared/adapters.ts`. Caveat: caller *set* is still the master index's; a call the PR adds in a file with no indexed caller of that symbol isn't discovered.
 
 ## Session Notes
 

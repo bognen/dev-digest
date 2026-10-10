@@ -1,18 +1,28 @@
 {
   "stat": {
-    "symbols": "symbols",
-    "callers": "callers",
-    "endpoints": "endpoints",
-    "crons": "cron/jobs"
+    "symbols": "{count, plural, one {# symbol} other {# symbols}}",
+    "callers": "{count, plural, one {# caller} other {# callers}}",
+    "endpoints": "{count, plural, one {# endpoint} other {# endpoints}}",
+    "crons": "{count, plural, one {# cron job} other {# cron jobs}}"
+  },
+  "banner": {
+    "partial": "This repo's index is only partially built — some callers or impacted endpoints may be missing.",
+    "degraded": "This repo's index isn't available yet — showing a best-effort, less precise blast radius.",
+    "failed": "Indexing this repo failed — results may be missing callers or impacted endpoints. Try Resync.",
+    "reasonOnly": "The index reported a problem — some callers or impacted endpoints may be missing.",
+    "unsupportedLanguage": "Best-effort scan — this repo's language isn't covered by the code index, so some callers or endpoints may be missing."
   },
   "view": {
+    "label": "Blast radius view",
     "tree": "tree",
     "graph": "graph"
   },
-  "callerCount": "{count} callers",
-  "noDownstream": "{count} changed symbol(s), no downstream callers found.",
+  "expand": "Show larger",
+  "callerCount": "{count, plural, one {# caller} other {# callers}}",
+  "noDownstream": "{count, plural, one {# changed symbol} other {# changed symbols}}, no downstream callers found.",
   "graph": {
     "empty": "No downstream callers to graph.",
-    "ariaLabel": "Blast radius graph"
+    "ariaLabel": "Blast radius graph",
+    "more": "+{count} more"
   }
 }

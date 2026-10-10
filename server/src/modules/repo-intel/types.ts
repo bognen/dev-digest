@@ -71,6 +71,16 @@ export interface BlastCallerRow {
   rank: number;
 }
 
+/**
+ * PR head to report caller lines against. The persistent index is built from
+ * the default branch, so its line numbers don't match the PR's files; with a
+ * head ref the facade re-locates each caller on that commit.
+ */
+export interface BlastHeadRef {
+  sha: string;
+  prNumber: number;
+}
+
 export interface BlastResult {
   changedSymbols: BlastChangedSymbol[];
   callers: BlastCallerRow[];
@@ -144,7 +154,7 @@ export interface RepoIntel {
   getIndexState(repoId: string): Promise<IndexState>;
 
   // --- Reads --------------------------------------------------------------
-  getBlastRadius(repoId: string, changedFiles: string[]): Promise<BlastResult>;
+  getBlastRadius(repoId: string, changedFiles: string[], head?: BlastHeadRef): Promise<BlastResult>;
   getRepoMap(repoId: string, tokenBudget?: number): Promise<RepoMapResult>;
   getFileRank(repoId: string, paths: string[]): Promise<FileRankRow[]>;
   getSymbolsInFiles(repoId: string, paths: string[]): Promise<SymbolRow[]>;

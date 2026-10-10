@@ -186,21 +186,42 @@ export function parseSymbols(file: string, source: string): ParsedSymbol[] {
     handleDecl(node, exported, out, declLineByName);
   }
 
-  // Re-export pass: `export { foo, bar as baz }` upgrades previously-declared
-  // local names to exported. Aliases aren't separate symbols; the original
-  // decl carries the truth.
+  // Re-export pass: `export { foo, bar as baz }` and `export default foo;`
+  // upgrade previously-declared local names to exported. Aliases aren't
+  // separate symbols; the original decl carries the truth.
   for (const ex of root.findAll({ rule: { kind: 'export_statement' } })) {
     const clause = childrenOfKind(ex, 'export_clause')[0];
-    if (!clause) continue;
-    for (const spec of childrenOfKind(clause, 'export_specifier')) {
-      const name = getField(spec, 'name')?.text();
-      if (!name) continue;
-      // mark every prior symbol with this name as exported
-      for (const s of out) if (s.name === name && declLineByName.get(name) === s.line) s.exported = true;
+    if (clause) {
+      for (const spec of childrenOfKind(clause, 'export_specifier')) {
+        const name = getField(spec, 'name')?.text();
+        if (name) markExported(out, declLineByName, name);
+      }
+      continue;
     }
+    // `export default Foo;` — a bare identifier referencing a local decl.
+    const ident = childrenOfKind(ex, 'identifier')[0];
+    if (ident) markExported(out, declLineByName, ident.text());
   }
 
   return dedupe(out);
+}
+
+/**
+ * Mark the local declaration `name` exported. For a class, its method rows
+ * (qualified + bare) follow it; they are matched by line range inside the
+ * class so a same-named symbol elsewhere is never promoted.
+ */
+function markExported(out: ParsedSymbol[], declLines: Map<string, number>, name: string): void {
+  const line = declLines.get(name);
+  if (line === undefined) return;
+  for (const s of out) {
+    if (s.name !== name || s.line !== line) continue;
+    s.exported = true;
+    if (s.kind !== 'class') continue;
+    for (const m of out) {
+      if (m.kind === 'method' && m.line >= s.line && m.line <= s.endLine) m.exported = true;
+    }
+  }
 }
 
 /** Pull a child decl out of an `export_statement`; return exported flag. */
