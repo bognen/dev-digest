@@ -30,6 +30,9 @@ export const MAX_RISKS = 6;
 export const MAX_FOCUS = 5;
 /** Clamp `what`/`why` to their first N sentences (Q5). */
 export const MAX_SENTENCES = 2;
+/** Clamp `summary` (what + why in one paragraph) to its first N sentences
+ *  (SPEC-04 AC-1 / OQ-8). */
+export const MAX_SUMMARY_SENTENCES = 3;
 
 /** Clarification 6 (normative) — re-exported here so `grounding.ts`'s AC-15
  *  normalisation has one place to read the closed vocabulary from, without a

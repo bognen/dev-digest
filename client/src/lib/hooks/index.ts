@@ -12,3 +12,5 @@ export * from "./intent";
 export * from "./blast-radius";
 export * from "./brief";
 export * from "./smart-diff";
+export * from "./project-context";
+export * from "./onboarding-tour";

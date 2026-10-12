@@ -98,9 +98,9 @@ export const prBrief = pgTable(
     prId: uuid('pr_id')
       .primaryKey()
       .references(() => pullRequests.id, { onDelete: 'cascade' }),
-    json: jsonb('json').notNull(), // the grounded PrBrief (what/why/risk_level/risks/review_focus)
+    // The grounded PrBrief plus `head_sha` (the state key, D9) -- the repository adds/strips it.
+    json: jsonb('json').notNull(),
     generatedAt: timestamp('generated_at', { withTimezone: true }).defaultNow().notNull(),
-    headSha: text('head_sha').notNull(), // the state key
     // Staleness markers, frozen at generation time.
     indexSha: text('index_sha'), // an absent/degraded index still generates
     indexStatus: text('index_status'),
@@ -115,7 +115,4 @@ export const prBrief = pgTable(
     costUsd: doublePrecision('cost_usd'),
     droppedInputs: integer('dropped_inputs').notNull().default(0),
   },
-  (t) => ({
-    headShaIdx: index('pr_brief_head_sha_idx').on(t.headSha),
-  }),
 );

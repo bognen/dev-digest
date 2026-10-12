@@ -16,7 +16,8 @@ import {
   type DiffCommentApi,
 } from "../comments";
 import { partitionFindingAnchors, type DiffFindingApi, type FindingAnchor } from "../findings";
-import { s, fs, chevronFor } from "../styles";
+import { s, fs, fcs, chevronFor } from "../styles";
+import { resolveFocusLine, scrollBehaviorFor, type DiffFocusApi } from "../focus";
 import { CodeLine } from "../CodeLine";
 import { OutdatedComments } from "../OutdatedComments";
 
@@ -53,6 +54,7 @@ export function FileCard({
   findings,
   open: controlledOpen,
   onToggle,
+  focus,
 }: {
   file: PrFile;
   commenting?: DiffCommentApi;
@@ -60,12 +62,32 @@ export function FileCard({
   /** Controlled open state (e.g. a group's expand/collapse all); omit for local state. */
   open?: boolean;
   onToggle?: () => void;
+  /** Brief-navigation focus request; omit for the default rendering. */
+  focus?: DiffFocusApi;
 }) {
   const t = useTranslations("shell");
   const [localOpen, setLocalOpen] = React.useState(isAutoExpanded(file));
   const open = controlledOpen ?? localOpen;
   const toggle = onToggle ?? (() => setLocalOpen((o) => !o));
   const lines = React.useMemo(() => parsePatch(file.patch), [file.patch]);
+
+  // Brief-navigation focus. Derived at render; the one effect below only syncs DOM.
+  const focusTarget = focus?.target && focus.target.path === file.path ? focus.target : null;
+  const resolution = React.useMemo(
+    () => (focusTarget ? resolveFocusLine(lines, focusTarget.line) : null),
+    [focusTarget, lines],
+  );
+  const focusNonce = focusTarget?.nonce ?? null;
+  // Uncontrolled card: open it once per new nonce ("adjust state when a prop changes").
+  const [seenNonce, setSeenNonce] = React.useState<number | null>(null);
+  if (focusNonce !== null && focusNonce !== seenNonce) {
+    setSeenNonce(focusNonce);
+    if (controlledOpen === undefined) setLocalOpen(true);
+  }
+  const [headerFocused, setHeaderFocused] = React.useState(false);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  const targetRowRef = React.useRef<HTMLDivElement>(null);
+  const targetIndex = resolution && (resolution.kind === "line" || resolution.kind === "hunk") ? resolution.index : -1;
 
   // Group this file's comments into threads, then split into ones we can anchor
   // to a rendered line vs. "outdated" (GitHub dropped the line / it's not here).
@@ -101,6 +123,13 @@ export function FileCard({
     setPendingJump(false);
     document.getElementById(`finding-${firstFinding.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [pendingJump, open, firstFinding]);
+  React.useEffect(() => {
+    if (focusNonce === null || !open || !focus || !resolution) return;
+    const el = resolution.kind === "line" || resolution.kind === "hunk" ? targetRowRef.current : headerRef.current;
+    if (!el || !focus.claim(focusNonce)) return;
+    el.scrollIntoView({ behavior: scrollBehaviorFor(window), block: "center" });
+    el.focus({ preventScroll: true });
+  }, [focusNonce, open, resolution, focus]);
   const jumpToFinding = (e: React.MouseEvent) => {
     e.stopPropagation(); // don't toggle the card header
     if (!firstFinding) return;
@@ -115,7 +144,14 @@ export function FileCard({
 
   return (
     <div style={s.fileCard}>
-      <div onClick={toggle} style={s.fileHeader}>
+      <div
+        ref={headerRef}
+        tabIndex={focus ? -1 : undefined}
+        onClick={toggle}
+        onFocus={focus ? (e) => e.target === e.currentTarget && setHeaderFocused(true) : undefined}
+        onBlur={focus ? (e) => e.target === e.currentTarget && setHeaderFocused(false) : undefined}
+        style={headerFocused ? { ...s.fileHeader, ...fcs.focusOutline } : s.fileHeader}
+      >
         <Icon.ChevronRight size={13} style={chevronFor(open)} />
         <Icon.FileText size={14} style={s.fileIcon} />
         <span className="mono" style={s.filePath}>
@@ -149,7 +185,13 @@ export function FileCard({
       {open && (
         <div style={s.fileBody}>
           {lines.length === 0 ? (
-            <div style={s.noDiff}>{t("diffViewer.noDiffText")}</div>
+            resolution?.kind === "no_diff" && focus ? (
+              <div role="status" style={fcs.noDiffStatus}>
+                {focus.noDiffLabel}
+              </div>
+            ) : (
+              <div style={s.noDiff}>{t("diffViewer.noDiffText")}</div>
+            )
           ) : (
             lines.map((ln, i) => (
               <CodeLine
@@ -163,6 +205,9 @@ export function FileCard({
                 isHidden={findings?.isHidden}
                 onToggleHidden={findings?.onToggleHidden}
                 toggleLabel={t("diffViewer.toggleFinding")}
+                rowRef={i === targetIndex ? targetRowRef : undefined}
+                highlighted={resolution?.kind === "line" && i === targetIndex}
+                targetMarkerLabel={focus?.targetMarkerLabel}
               />
             ))
           )}

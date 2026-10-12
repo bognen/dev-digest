@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import type { BriefPage } from "@devdigest/shared";
+import type { BriefPage, PrFile } from "@devdigest/shared";
 import messages from "../../../../../../../../messages/en/brief.json";
 import * as toastLib from "@/lib/toast";
 import { formatCost } from "@/lib/format";
@@ -16,10 +16,11 @@ const mutate = vi.fn();
 let pageData: BriefPage | undefined;
 let mutationPending = false;
 let briefLoading = false;
+let mutationFailed = false;
 
 vi.mock("@/lib/hooks/brief", () => ({
   useBrief: () => ({ data: pageData, isLoading: briefLoading }),
-  useGenerateBrief: () => ({ mutate, isPending: mutationPending }),
+  useGenerateBrief: () => ({ mutate, isPending: mutationPending, isError: mutationFailed }),
 }));
 
 // The Run Review dropdown pulls in agents/router/prReview messages — it has its
@@ -41,10 +42,15 @@ afterEach(() => {
   pageData = undefined;
   mutationPending = false;
   briefLoading = false;
+  mutationFailed = false;
 });
 
 function renderCard(
-  props: { onFocusFile?: (file: string, line: number | null) => void; reviewRunCount?: number } = {},
+  props: {
+    onFocusFile?: (file: string, line: number | null) => void;
+    files?: PrFile[];
+    reviewRunCount?: number;
+  } = {},
 ) {
   return render(
     <NextIntlClientProvider locale="en" messages={{ brief: messages }}>
@@ -53,10 +59,6 @@ function renderCard(
   );
 }
 
-/** Risk areas + review focus live behind the panel's "Show details" toggle. */
-function expandDetails() {
-  fireEvent.click(screen.getByRole("button", { name: /show details/i }));
-}
 
 const GENERATED_PAGE: BriefPage = {
   status: "generated",
@@ -114,9 +116,6 @@ describe("PrBriefCard", () => {
     expect(screen.getByText("High Risk")).toBeInTheDocument();
     expect(screen.getByText("Adds rate limiting to the public API.")).toBeInTheDocument();
     expect(screen.getByText("Prevents abuse from unauthenticated clients.")).toBeInTheDocument();
-    // Risk areas + review focus are collapsed by default.
-    expect(screen.queryByText("New unauthenticated endpoint")).not.toBeInTheDocument();
-    expandDetails();
     expect(screen.getByText("New unauthenticated endpoint")).toBeInTheDocument();
     expect(screen.getByText(/Core rate-limit logic\./)).toBeInTheDocument();
 
@@ -128,14 +127,13 @@ describe("PrBriefCard", () => {
   it("AC-36 order is DOM order — risk badge, What, Why, then (expanded) Risk areas and Review focus", () => {
     pageData = GENERATED_PAGE;
     renderCard();
-    expandDetails();
 
     const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING;
     const badge = screen.getByText("High Risk");
     const what = screen.getByText("Adds rate limiting to the public API.");
     const why = screen.getByText("Prevents abuse from unauthenticated clients.");
     const risksLabel = screen.getByText("Risk areas");
-    const focusLabel = screen.getByText("Review focus");
+    const focusLabel = screen.getByText(messages.section.focus);
 
     expect(badge.compareDocumentPosition(what) & FOLLOWING).toBeTruthy();
     expect(what.compareDocumentPosition(why) & FOLLOWING).toBeTruthy();
@@ -146,7 +144,6 @@ describe("PrBriefCard", () => {
   it("renders as one compact panel: details collapsed, a refresh action, and the Run Review dropdown", () => {
     pageData = GENERATED_PAGE;
     renderCard();
-    expect(screen.getByRole("button", { name: /show details/i })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("button", { name: /regenerate/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Run Review" })).toBeInTheDocument();
   });
@@ -163,7 +160,6 @@ describe("PrBriefCard", () => {
   it("AC-37: expanding a risk reveals its explanation and file references, with a real host link", () => {
     pageData = GENERATED_PAGE;
     renderCard();
-    expandDetails();
 
     const riskToggle = screen.getByRole("button", { name: /New unauthenticated endpoint/i });
     expect(riskToggle).toHaveAttribute("aria-expanded", "false");
@@ -176,8 +172,7 @@ describe("PrBriefCard", () => {
   it("AC-39: activating a review-focus entry calls onFocusFile with the file and line", () => {
     pageData = GENERATED_PAGE;
     const onFocusFile = vi.fn();
-    renderCard({ onFocusFile });
-    expandDetails();
+    renderCard({ onFocusFile, files: [{ path: "src/middleware/ratelimit.ts" } as PrFile] });
 
     fireEvent.click(screen.getByRole("button", { name: /src\/middleware\/ratelimit\.ts:42/ }));
     expect(onFocusFile).toHaveBeenCalledWith("src/middleware/ratelimit.ts", 42);
@@ -186,7 +181,6 @@ describe("PrBriefCard", () => {
   it("AC-34: zero surviving risks renders an explicit empty statement, not an empty region", () => {
     pageData = { ...GENERATED_PAGE, brief: { ...GENERATED_PAGE.brief!, risks: [] } };
     renderCard();
-    expandDetails();
     expect(screen.getByText("No specific risks identified.")).toBeInTheDocument();
   });
 
@@ -259,7 +253,6 @@ describe("PrBriefCard", () => {
     expect(banner).toHaveTextContent(/generation failed/i);
     expect(banner).toHaveTextContent(/the model call timed out/i);
     expect(screen.getByText("Adds rate limiting to the public API.")).toBeInTheDocument();
-    expandDetails();
     expect(screen.getByText("New unauthenticated endpoint")).toBeInTheDocument();
   });
 
@@ -277,7 +270,6 @@ describe("PrBriefCard", () => {
       },
     };
     const { container } = renderCard();
-    expandDetails();
     fireEvent.click(screen.getByRole("button", { name: /New unauthenticated endpoint/i }));
 
     expect(container.querySelector("script")).toBeNull();
@@ -289,7 +281,6 @@ describe("PrBriefCard", () => {
     pageData = undefined;
     const { container } = renderCard();
 
-    expect(screen.getByText("PR Brief")).toBeInTheDocument();
     expect(container.querySelectorAll(".skeleton")).toHaveLength(2);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /generate brief|regenerate/i })).not.toBeInTheDocument();
@@ -303,5 +294,191 @@ describe("PrBriefCard", () => {
     expect(provenance).toHaveTextContent(formatCost(GENERATED_PAGE.provenance!.cost_usd));
     // A real timestamp was rendered, not the "unknown" placeholder.
     expect(provenance.textContent).not.toContain("Generated — ·");
+  });
+});
+
+const NOTICE = messages.navigation.notInDiff;
+const OPEN_EXTERNAL = messages.navigation.openExternal;
+const IN_DIFF_FILES = [
+  { path: "src/middleware/ratelimit.ts" },
+  { path: "src/api/public/webhooks.ts" },
+] as PrFile[];
+
+function withBrief(overrides: Partial<NonNullable<BriefPage["brief"]>>): BriefPage {
+  return { ...GENERATED_PAGE, brief: { ...GENERATED_PAGE.brief!, ...overrides } };
+}
+
+describe("PrBriefCard - brief navigation (SPEC-03)", () => {
+  it("AC-1..5: an in-diff review-focus item calls onFocusFile with file and line (null preserved) and shows no notice", () => {
+    pageData = withBrief({
+      review_focus: [
+        { file: "src/middleware/ratelimit.ts", line: 42, reason: "Core logic." },
+        { file: "src/api/public/webhooks.ts", line: null, reason: "Whole file." },
+      ],
+    });
+    const onFocusFile = vi.fn();
+    renderCard({ onFocusFile, files: IN_DIFF_FILES });
+
+    fireEvent.click(screen.getByRole("button", { name: "src/middleware/ratelimit.ts:42" }));
+    expect(onFocusFile).toHaveBeenLastCalledWith("src/middleware/ratelimit.ts", 42);
+    fireEvent.click(screen.getByRole("button", { name: "src/api/public/webhooks.ts" }));
+    expect(onFocusFile).toHaveBeenLastCalledWith("src/api/public/webhooks.ts", null);
+    expect(onFocusFile).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText(NOTICE)).not.toBeInTheDocument();
+  });
+
+  it("AC-5..7/AC-29: a file outside the PR diff shows the inline notice and a host link, and never focuses", () => {
+    pageData = withBrief({
+      review_focus: [{ file: "src/other/untouched.ts", line: 7, reason: "Caller." }],
+    });
+    const onFocusFile = vi.fn();
+    renderCard({ onFocusFile, files: IN_DIFF_FILES });
+
+    const item = screen.getByRole("button", { name: "src/other/untouched.ts:7" });
+    fireEvent.click(item);
+    expect(onFocusFile).not.toHaveBeenCalled();
+    const notice = screen.getByText(NOTICE);
+    expect(notice).toHaveAttribute("role", "status");
+    expect(item.closest("li")).toContainElement(notice);
+    const link = screen.getByRole("link", { name: OPEN_EXTERNAL });
+    expect(link).toHaveAttribute("href", "https://github.com/acme/demo/blob/sha-head/src/other/untouched.ts#L7");
+  });
+
+  it("AC-29/NFR-4: look-alike and hostile paths never navigate and only ever link to the pinned host blob URL", () => {
+    const unsafe = ["../x", "javascript:alert(1)", "https://evil.test/x"];
+    const hostile = [
+      ...unsafe,
+      "SRC/middleware/ratelimit.ts",
+      " src/middleware/ratelimit.ts",
+      "src/middleware/ratelimit.ts ",
+    ];
+    pageData = withBrief({ review_focus: hostile.map((file) => ({ file, line: null, reason: "r" })) });
+    const onFocusFile = vi.fn();
+    renderCard({ onFocusFile, files: IN_DIFF_FILES });
+
+    const buttons = screen.getAllByRole("button").filter((b) => hostile.includes(b.textContent ?? ""));
+    expect(buttons).toHaveLength(hostile.length);
+    for (const btn of buttons) {
+      fireEvent.click(btn);
+      expect(screen.getByText(NOTICE)).toBeInTheDocument();
+      if (unsafe.includes(btn.textContent ?? "")) {
+        expect(screen.queryByRole("link")).not.toBeInTheDocument();
+        continue;
+      }
+      const link = screen.getByRole("link", { name: OPEN_EXTERNAL });
+      expect(link.getAttribute("href")).toMatch(/^https:\/\/github\.com\/acme\/demo\/blob\/sha-head\//);
+    }
+    expect(onFocusFile).not.toHaveBeenCalled();
+  });
+
+  it("AC-29/NFR-4: a hostile risk file ref shows the notice with no link, and renders no link in plain mode", () => {
+    const risk = GENERATED_PAGE.brief!.risks[0]!;
+    pageData = withBrief({ risks: [{ ...risk, title: "Risk evil", file_refs: ["../../../evil/repo"] }] });
+    renderCard({ onFocusFile: vi.fn(), files: IN_DIFF_FILES });
+    fireEvent.click(screen.getByRole("button", { name: /Risk evil/ }));
+    fireEvent.click(screen.getByRole("button", { name: "../../../evil/repo" }));
+    expect(screen.getByText(NOTICE)).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    cleanup();
+
+    renderCard();
+    fireEvent.click(screen.getByRole("button", { name: /Risk evil/ }));
+    const plainRef = screen.getByText("../../../evil/repo");
+    expect(plainRef.closest("a")).toBeNull();
+  });
+
+  it("AC-22/AC-28: a risk header still expands, a risk file ref navigates, and two risks citing the same file keep independent notices", () => {
+    const risk = GENERATED_PAGE.brief!.risks[0]!;
+    pageData = withBrief({
+      risks: [
+        { ...risk, title: "Risk one", file_refs: ["src/middleware/ratelimit.ts:99", "src/gone/x.ts"] },
+        { ...risk, title: "Risk two", file_refs: ["src/gone/x.ts"] },
+      ],
+    });
+    const onFocusFile = vi.fn();
+    renderCard({ onFocusFile, files: IN_DIFF_FILES });
+
+    const one = screen.getByRole("button", { name: /Risk one/ });
+    const two = screen.getByRole("button", { name: /Risk two/ });
+    fireEvent.click(one);
+    expect(one).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(two);
+
+    const card = (h: HTMLElement) => h.parentElement as HTMLElement;
+    const refIn = (h: HTMLElement) => within(card(h)).getByRole("button", { name: "src/gone/x.ts" });
+
+    fireEvent.click(within(card(one)).getByRole("button", { name: "src/middleware/ratelimit.ts:99" }));
+    expect(onFocusFile).toHaveBeenCalledWith("src/middleware/ratelimit.ts", 99);
+
+    fireEvent.click(refIn(one));
+    expect(within(card(one)).getByText(NOTICE)).toBeInTheDocument();
+    expect(within(card(two)).queryByText(NOTICE)).not.toBeInTheDocument();
+
+    fireEvent.click(refIn(two));
+    expect(within(card(two)).getByText(NOTICE)).toBeInTheDocument();
+    expect(within(card(one)).queryByText(NOTICE)).not.toBeInTheDocument();
+    expect(screen.getAllByText(NOTICE)).toHaveLength(1);
+  });
+
+  it("NFR-2: the ref controls are real type=button elements (native Enter/Space activation) and activate once", () => {
+    pageData = withBrief({
+      review_focus: [{ file: "src/middleware/ratelimit.ts", line: 42, reason: "Core." }],
+    });
+    const onFocusFile = vi.fn();
+    renderCard({ onFocusFile, files: IN_DIFF_FILES });
+    const btn = screen.getByRole("button", { name: "src/middleware/ratelimit.ts:42" });
+    expect(btn.tagName).toBe("BUTTON");
+    expect(btn).toHaveAttribute("type", "button");
+    fireEvent.keyDown(btn, { key: "Enter" });
+    fireEvent.keyUp(btn, { key: " " });
+    // jsdom does not synthesise click from keys; browsers do for a real <button>.
+    fireEvent.click(btn);
+    expect(onFocusFile).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("PrBriefCard - generating and failure states (SPEC-03)", () => {
+  it("AC-12..15: while regenerating over a stale brief a skeleton replaces the body, with exactly one polite status", () => {
+    pageData = GENERATED_PAGE;
+    mutationPending = true;
+    renderCard();
+
+    expect(screen.queryByText("Adds rate limiting to the public API.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No brief yet")).not.toBeInTheDocument();
+    const statuses = screen.getAllByRole("status");
+    expect(statuses).toHaveLength(1);
+    expect(statuses[0]).toHaveTextContent(messages.status.generating);
+    expect(statuses[0]).toHaveAttribute("aria-live", "polite");
+  });
+
+  it("AC-12/AC-23: first generation (status generating, no brief) shows the skeleton, not the empty state", () => {
+    pageData = { status: "generating", reason: null, brief: null, provenance: null, current_head_sha: "s", stale_markers: [] };
+    renderCard();
+    expect(screen.queryByText("No brief yet")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+  });
+
+  it("AC-22: a failed generation shows the catalogue failure line and the toast text comes from generate.error", () => {
+    pageData = GENERATED_PAGE;
+    mutationFailed = true;
+    renderCard();
+    expect(screen.getByRole("status")).toHaveTextContent(messages.status.failed);
+
+    fireEvent.click(screen.getByRole("button", { name: /regenerate/i }));
+    const opts = mutate.mock.calls[0]![1] as { onError: (e: unknown) => void };
+    opts.onError(new Error("boom"));
+    const toast = toastLib.useToast();
+    expect(toast.error).toHaveBeenCalledWith(messages.generate.error);
+  });
+
+  it("AC-30: markdown/HTML in a risk explanation stays inert (no script, no live element)", () => {
+    const risk = GENERATED_PAGE.brief!.risks[0]!;
+    pageData = withBrief({
+      risks: [{ ...risk, explanation: "**bold** <img src=x onerror=alert(1)> <script>alert(2)</script>" }],
+    });
+    const { container } = renderCard();
+    fireEvent.click(screen.getByRole("button", { name: /New unauthenticated endpoint/i }));
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
   });
 });

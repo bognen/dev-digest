@@ -10,7 +10,7 @@ import type {
   Tokenizer,
 } from './ports.js';
 import { BriefRepository, type BriefPullRow, type BriefPrFileRow, type BriefRow } from './repository.js';
-import { assembleFacts } from './facts.js';
+import { assembleFacts, deriveMissingInputs } from './facts.js';
 import { buildBriefMessages } from './prompts.js';
 import { BriefGenerationOutput } from './schemas.js';
 import { groundBrief } from './grounding.js';
@@ -24,6 +24,7 @@ export type CostEstimator = (model: string, tokensIn: number, tokensOut: number)
  *  issue bodies, spec content or brief prose. */
 export interface BriefLogger {
   info: (obj: unknown, msg?: string) => void;
+  warn: (obj: unknown, msg?: string) => void;
 }
 
 /**
@@ -60,7 +61,8 @@ export class BriefService {
     return this.pageFor(pull, stored, generating);
   }
 
-  /** POST /pulls/:id/brief/generate — AC-24, AC-26, AC-27, AC-28, AC-31,
+  /** POST /pulls/:id/brief (canonical) and POST /pulls/:id/brief/generate
+   *  (permanent alias) — both routes share one handler. AC-24, AC-26, AC-27, AC-28, AC-31,
    *  AC-33, AC-44. Explicit-action only (D13/N5) — nothing here is ever
    *  called except from this route. */
   async generate(workspaceId: string, prId: string, regenerate: boolean): Promise<BriefGenerateResult> {
@@ -139,6 +141,14 @@ export class BriefService {
     const llm = await this.llm(provider);
     const { messages, payload } = buildBriefMessages(facts, this.tokenizer);
 
+    if (payload.overBudget) {
+      // AC-19: still over budget after every drop step — warn (no prose) and send anyway.
+      this.logger.warn(
+        { prId: pull.id, provider, model, tokens: payload.tokens, budget: payload.budget },
+        'brief.input_over_budget',
+      );
+    }
+
     let result;
     try {
       result = await llm.completeStructured({
@@ -158,7 +168,10 @@ export class BriefService {
 
     // Step 7 (AC-22): ground BEFORE persisting, so no ungrounded citation is
     // ever stored or displayed.
-    const { brief, dropped } = groundBrief(result.data, facts);
+    const { brief: grounded, dropped } = groundBrief(result.data, facts);
+    // AC-12/AC-13: server-computed, never model-authored.
+    const missingInputs = deriveMissingInputs(facts);
+    const brief = { ...grounded, missing_inputs: missingInputs };
     const costUsd = result.costUsd ?? this.estimateCost(model, result.tokensIn, result.tokensOut);
     const generatedAt = new Date();
 
@@ -192,6 +205,7 @@ export class BriefService {
         tokensOut: result.tokensOut,
         costUsd,
         droppedInputCategories: payload.droppedCount,
+        missingInputs,
         dropped: {
           paths: dropped.paths.length,
           lines: dropped.lines.length,

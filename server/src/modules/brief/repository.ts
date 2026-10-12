@@ -43,7 +43,9 @@ export interface BriefPrFileRow {
   patch: string | null;
 }
 
-/** One stored brief (`pr_brief`) — D8's redesigned-in-place row shape. */
+/** One stored brief (`pr_brief`) — D8's redesigned-in-place row shape. `headSha` is persisted inside
+ *  the `json` column (as `head_sha`), not as its own column; a row without it reads as `''`, which never
+ *  matches a PR head, so it is treated as an earlier state. */
 export interface BriefRow {
   prId: string;
   json: PrBrief;
@@ -130,11 +132,13 @@ export class BriefRepository {
   async getBrief(prId: string): Promise<BriefRow | undefined> {
     const [row] = await this.db.select().from(t.prBrief).where(eq(t.prBrief.prId, prId));
     if (!row) return undefined;
+    // The state key (head sha) is stored inside the JSON next to the brief; split it back out.
+    const { head_sha: headSha, ...brief } = row.json as PrBrief & { head_sha?: string };
     return {
       prId: row.prId,
-      json: row.json as PrBrief,
+      json: brief as PrBrief,
       generatedAt: row.generatedAt,
-      headSha: row.headSha,
+      headSha: headSha ?? '',
       indexSha: row.indexSha,
       indexStatus: row.indexStatus,
       indexerVersion: row.indexerVersion,
@@ -155,9 +159,8 @@ export class BriefRepository {
     const generatedAt = new Date();
     const values = {
       prId: input.prId,
-      json: input.json,
+      json: { ...input.json, head_sha: input.headSha },
       generatedAt,
-      headSha: input.headSha,
       indexSha: input.indexSha,
       indexStatus: input.indexStatus,
       indexerVersion: input.indexerVersion,

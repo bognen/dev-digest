@@ -120,6 +120,34 @@
       "when": 1790737388774,
       "tag": "0016_nervous_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791685159857,
+      "tag": "0017_dashing_mongoose",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791687676886,
+      "tag": "0018_yellow_master_mold",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791823163219,
+      "tag": "0019_pr_brief_head_sha_into_json",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791823174371,
+      "tag": "0020_pr_brief_drop_head_sha",
+      "breakpoints": true
     }
   ]
 }

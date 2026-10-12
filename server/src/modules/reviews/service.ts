@@ -47,7 +47,7 @@ export class ReviewService {
       github: () => container.github(),
     };
     this.intent = new IntentService(intentDeps);
-    this.executor = new ReviewRunExecutor(container, this.repo, this.agents, this.intent);
+    this.executor = new ReviewRunExecutor(container, this.repo, this.agents, this.intent, container.projectContextService);
   }
 
   // ===========================================================================

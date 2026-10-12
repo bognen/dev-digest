@@ -16,6 +16,21 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-11 — PR Brief navigation: focus request in page state, claim-once per nonce, untrusted brief paths
+`page.tsx` owns a `focusRequest` ({path, line, nonce}, nonce in a ref so it stays monotonic) set by the brief's `onFocusFile`, switches to the Files tab, and DROPS the request in a `[tab]` effect when the tab is not 'diff' (AC-11: returning to Files must not re-scroll). `DiffTab` keeps the `claim(nonce)` set in a ref (it stays mounted; a late smart-diff load remounts every FileCard, so a per-card guard would scroll twice), `RoleGroup` must open both the group and the per-file override because a controlled FileCard never opens itself, and `FileCard` scrolls via element refs (never selectors built from paths). Brief paths are untrusted model output: match them against `pr.files` with exact `Set.has` (`resolveBriefTarget`) and only offer the external GitHub link when `isSafeRepoPath` passes, because `githubBlobUrl` passes `..` through (`encodeURIComponent('..') === '..'`) and a browser normalises it out of the repo. Timestamp pickers must skip NaN as well as null (`ts > NaN` is always false, so a bad first element blocks every later one).
+
+### 2026-10-10 — Onboarding Tour: generated vs skeleton architecture card; TourSectionCard renders children for `ok` and `requires_generation`
+A generated Architecture overview is only the summary markdown + the Mermaid graph (design to_analyze/img_4.png); the deterministic Stack/Structure/Routes lists render only when there is no narrative (the skeleton, AC-25). The server's skeleton sends `architecture.state = 'requires_generation'` with populated facts, so `TourSectionCard` must render the 'Requires generation' note AND the children for that state (gating children on `ok` alone hid the AC-25 facts); `not_available` shows the reason and no children. `MermaidDiagram` renders null on a parse failure, which looks like 'no diagram'. In tests, clear the module-level `vi.mock('mermaid')` spies in `beforeEach` before asserting 'not called', and keep real-mermaid parse tests in their own file (mocked and real mermaid cannot share a file).
+
+### 2026-10-10 — Skill Context tab reorder shares one DndContext with non-sortable rows
+`SkillContextTab` keeps attached (sortable) and available (plain) rows in a single `ul` under one `DndContext`/`SortableContext`; the `SortableContext` items list only the attached paths, so unattached `li` rows are simply not sortable. Order comes from the query's `state.attached` (no local state) and a reorder saves immediately through the optimistic `useSetSkillContext` with the new ordered path list; drag is disabled while a filter is active.
+
+### 2026-10-10 — Onboarding Tour: link allowlist and namespace
+Every Markdown link in the tour goes through `helpers.tourHref` (exact match against the tour's `link_paths`, after stripping a leading `./` or `/`, then a GitHub blob URL at the stored sha); anything else renders as plain text via the Markdown primitive's `transformHref`, which also sees GFM bare-URL autolinks. `messages/en/onboarding.json` is now the Onboarding Tour namespace (old stub keys removed): don't point the add-repository flow at it.
+
+### 2026-10-10 — Repo-scoped editor tabs use `useActiveRepo().repoId`
+`/agents/:id` and `/skills/:id` have no `repoId` param, so the Context tabs read the active repo and render an EmptyState when it is null. Context mutations (`lib/hooks/project-context.ts`) already write the optimistic state to the query cache, so the tab derives rows from the query at render and keeps no local `edits` state (unlike SkillsTab). `useSetSkillContext` must also invalidate every `["agent-context"]` key, because inherited rows depend on skill attachments.
+
 ### 2026-10-05 — Blast graph is a hand-laid-out inline SVG; label truncation and layout are pure helpers
 
 BlastGraph (BlastRadiusCard/BlastGraph/) uses no chart/graph lib: `buildGraphLayout` in helpers.ts computes 3-column coordinates, caller cap is `MAX_GRAPH_CALLERS` (client-owned, not the server limit). SVG <a> links need `rel=noopener noreferrer`; the Tree view stays the default and the toggle is hidden when there are no rows.
@@ -263,6 +278,33 @@ contracts with no compiler error until a runtime mismatch shows up.
 
 ## Tool & Library Notes
 
+### 2026-10-11 � Stubbing a slot-taking component in tests: the stub must render the slot
+IntentCard now takes a `riskAreas` ReactNode slot; `page.test.tsx` stubbed it as `() => <div>intent-stub</div>`, so Risk areas vanished and an unrelated NFR-5 test failed. Stubs of components with slot props need `({ riskAreas }) => <div>stub{riskAreas}</div>`.
+
+### 2026-10-11 � PrBriefCard collapsed risk header's accessible name now includes the first file ref
+Tests matching header buttons with an anchored regex (`/Auth surface T$/`) broke; use `( |$)` or `getByRole('button', { name })` scoping. `Badge` in `vendor/ui` accepts no `data-testid`, so wrap it in a `<span data-testid>` for test hooks (vendor/ui is do-not-touch).
+
+### 2026-10-11 � Check EOLs with `git ls-files --eol`; several client files are CRLF in the working tree
+Under `core.autocrlf=true` the index is LF but many working copies are CRLF (RiskArea, styles.ts, OverviewTab, ...), so plan claims like "all LF" can be wrong. `grep` for a carriage return and `file` are unreliable in this Git Bash; edit via a newline-preserving script and confirm `git diff --stat` shows no whole-file churn.
+
+### 2026-10-11 � client vitest and typecheck take ~2 minutes each on this machine
+Even `vitest run -t <name>` takes ~110s because it still collects every file. Use `run_in_background` or a 600000ms timeout, never the default 120s foreground call; `-t` filters by test name, not file.
+
+### 2026-10-11  Hook tests that need a QueryClientProvider wrapper must be `.tsx`
+The wrapper is JSX, so a plan-named `brief.test.ts` fails to parse; name it `.test.tsx` (as `intent.test.tsx`, `brief.test.tsx` in `src/lib/hooks`). Keep the real `ApiError` via `vi.importActual` when mocking `../api`.
+
+### 2026-10-11 — Testing scroll/focus and brief states in jsdom
+jsdom has no layout: mock `Element.prototype.scrollIntoView` and assert the element via `mock.contexts[i]`, never positions; `jsdom` keeps the shorthand `style.outline` for focus-outline assertions. Inline style objects cannot express `:focus-visible`, so merge `fcs.focusOutline` from `onFocus`/`onBlur` state (guard `e.target === e.currentTarget` because React's `onFocus` bubbles). Build patch fixtures with `.join('\n')` and no trailing newline (a trailing newline adds a ctx row). `@devdigest/ui` `Tabs` render buttons, not `role=tab`; `useToast` throws outside `ToastProvider` (spy it); back a mocked `useSearchParams` with `useSyncExternalStore`. Catalogue-sentinel tests (replace every `brief` string with `@@dotted.path@@`) are a cheap proof that no label is hard-coded. `vitest run <path with [brackets]>` finds no files (read as a glob): filter by test name instead, and a full `src/app/repos` run takes ~3 minutes.
+
+### 2026-10-10 — Testing React Query hooks and scroll-spy in jsdom
+`ApiError`'s constructor order is `(message, status, code)`; a hook test that mocks `../api` must keep the real class via `vi.importActual` or `instanceof` checks in `onError` break. Inspect a `refetchInterval` function through `queryCache.find(...).options` cast to `{ refetchInterval: (q) => unknown }` (the default type omits it). jsdom has no `IntersectionObserver`, so scroll-spy falls back to click-only: assert the click path only. Native `<button>` keyDown does not become a click in jsdom, so assert `aria-expanded`/`aria-controls` structurally.
+
+### 2026-10-10 — Testing dnd-kit lists and hook-mocked components in jsdom
+dnd-kit keyboard reorder cannot be simulated in jsdom (zero rects, `sortableKeyboardCoordinates` never moves the item): assert the handle is focusable and ARIA-named and cover real reorder in e2e. `vi.mock` with a relative hook path silently fails to match from a deeper test file (symptom: 'No QueryClient set'), so mock `@/lib/hooks/...` via the alias. The trace drawer's Prompt assembly is collapsed by default (click it before asserting), and in ContextTab scope queries with `within(getByRole('region', {name}))` because one path can appear in Inherited and Available.
+
+### 2026-10-10 — `Checkbox` primitive: `label` is not the accessible name; Write decodes `\uXXXX`
+The vendored `Checkbox` renders a `role="checkbox"` button inside a label, so wrap it in a `role="group"` span with an `aria-label` carrying the document path. Separately, the Write tool decodes `\uXXXX` escapes in JSON message files into literal UTF-8: fine for Next.js messages, but don't rely on keeping ASCII-only escapes.
+
 ### 2026-09-30 — `@testing-library/user-event` is not installed in `client/`; use `fireEvent`
 Importing it fails to resolve (and `tsc` raises TS2307). Existing tests (`FindingCard.test.tsx`, `DiffTab.test.tsx`) use `fireEvent` from `@testing-library/react`. Adding `user-event` means a `package.json` change, so do it deliberately rather than inside a test-only task.
 
@@ -282,6 +324,9 @@ Browsers and Node have them, jsdom (vitest env) doesn't, so `extractSkillFile` (
 Seen while writing `extract.ts`: an escape written into a regex/string landed as a real NUL in the file. Grep for it after generating text-processing code: `grep -rlP '\x00' src`.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-10 — Multi-file bash heredocs fail silently
+A bash call creating several files with `cat <<'EOF'` (apostrophes, nested `python` heredocs, `$'\r'`) failed with `unexpected EOF while looking for matching` and created nothing. Use the Write tool for new files and byte-level Python for CRLF-preserving edits.
 
 ### 2026-10-05 — Agent edits turned em dashes into raw 0x97 bytes and flipped CRLF to LF
 While building the Blast Radius card, an implementer pass wrote cp1252 `0x97` instead of UTF-8 `E2 80 94` into `BlastRadiusCard/constants.ts` (banner text rendered as a replacement character, invisible to typecheck and vitest) and the `Edit` tool silently converted CRLF files to LF. After any agent edits a file with non-ASCII text, run `LC_ALL=C grep -c $'\x97' <file>` and `git diff --stat` for whole-file line-ending churn; fix by rewriting the bytes, not the text.

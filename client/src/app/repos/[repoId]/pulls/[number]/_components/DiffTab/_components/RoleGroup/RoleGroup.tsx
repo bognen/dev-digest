@@ -6,7 +6,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Icon } from "@devdigest/ui";
-import { DiffViewer, type DiffCommentApi, type DiffFindingApi, isAutoExpanded } from "@/components/diff-viewer";
+import { DiffViewer, type DiffCommentApi, type DiffFindingApi, type DiffFocusApi, isAutoExpanded } from "@/components/diff-viewer";
 import type { PrFile } from "@/lib/types";
 import { COLLAPSED_BY_DEFAULT, ROLE_META } from "../../constants";
 import { type MergedGroup } from "../../helpers";
@@ -16,10 +16,13 @@ export function RoleGroup({
   group,
   commenting,
   findings,
+  focus,
 }: {
   group: MergedGroup;
   commenting: DiffCommentApi;
   findings: DiffFindingApi;
+  /** Brief-navigation focus request; omit for the default rendering. */
+  focus?: DiffFocusApi;
 }) {
   const t = useTranslations("prReview");
   const meta = ROLE_META[group.role];
@@ -32,6 +35,17 @@ export function RoleGroup({
   const isOpen = (f: PrFile) => overrides.get(f.path) ?? isAutoExpanded(f);
   const allOpen = group.files.every(isOpen);
   const toggleFile = (f: PrFile) => setOverrides((m) => new Map(m).set(f.path, !isOpen(f)));
+  // A new focus target inside this group opens the group and the target file
+  // ("adjust state when a prop changes"); the file's FileCard then claims it.
+  const focusPath =
+    focus?.target && group.files.some((f) => f.path === focus.target?.path) ? focus.target.path : null;
+  const focusNonce = focusPath !== null ? (focus?.target?.nonce ?? null) : null;
+  const [seenNonce, setSeenNonce] = React.useState<number | null>(null);
+  if (focusPath !== null && focusNonce !== null && focusNonce !== seenNonce) {
+    setSeenNonce(focusNonce);
+    setOpen(true);
+    setOverrides((m) => new Map(m).set(focusPath, true));
+  }
   const toggleAll = () => {
     const next = !allOpen;
     setOverrides(new Map(group.files.map((f) => [f.path, next])));
@@ -76,6 +90,7 @@ export function RoleGroup({
           findings={findings}
           isOpen={isOpen}
           onToggleFile={toggleFile}
+          focus={focus}
         />
       )}
     </div>

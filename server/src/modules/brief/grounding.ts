@@ -2,7 +2,7 @@ import type { PrBrief, Risk, RiskKind, ReviewFocusItem } from '@devdigest/shared
 import type { BriefFactSet } from './facts.js';
 import type { BriefGenerationOutput } from './schemas.js';
 import { lineInRanges } from './hunks.js';
-import { MAX_FOCUS, MAX_RISKS, MAX_SENTENCES, RISK_KINDS } from './constants.js';
+import { MAX_FOCUS, MAX_RISKS, MAX_SENTENCES, MAX_SUMMARY_SENTENCES, RISK_KINDS } from './constants.js';
 
 /**
  * Grounding (AC-16..AC-22, §5) — pure, brief-local. Structurally analogous to
@@ -39,12 +39,21 @@ export function groundBrief(raw: BriefGenerationOutput, facts: BriefFactSet): Gr
   const what = clampSentences(groundFreeText(raw.what, facts, dropped), MAX_SENTENCES);
   const why = clampSentences(groundFreeText(raw.why, facts, dropped), MAX_SENTENCES);
 
+  // SPEC-04 AC-2: same link neutralisation + citation scan as what/why. If
+  // grounding empties it, fall back deterministically to what + why.
+  const groundedSummary = clampSentences(groundFreeText(raw.summary, facts, dropped), MAX_SUMMARY_SENTENCES);
+  const summary =
+    groundedSummary.trim().length > 0
+      ? groundedSummary
+      : clampSentences(`${what} ${why}`.trim(), MAX_SUMMARY_SENTENCES);
+
   // Q5 (planner recommendation) — bounds are enforced HERE, deterministically,
   // AFTER dropping: a risk dropped whole by AC-17 frees a slot rather than
   // silently shortening the surviving list.
   const brief: PrBrief = {
     what,
     why,
+    summary,
     risk_level: raw.risk_level,
     risks: risks.slice(0, MAX_RISKS),
     review_focus: reviewFocus.slice(0, MAX_FOCUS),

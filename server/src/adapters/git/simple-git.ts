@@ -9,6 +9,7 @@ import type {
   UnifiedDiff,
   BlameLine,
   GitCommit,
+  HistoryChurn,
 } from '@devdigest/shared';
 import { parseUnifiedDiff } from './diff-parser.js';
 
@@ -145,6 +146,40 @@ export class SimpleGitClient implements GitClient {
     } catch {
       return null; // path absent at that commit
     }
+  }
+
+  async historyChurn(repo: RepoRef, anchorRef: string, windowDays: number): Promise<HistoryChurn> {
+    const g = this.git(repo);
+    // Format strings below never include %s / %B: commit messages are not read.
+    const shallowRaw = await g.raw(['rev-parse', '--is-shallow-repository']);
+    const shallow = shallowRaw.trim() === 'true';
+    // Throws on a missing ref; the caller maps that to its own error.
+    const anchorDate =
+      (await g.raw(['log', '-1', '--format=%cI', anchorRef, '--'])).trim() || null;
+    const datesRaw = await g.raw(['log', '--reverse', '--format=%cI', anchorRef, '--']);
+    const dates = datesRaw.split('\n').filter((l) => l.trim().length > 0);
+    const oldestDate = dates[0]?.trim() ?? null;
+    const counts: Record<string, number> = {};
+    if (anchorDate) {
+      const since = new Date(new Date(anchorDate).getTime() - windowDays * 86_400_000).toISOString();
+      const raw = await g.raw([
+        '-c',
+        'core.quotePath=false',
+        'log',
+        anchorRef,
+        `--since=${since}`,
+        '--name-only',
+        '--no-renames',
+        '--format=%x00%H',
+        '--',
+      ]);
+      for (const block of raw.split('\0')) {
+        const lines = block.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+        // First line is the commit hash (the leading block before the first NUL is empty).
+        for (const path of lines.slice(1)) counts[path] = (counts[path] ?? 0) + 1;
+      }
+    }
+    return { shallow, anchorDate, oldestDate, commits: dates.length, counts };
   }
 }
 

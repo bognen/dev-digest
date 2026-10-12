@@ -15,6 +15,12 @@ export const s = {
     gap: 20,
     marginBottom: 24,
   } satisfies CSSProperties,
+  overviewGridStacked: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr)",
+    gap: 20,
+    marginBottom: 24,
+  } satisfies CSSProperties,
   overviewGridCell: {
     minWidth: 0,
     display: "flex",

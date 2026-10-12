@@ -20,6 +20,8 @@ Reusable AI skills that provide specialized knowledge and workflows. Canonical l
 | [mermaid-diagram](mermaid-diagram/SKILL.md) | Shared | Mermaid diagrams in markdown (flowcharts, sequence, ERD, …) |
 | [engineering-insights](engineering-insights/SKILL.md) | Shared | Captures gotchas, dead ends, and decisions into per-module INSIGHTS.md |
 | [pr-self-review](pr-self-review/SKILL.md) | Workflow (dispatcher) | Manual `/pr-self-review`: gates the local diff before a PR — deterministic gates, repo invariants, routes `client/**` and `server/**` files to the skills above → `PASS`/`WARN`/`BLOCKED`. Not the seeded app agent of the same name; no auto-invoke hook |
+| [run-plan](run-plan/SKILL.md) | Workflow (dispatcher) | Manual `/run-plan <plan> [--spec] [--designs] [--security] [--rounds N] [extra requirements]`: runs an approved plan through parallel implementers, `verify-changed.sh`, `plan-verifier`, then an architecture-review fix loop. Skips `test-writer`; `spec-creator` and `implementation-planner` stay manual |
+| [workflow-retro](workflow-retro/SKILL.md) | Workflow (analyzer) | Manual `/workflow-retro [session] [--save]`: after a multi-agent run, collects tokens, agent count/order, parallelism, tool errors and duplicated reads from the session transcripts (`scripts/collect.mjs`), then reports per-agent insights and prompt/plan improvements. Read-only except one ledger row per run in `docs/retros/ledger.md` |
 
 A **Workflow (dispatcher)** skill (like `pr-self-review`) does not hold domain rules itself: it resolves its input, then routes each piece to the domain skills above and merges their findings. Domain skills (Backend / Frontend / Full-stack) are loaded on demand for the files they cover.
 

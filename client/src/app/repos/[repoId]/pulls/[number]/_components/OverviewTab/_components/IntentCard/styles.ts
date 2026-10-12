@@ -79,6 +79,19 @@ export const s = {
     gap: 10,
     flexWrap: "wrap",
   } satisfies CSSProperties,
+  // Risk areas slot: inside the intent card (separator) or, when there is no
+  // intent record, a card of its own with the same tokens as card(false).
+  riskDivider: {
+    borderTop: "1px solid var(--border)",
+    paddingTop: 14,
+  } satisfies CSSProperties,
+  riskCard: {
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    background: "var(--bg-elevated)",
+    padding: 18,
+    marginTop: 14,
+  } satisfies CSSProperties,
   inlineNote: {
     display: "flex",
     alignItems: "center",

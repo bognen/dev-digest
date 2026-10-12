@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import type { FindingRecord, PrFile, ReviewRecord, SmartDiff } from "@devdigest/shared";
 import prReview from "../../../../../../../../messages/en/prReview.json";
 import shell from "../../../../../../../../messages/en/shell.json";
+import brief from "../../../../../../../../messages/en/brief.json";
 
 const mutate = vi.fn();
 let smartDiffState: { data: SmartDiff | undefined; isLoading?: boolean; isError?: boolean };
@@ -84,7 +85,7 @@ const review = (findings: FindingRecord[]): ReviewRecord => ({
 
 function renderTab(props: Partial<React.ComponentProps<typeof DiffTab>> = {}): RenderResult {
   return render(
-    <NextIntlClientProvider locale="en" messages={{ prReview, shell }}>
+    <NextIntlClientProvider locale="en" messages={{ prReview, shell, brief }}>
       <DiffTab prId="pr1" filesCount={FILES.length} files={FILES} headSha="sha" reviews={[]} {...props} />
     </NextIntlClientProvider>,
   );
@@ -294,5 +295,97 @@ describe("DiffTab finding visibility + jump", () => {
     fireEvent.click(screen.getByRole("button", { name: "Go to first finding" }));
     expect(screen.getByText("Title f1")).toBeInTheDocument();
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+  });
+});
+
+describe("DiffTab brief focus request", () => {
+  const scrollSpy = vi.fn();
+  let origScroll: typeof Element.prototype.scrollIntoView | undefined;
+  const tabUi = (props: Partial<React.ComponentProps<typeof DiffTab>> = {}): React.ReactElement => (
+    <NextIntlClientProvider locale="en" messages={{ prReview, shell, brief }}>
+      <DiffTab prId="pr1" filesCount={FILES.length} files={FILES} headSha="sha" reviews={[]} {...props} />
+    </NextIntlClientProvider>
+  );
+  const target = (path: string, nonce: number, line: number | null = 2) => ({ path, line, nonce });
+
+  beforeEach(() => {
+    smartDiffState = { data: SMART };
+    scrollSpy.mockReset();
+    origScroll = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scrollSpy;
+  });
+  afterEach(() => {
+    Element.prototype.scrollIntoView = origScroll as typeof Element.prototype.scrollIntoView;
+  });
+
+  it("AC-2/EC-16: a target inside the collapsed Docs group opens the group and the file, and scrolls once", () => {
+    const { rerender } = render(tabUi());
+    expect(screen.queryByText("README.md")).not.toBeInTheDocument();
+    expect(scrollSpy).not.toHaveBeenCalled();
+
+    rerender(tabUi({ focusRequest: target("README.md", 1) }));
+
+    expect(screen.getByRole("button", { name: /Docs/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("README.md")).toBeInTheDocument();
+    const line = screen.getByText("added README.md").closest('[aria-current="location"]') as HTMLElement;
+    expect(line).toBeTruthy();
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
+    expect(scrollSpy.mock.contexts[0]).toBe(line);
+    expect(line).toHaveFocus();
+  });
+
+  it("AC-11: re-rendering with the same nonce does not scroll again; a new nonce does", () => {
+    const { rerender } = render(tabUi({ focusRequest: target("src/core.ts", 1) }));
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
+
+    rerender(tabUi({ focusRequest: { ...target("src/core.ts", 1) } }));
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
+
+    rerender(tabUi({ focusRequest: target("src/core.ts", 2) }));
+    expect(scrollSpy).toHaveBeenCalledTimes(2);
+    expect(document.querySelectorAll('[aria-current="location"]')).toHaveLength(1);
+  });
+
+  it("AC-11/R7: remounting the cards after the claim (late smart-diff) does not scroll twice", () => {
+    smartDiffState = { data: undefined, isLoading: true };
+    const { rerender } = render(tabUi({ focusRequest: target("src/core.ts", 1) }));
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
+
+    smartDiffState = { data: SMART }; // flat list -> groups: FileCards remount
+    rerender(tabUi({ focusRequest: target("src/core.ts", 1) }));
+    expect(screen.getByRole("button", { name: /Core/ })).toBeInTheDocument();
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("AC-9: a new request keeps order and hidden-findings state", () => {
+    const reviews = [review([finding("f1")])];
+    const { rerender } = render(tabUi({ reviews }));
+    fireEvent.click(screen.getByRole("button", { name: "Original order" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hide findings (1)" }));
+
+    rerender(tabUi({ reviews, focusRequest: target("src/routes.ts", 1) }));
+
+    expect(scrollSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Original order" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Show findings (1)" })).toBeInTheDocument();
+    expect(screen.queryByText("Title f1")).not.toBeInTheDocument();
+  });
+
+  it("EC-8: a path that is not in the files does nothing and does not throw", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { rerender } = render(tabUi());
+    expect(() => rerender(tabUi({ focusRequest: target("nope/missing.ts", 1) }))).not.toThrow();
+    expect(scrollSpy).not.toHaveBeenCalled();
+    expect(document.querySelector('[aria-current="location"]')).toBeNull();
+    expect(screen.queryByText("README.md")).not.toBeInTheDocument(); // Docs still collapsed
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("without a focus request nothing is focus-decorated or scrolled", () => {
+    render(tabUi());
+    expect(scrollSpy).not.toHaveBeenCalled();
+    expect(document.querySelector("[aria-current]")).toBeNull();
+    expect(document.querySelector("[tabindex]")).toBeNull();
   });
 });

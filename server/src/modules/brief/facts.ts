@@ -1,3 +1,4 @@
+import type { BriefInput } from '@devdigest/shared';
 import { parseIssueNumber, parseSpecRef } from '../_shared/linked-issue.js';
 import type { BriefPrFileRow, BriefPullRow, BriefRepoRow } from './repository.js';
 import { hunkRangesFor, type HunkRange } from './hunks.js';
@@ -100,6 +101,22 @@ export interface BriefFactSet {
   knownEndpoints: Set<string>;
   knownCrons: Set<string>;
   knownSymbols: Set<string>;
+}
+
+/**
+ * SPEC-04 AC-12: which of the four inputs were unavailable for this fact set.
+ * Pure and server-computed (never model-authored). Fixed order. Inputs dropped
+ * by the prompt budget loop do NOT count as missing.
+ */
+export function deriveMissingInputs(facts: BriefFactSet): BriefInput[] {
+  const missing: BriefInput[] = [];
+  if (!facts.intent.available) missing.push('intent');
+  if (facts.blast.degraded || facts.blast.indexStatus === 'degraded' || facts.blast.indexStatus === 'failed') {
+    missing.push('blast_radius');
+  }
+  if (!facts.issue.available) missing.push('linked_issue');
+  if (!facts.spec.available) missing.push('specs');
+  return missing;
 }
 
 export interface AssembleFactsInput {

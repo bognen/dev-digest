@@ -33,6 +33,61 @@ export function wrapUntrusted(label: string, content: string): string {
   return `<untrusted source="${label}">\n${safe}\n</untrusted>`;
 }
 
+/** A project document (path-labelled Markdown) attached to an agent/skill. */
+export interface ProjectDoc {
+  path: string;
+  content: string;
+}
+
+/** Heading of the user-prompt section holding project documents. */
+export const PROJECT_CONTEXT_HEADING = '## Project context';
+
+/**
+ * Sub-sections of the project context, in fixed order. A document lands in the group of its first
+ * path segment; anything else goes to "Other". Titles are constants (never derived from content),
+ * and documents keep their given (priority) order inside a group.
+ */
+const PROJECT_DOC_GROUPS = [
+  { root: 'specs', title: 'Specs' },
+  { root: 'docs', title: 'Docs' },
+  { root: 'insights', title: 'Insights' },
+  { root: null, title: 'Other' },
+] as const;
+
+function groupTitleOf(path: string): string {
+  const root = path.split('/')[0];
+  return PROJECT_DOC_GROUPS.find((g) => g.root === root)?.title ?? 'Other';
+}
+
+/** Make a repo path safe inside the `source="…"` attribute (label only). */
+function sanitizeLabel(path: string): string {
+  return path
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replace(/[\r\n]+/g, ' ');
+}
+
+/** One labelled untrusted block for a project document (`project-doc:<path>`). */
+export function renderProjectDocBlock(doc: ProjectDoc): string {
+  return wrapUntrusted(`project-doc:${sanitizeLabel(doc.path)}`, doc.content);
+}
+
+/**
+ * Render the whole `## Project context` user section (heading + `### Specs/Docs/Insights/Other` groups of per-document
+ * blocks), or `null` for an empty list. The single renderer shared by the
+ * prompt, the server's token totals and the skill "Serializes as" preview.
+ */
+export function renderProjectContext(docs: ProjectDoc[]): string | null {
+  if (docs.length === 0) return null;
+  const sections = PROJECT_DOC_GROUPS.map((g) => ({
+    title: g.title,
+    blocks: docs.filter((doc) => groupTitleOf(doc.path) === g.title).map(renderProjectDocBlock),
+  })).filter((g) => g.blocks.length > 0);
+  const body = sections.map((g) => `### ${g.title}\n${g.blocks.join('\n\n')}`).join('\n\n');
+  return `${PROJECT_CONTEXT_HEADING}\n${body}`;
+}
+
 /** Cap the PR description so a huge author body can't blow the token budget. */
 const MAX_PR_DESCRIPTION_CHARS = 4000;
 
@@ -62,6 +117,12 @@ export interface PromptParts {
   memory?: string[];
   /** Project-context spec chunks (untrusted content). */
   specs?: string[];
+  /**
+   * Path-labelled project documents (untrusted). When non-empty they replace
+   * `specs` in the `## Project context` section. Undefined/empty → legacy
+   * `specs` path, byte-identical to before. Never defaulted to `[]`.
+   */
+  projectDocs?: ProjectDoc[];
   /**
    * Repo skeleton / map (T3): top-ranked symbols by signature, token-budgeted.
    * Untrusted (derived from repo code) — delimiter-wrapped. Rendered before
@@ -155,8 +216,13 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
     parts.memory && parts.memory.length > 0
       ? parts.memory.map((m) => `- ${m}`).join('\n')
       : undefined;
-  const specsBlock =
-    parts.specs && parts.specs.length > 0
+  const projectContext =
+    parts.projectDocs && parts.projectDocs.length > 0
+      ? renderProjectContext(parts.projectDocs)
+      : null;
+  const specsBlock = projectContext
+    ? projectContext.slice(PROJECT_CONTEXT_HEADING.length + 1)
+    : parts.specs && parts.specs.length > 0
       ? parts.specs.map((s, i) => wrapUntrusted(`spec-${i}`, s)).join('\n\n')
       : undefined;
 
@@ -178,7 +244,8 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
   if (parts.repoMap && parts.repoMap.trim().length > 0) {
     userSections.push(`## Repo skeleton\n${wrapUntrusted('repo-map', parts.repoMap)}`);
   }
-  if (specsBlock) userSections.push(`## Project context\n${specsBlock}`);
+  if (projectContext) userSections.push(projectContext);
+  else if (specsBlock) userSections.push(`${PROJECT_CONTEXT_HEADING}\n${specsBlock}`);
   if (parts.callers && parts.callers.trim().length > 0) {
     userSections.push(
       `## Callers of changed symbols\n${wrapUntrusted('callers', parts.callers)}`,

@@ -62,6 +62,11 @@ export interface StructuredRequest<T> {
   timeoutMs?: number;
   maxRetries?: number;
   /**
+   * Max transport-level retries (429 / 5xx / network) per HTTP call. Omitted =
+   * adapter default; `0` = a single attempt, no retry.
+   */
+  transportRetries?: number;
+  /**
    * OpenRouter session id — groups related generations (e.g. all map-reduce
    * chunks of one review) into a session in the OpenRouter dashboard. Sent as
    * the `session_id` body field; ignored by providers that don't support it.
@@ -231,7 +236,21 @@ export interface GitClient {
    * the working tree. `null` when the path doesn't exist at that commit.
    */
   readFileAtRef(repo: RepoRef, ref: string, path: string): Promise<string | null>;
+  /**
+   * Per-path commit counts reachable from `anchorRef` with committer date >=
+   * the anchor commit's date - `windowDays`. Never reads commit messages.
+   * `shallow` is true when history is truncated (counts are then unreliable).
+   */
+  historyChurn(repo: RepoRef, anchorRef: string, windowDays: number): Promise<HistoryChurn>;
   clonePathFor(repo: RepoRef): string;
+}
+
+export interface HistoryChurn {
+  shallow: boolean;
+  anchorDate: string | null;
+  oldestDate: string | null;
+  commits: number;
+  counts: Record<string, number>;
 }
 
 // ---------- CodeIndex (ripgrep + tree-sitter) ----------

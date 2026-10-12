@@ -139,3 +139,28 @@ export const fs = {
     color: "var(--text-muted)",
   } satisfies CSSProperties,
 } as const;
+
+/** Brief-navigation focus target: outline on the header / hunk row, highlight + marker on a line. */
+export const fcs = {
+  /** Applied to focusable targets so keyboard/programmatic focus is visible. */
+  focusOutline: { outline: "2px solid var(--accent)", outlineOffset: -2 } satisfies CSSProperties,
+  highlight: {
+    background: "var(--accent-bg)",
+    outline: "2px solid var(--accent)",
+    outlineOffset: -2,
+  } satisfies CSSProperties,
+  marker: {
+    display: "inline-flex",
+    alignItems: "center",
+    alignSelf: "center",
+    flexShrink: 0,
+    margin: "0 6px",
+    color: "var(--accent-text)",
+  } satisfies CSSProperties,
+  noDiffStatus: {
+    padding: "14px 18px",
+    fontSize: 13,
+    color: "var(--text-muted)",
+    textAlign: "center",
+  } satisfies CSSProperties,
+} as const;

@@ -17,6 +17,20 @@ describe("nav registry", () => {
     expect(SHORTCUTS).toContainEqual({ keys: "g c", label: "Go to Conventions", group: "Navigation" });
   });
 
+  it("lists Project Context in WORKSPACE without a g-nav shortcut", () => {
+    const item = section("WORKSPACE").items.find((i) => i.key === "context")!;
+    expect(item).toMatchObject({ label: "Project Context", icon: "FileText" });
+    expect(item.gKey).toBeUndefined();
+    expect(resolveHref(item.href, "r")).toBe("/repos/r/context");
+  });
+
+  it("lists Onboarding Tour in WORKSPACE without a g-nav shortcut", () => {
+    const item = section("WORKSPACE").items.find((i) => i.key === "onboarding-tour")!;
+    expect(item).toMatchObject({ label: "Onboarding Tour", icon: "Layers" });
+    expect(item.gKey).toBeUndefined();
+    expect(resolveHref(item.href, "r1")).toBe("/repos/r1/onboarding");
+  });
+
   it("keeps every g-nav shortcut key unique", () => {
     const keys = NAV.flatMap((g) => g.items).flatMap((i) => (i.gKey ? [i.gKey] : []));
     expect(new Set(keys).size).toBe(keys.length);

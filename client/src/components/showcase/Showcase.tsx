@@ -157,6 +157,9 @@ export function Gallery() {
         <div style={s.w420}>
           <Markdown>{"A finding with **bold**, `inline code`, and a [link](https://example.com).\n\n- one\n- two"}</Markdown>
         </div>
+        <div style={s.w420}>
+          <Markdown transformHref={() => null}>{"Link policy blocking all links: [blocked](https://example.com) and https://example.org"}</Markdown>
+        </div>
       </Group>
 
       <Group title="Form controls (real, controlled)">

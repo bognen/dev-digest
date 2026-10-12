@@ -10,6 +10,7 @@ import type { PrFile } from "@/lib/types";
 import { type DiffCommentApi } from "../comments";
 import type { DiffFindingApi } from "../findings";
 import { s } from "../styles";
+import type { DiffFocusApi } from "../focus";
 import { FileCard } from "../FileCard";
 
 export function DiffViewer({
@@ -18,6 +19,7 @@ export function DiffViewer({
   findings,
   isOpen,
   onToggleFile,
+  focus,
 }: {
   files: PrFile[];
   commenting?: DiffCommentApi;
@@ -25,6 +27,8 @@ export function DiffViewer({
   /** Controlled per-file open state; omit and each card manages its own. */
   isOpen?: (file: PrFile) => boolean;
   onToggleFile?: (file: PrFile) => void;
+  /** Brief-navigation focus request; omit for the default rendering. */
+  focus?: DiffFocusApi;
 }) {
   const t = useTranslations("shell");
   if (!files || files.length === 0) {
@@ -38,6 +42,7 @@ export function DiffViewer({
           file={f}
           commenting={commenting}
           findings={findings}
+          focus={focus}
           open={isOpen?.(f)}
           onToggle={onToggleFile ? () => onToggleFile(f) : undefined}
         />

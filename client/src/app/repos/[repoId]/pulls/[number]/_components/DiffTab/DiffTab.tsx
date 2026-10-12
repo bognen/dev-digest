@@ -3,7 +3,13 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { SectionLabel, Button } from "@devdigest/ui";
-import { DiffViewer, type DiffCommentApi, type DiffFindingApi } from "@/components/diff-viewer";
+import {
+  DiffViewer,
+  type DiffCommentApi,
+  type DiffFindingApi,
+  type DiffFocusApi,
+  type DiffFocusTarget,
+} from "@/components/diff-viewer";
 import { usePrComments, useCreatePrComment, useFindingAction, useSmartDiff } from "@/lib/hooks";
 import { notify } from "@/lib/toast";
 import type { FindingRecord, PrFile, ReviewRecord } from "@devdigest/shared";
@@ -24,14 +30,38 @@ interface DiffTabProps {
   /** Persisted review runs (newest first) — source of the inline findings. */
   reviews?: ReviewRecord[];
   repoFullName?: string | null;
+  /** Brief-navigation request (file, line, nonce); omit for the default rendering. */
+  focusRequest?: DiffFocusTarget | null;
 }
 
-export function DiffTab({ prId, filesCount, files, canComment, headSha, reviews, repoFullName }: DiffTabProps) {
+export function DiffTab({ prId, filesCount, files, canComment, headSha, reviews, repoFullName, focusRequest }: DiffTabProps) {
   const t = useTranslations("prReview");
+  const tBrief = useTranslations("brief");
   const { data: comments } = usePrComments(prId);
   const create = useCreatePrComment(prId);
   const { data: smartDiff } = useSmartDiff(prId, headSha);
   const action = useFindingAction();
+  // Nonces already scrolled to in this mount; a ref (not render state) so a late
+  // smart-diff load, which remounts the cards, never scrolls twice.
+  const claimedNonces = React.useRef<Set<number>>(new Set());
+  const noDiffLabel = tBrief("navigation.noDiff");
+  const targetMarkerLabel = tBrief("navigation.targetMarker");
+  const focus = React.useMemo<DiffFocusApi | undefined>(
+    () =>
+      focusRequest
+        ? {
+            target: focusRequest,
+            noDiffLabel,
+            targetMarkerLabel,
+            claim: (nonce) => {
+              if (claimedNonces.current.has(nonce)) return false;
+              claimedNonces.current.add(nonce);
+              return true;
+            },
+          }
+        : undefined,
+    [focusRequest, noDiffLabel, targetMarkerLabel],
+  );
   // Comments start hidden so the diff is clean by default — toggle to reveal.
   const [showComments, setShowComments] = React.useState(false);
   const [order, setOrder] = React.useState<DiffOrder>("smart");
@@ -157,11 +187,11 @@ export function DiffTab({ prId, filesCount, files, canComment, headSha, reviews,
       {groups && order === "smart" ? (
         <div style={s.groups}>
           {groups.map((g) => (
-            <RoleGroup key={g.role} group={g} commenting={commenting} findings={findings} />
+            <RoleGroup key={g.role} group={g} commenting={commenting} findings={findings} focus={focus} />
           ))}
         </div>
       ) : (
-        <DiffViewer files={files} commenting={commenting} findings={findings} />
+        <DiffViewer files={files} commenting={commenting} findings={findings} focus={focus} />
       )}
     </section>
   );

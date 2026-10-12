@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ProjectDocSkipReason } from './project-context.js';
 
 /**
  * Run trace. The ENTIRE trace of one run is persisted as a SINGLE
@@ -84,6 +85,24 @@ export const RunStats = z.object({
 });
 export type RunStats = z.infer<typeof RunStats>;
 
+/**
+ * Project-context block of one run (SPEC-01): the docs injected, those skipped
+ * and the token totals. Optional on RunTrace so older traces still parse.
+ */
+export const ProjectContextTrace = z.object({
+  docs: z.array(
+    z.object({
+      path: z.string(),
+      tokens: z.number().int().nonnegative(),
+      text: z.string(),
+    }),
+  ),
+  skipped: z.array(z.object({ path: z.string(), reason: ProjectDocSkipReason })),
+  total_tokens: z.number().int().nonnegative(),
+  budget_tokens: z.number().int().nonnegative(),
+});
+export type ProjectContextTrace = z.infer<typeof ProjectContextTrace>;
+
 /** The single-document trace stored in `run_traces.trace`. */
 export const RunTrace = z.object({
   config: z.object({
@@ -97,6 +116,7 @@ export const RunTrace = z.object({
   stats: RunStats,
   prompt_assembly: PromptAssembly,
   prompt_assembly_meta: PromptAssemblyMeta.optional(),
+  project_context: ProjectContextTrace.optional(),
   tool_calls: z.array(ToolCall),
   raw_output: z.string(),
   memory_pulled: z.array(MemoryPulled),

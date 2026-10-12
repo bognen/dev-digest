@@ -57,6 +57,7 @@
     "tabs": {
       "config": "Config",
       "skills": "Skills",
+      "context": "Context",
       "evals": "Evals",
       "stats": "Stats",
       "ci": "CI"
@@ -121,6 +122,54 @@
     "emptyTitle": "No skills yet",
     "emptyBody": "Create a skill first, then link it to this agent here.",
     "emptyCta": "Go to Skills"
+  },
+  "context": {
+    "title": "Project context",
+    "attachedCount": "{attached} of {total} attached",
+    "filterPlaceholder": "Filter documents…",
+    "orderHint": "Order matters — earlier docs appear earlier in the assembled Project context block. Toggle to attach; changes save immediately.",
+    "loadErrorTitle": "Couldn’t load project context",
+    "loadErrorBody": "The attached documents could not be loaded.",
+    "noRepoTitle": "No repository selected",
+    "noRepoBody": "Select a repository to attach its specs, docs and insights to this agent.",
+    "repoLine": "Documents from {repo}",
+    "emptyTitle": "No project documents found",
+    "emptyBody": "Add Markdown files under specs/, docs/ or insights/ in the repository, then refresh on the Project Context page.",
+    "groups": {
+      "attached": "Attached",
+      "attachedEmpty": "No documents attached yet. Tick one below.",
+      "available": "Available",
+      "inherited": "Inherited via skills"
+    },
+    "dragHandle": "Drag to reorder {name}",
+    "dragDisabledTitle": "Clear the filter to reorder",
+    "attachLabel": "Attach {name}",
+    "preview": "Preview",
+    "previewLabel": "Preview {name}",
+    "previewTitle": "Preview",
+    "tokens": "≈ {count} tokens",
+    "usedBy": "{count, plural, one {Used by # agent} other {Used by # agents}}",
+    "tooLarge": "Too large",
+    "viaSkill": "via {skill}",
+    "duplicate": "Duplicate (already attached)",
+    "state": {
+      "missing": "Missing from the checkout",
+      "unreadable": "Unreadable",
+      "too_large": "Too large",
+      "refused_containment": "Refused (outside the repository)"
+    },
+    "dropped": {
+      "missing": "Not injected: missing",
+      "unreadable": "Not injected: unreadable",
+      "too_large": "Not injected: too large",
+      "over_budget": "Not injected: over the token budget",
+      "refused_containment": "Not injected: refused"
+    },
+    "noMatch": "No documents match “{query}”.",
+    "total": "≈ {count} tokens",
+    "totalEstimating": "≈ {count} tokens (updating…)",
+    "totalNote": "Injected as an untrusted block (## Project context) into every run.",
+    "budget": "Budget: {count} tokens"
   },
   "mount": {
     "body": "Mount point for {owner}. The Agent Editor shell + tab routing are wired by A2 — {owner} renders this tab."

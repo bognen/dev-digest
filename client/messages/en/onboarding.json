@@ -1,17 +1,84 @@
 {
+  "crumbRepo": "Repository",
   "title": "Onboarding Tour",
-  "sections": "Sections",
-  "sectionCount": "{count} sections",
+  "headingPrefix": "Onboarding for ",
   "regenerate": "Regenerate",
-  "regenerating": "Regenerating…",
-  "unknownError": "Unknown error",
+  "generating": "Generating onboarding tour…",
+  "generatingHint": "This can take a minute. The page updates when it is ready.",
   "generate": {
     "title": "Generate onboarding tour",
-    "body": "DevDigest indexes the repo and specs, then writes a 5-section guided tour: overview, architecture, key modules, getting started, and conventions & gotchas.",
-    "cta": "Generate onboarding tour",
-    "generating": "Generating…"
+    "body": "DevDigest reads the repository index and writes a guided tour: architecture overview, critical paths, how to run locally, a reading path and first tasks. Nothing is generated until you ask.",
+    "cta": "Generate onboarding tour"
   },
+  "generateError": "Generation could not be started: {message}",
   "loadError": {
     "title": "Couldn’t load the onboarding tour"
+  },
+  "header": {
+    "generatedFrom": "Generated from index of {count, number} files",
+    "refreshed": "last refreshed {time} ago",
+    "refreshedNow": "last refreshed just now",
+    "basis": "Based on the top {considered, number} of {indexed, number} indexed files",
+    "lastFailure": "Last regeneration failed: {reason}. Showing the previous tour."
+  },
+  "status": {
+    "label": "Status",
+    "generated": "Generated",
+    "skeleton": "Skeleton",
+    "index_degraded": "Skeleton — index degraded",
+    "index_failed": "Skeleton — index failed",
+    "index_not_built": "Skeleton — index not built",
+    "llm_unavailable": "Skeleton — LLM unavailable",
+    "invalid_output": "Skeleton — generation failed",
+    "detail": "{label}: {detail}"
+  },
+  "stale": {
+    "note": "This tour may be out of date. It was generated from commit {generated}, and the repository index is now at {current}."
+  },
+  "nav": {
+    "label": "On this page"
+  },
+  "section": {
+    "architecture": "Architecture overview",
+    "critical_paths": "Critical paths",
+    "run_locally": "How to run locally",
+    "reading_path": "Guided reading path",
+    "first_tasks": "First tasks",
+    "collapse": "Collapse section",
+    "expand": "Expand section",
+    "notAvailable": "Not available: {reason}",
+    "notAvailableNoReason": "Not available",
+    "requiresGeneration": "Requires generation"
+  },
+  "architecture": {
+    "stack": "Stack",
+    "structure": "Structure",
+    "routes": "Routes",
+    "files": "{count, plural, one {# file} other {# files}}"
+  },
+  "paths": {
+    "importedBy": "imported by {count, plural, one {# file} other {# files}}",
+    "open": "Open",
+    "openAria": "Open {path} on GitHub",
+    "opensNewTab": "(opens in a new tab)"
+  },
+  "run": {
+    "notice": "These commands come from the repository. Review them before running — DevDigest never runs them.",
+    "source": "from {source}",
+    "copy": "Copy",
+    "copyAria": "Copy command: {command}",
+    "copied": "Copied"
+  },
+  "reading": {
+    "hotnessNotApplied": "Recent-activity ranking was not applied.",
+    "step": "Step {position}"
+  },
+  "tasks": {
+    "files": "Files"
+  },
+  "footer": {
+    "model": "Model {model}",
+    "tokens": "{tokens} tokens",
+    "cost": "Cost {cost}"
   }
 }

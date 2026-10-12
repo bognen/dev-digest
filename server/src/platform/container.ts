@@ -35,6 +35,14 @@ import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { BriefRepository } from '../modules/brief/repository.js';
 import { BriefService } from '../modules/brief/service.js';
 import { readSpecFile } from '../modules/brief/clone.js';
+import { stat } from 'node:fs/promises';
+import { OnboardingRepository } from '../modules/onboarding/repository.js';
+import { OnboardingService } from '../modules/onboarding/service.js';
+import { readExcerpt } from '../modules/onboarding/clone.js';
+import { loadPromptTemplate } from './prompts.js';
+import { ProjectContextRepository } from '../modules/project-context/repository.js';
+import { ProjectContextService } from '../modules/project-context/service.js';
+import { checkoutReader } from '../modules/project-context/checkout.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
 import { type UrlFetcher, HttpUrlFetcher } from '../adapters/url-fetcher/index.js';
@@ -92,6 +100,8 @@ export class Container {
   private _priceBook?: PriceBook;
   private _briefRepo?: BriefRepository;
   private _briefService?: BriefService;
+  private _projectContextService?: ProjectContextService;
+  private _onboardingService?: OnboardingService;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -155,6 +165,45 @@ export class Container {
       // per generation.
       console,
     ));
+  }
+
+  /**
+   * Project Context (SPEC-01): doc discovery/preview, agent+skill attachments and
+   * the run-time resolver. A process-wide singleton so the token cache is shared
+   * between the UI previews and runs.
+   */
+  get projectContextService(): ProjectContextService {
+    return (this._projectContextService ??= new ProjectContextService({
+      repo: new ProjectContextRepository(this.db),
+      checkout: checkoutReader,
+      sync: (ref, branch) => this.git.sync(ref, branch).then(() => undefined),
+      tokenizer: this.tokenizer,
+      contextWindow: (provider, model) =>
+        provider === 'openrouter' ? this.priceBook.contextLength(model) : null,
+      logger: console,
+      checkoutExists: (p) =>
+        stat(p)
+          .then((s) => s.isDirectory())
+          .catch(() => false),
+    }));
+  }
+
+  /**
+   * Onboarding Tour (SPEC-02). Process-wide singleton: its in-flight guard
+   * (second trigger => 409) only works with exactly one instance.
+   */
+  get onboardingService(): OnboardingService {
+    return (this._onboardingService ??= new OnboardingService({
+      store: new OnboardingRepository(this.db),
+      repoIntel: this.repoIntel,
+      resolveModel: (workspaceId) => this.resolveFeatureModel(workspaceId, 'onboarding'),
+      llm: (id) => this.llm(id),
+      readExcerpt,
+      tokenizer: this.tokenizer,
+      estimateCost: (model, tokensIn, tokensOut) => this.priceBook.estimate(model, tokensIn, tokensOut),
+      loadSystemTemplate: () => loadPromptTemplate('onboarding.system.md'),
+      logger: console,
+    }));
   }
 
   get reviewRepo(): ReviewRepository {

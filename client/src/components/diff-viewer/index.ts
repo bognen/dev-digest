@@ -4,3 +4,5 @@ export { DiffViewer } from "./DiffViewer";
 export { isAutoExpanded } from "./FileCard";
 export type { DiffCommentApi } from "./comments";
 export type { DiffFindingApi, FindingAnchor } from "./findings";
+export { resolveFocusLine } from "./focus";
+export type { DiffFocusApi, DiffFocusTarget } from "./focus";

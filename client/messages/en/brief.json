@@ -4,7 +4,7 @@
     "what": "What",
     "why": "Why",
     "risks": "Risk areas",
-    "focus": "Review focus",
+    "focus": "Review focus - read these first",
     "noRisks": "No specific risks identified.",
     "emptyTitle": "No brief yet",
     "emptyBody": "Generate a short why + risk summary for this pull request."
@@ -49,7 +49,8 @@
   "generate": {
     "generate": "Generate brief",
     "regenerate": "Regenerate",
-    "generating": "Generating…"
+    "generating": "Generating…",
+    "error": "Couldn't generate the brief."
   },
   "why": {
     "title": "git-why",
@@ -57,9 +58,24 @@
     "noHistory": "No history available for this line.",
     "noCommits": "No commits found for this line."
   },
-  "details": {
-    "show": "Show details",
-    "hide": "Hide details"
+  "navigation": {
+    "notInDiff": "File not in this PR's diff",
+    "noDiff": "No diff available for this file.",
+    "openExternal": "Open on GitHub",
+    "targetMarker": "Brief target"
   },
-  "reviewNotRun": "Review not run yet"
+  "banner": {
+    "latestRunFailed": "The most recent review run failed — showing the latest completed review.",
+    "regionLabel": "Latest review"
+  },
+  "reviewNotRun": "Review not run yet",
+  "missingInputs": {
+    "statement": "Generated without: {inputs}.",
+    "input": {
+      "intent": "Intent",
+      "blast_radius": "Blast radius",
+      "linked_issue": "Linked issue",
+      "specs": "Specs"
+    }
+  }
 }
