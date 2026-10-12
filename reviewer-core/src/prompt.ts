@@ -42,6 +42,23 @@ export interface ProjectDoc {
 /** Heading of the user-prompt section holding project documents. */
 export const PROJECT_CONTEXT_HEADING = '## Project context';
 
+/**
+ * Sub-sections of the project context, in fixed order. A document lands in the group of its first
+ * path segment; anything else goes to "Other". Titles are constants (never derived from content),
+ * and documents keep their given (priority) order inside a group.
+ */
+const PROJECT_DOC_GROUPS = [
+  { root: 'specs', title: 'Specs' },
+  { root: 'docs', title: 'Docs' },
+  { root: 'insights', title: 'Insights' },
+  { root: null, title: 'Other' },
+] as const;
+
+function groupTitleOf(path: string): string {
+  const root = path.split('/')[0];
+  return PROJECT_DOC_GROUPS.find((g) => g.root === root)?.title ?? 'Other';
+}
+
 /** Make a repo path safe inside the `source="…"` attribute (label only). */
 function sanitizeLabel(path: string): string {
   return path
@@ -57,13 +74,18 @@ export function renderProjectDocBlock(doc: ProjectDoc): string {
 }
 
 /**
- * Render the whole `## Project context` user section (heading + per-document
+ * Render the whole `## Project context` user section (heading + `### Specs/Docs/Insights/Other` groups of per-document
  * blocks), or `null` for an empty list. The single renderer shared by the
  * prompt, the server's token totals and the skill "Serializes as" preview.
  */
 export function renderProjectContext(docs: ProjectDoc[]): string | null {
   if (docs.length === 0) return null;
-  return `${PROJECT_CONTEXT_HEADING}\n${docs.map(renderProjectDocBlock).join('\n\n')}`;
+  const sections = PROJECT_DOC_GROUPS.map((g) => ({
+    title: g.title,
+    blocks: docs.filter((doc) => groupTitleOf(doc.path) === g.title).map(renderProjectDocBlock),
+  })).filter((g) => g.blocks.length > 0);
+  const body = sections.map((g) => `### ${g.title}\n${g.blocks.join('\n\n')}`).join('\n\n');
+  return `${PROJECT_CONTEXT_HEADING}\n${body}`;
 }
 
 /** Cap the PR description so a huge author body can't blow the token budget. */

@@ -19,16 +19,21 @@ type ListState = { data?: ProjectDocList; isLoading: boolean; isError: boolean; 
 let listState: ListState;
 const refetch = vi.fn();
 const refreshMutate = vi.fn();
+const reindexMutate = vi.fn();
+const download = vi.fn();
 vi.mock("@/lib/hooks/project-context", () => ({
   useProjectDocs: () => listState,
+  useReindexProjectDocs: () => ({ mutate: reindexMutate, isPending: false, isError: false, error: null }),
   useRefreshProjectDocs: () => ({ mutate: refreshMutate, isPending: false, isError: false, error: null }),
-  useProjectDoc: (_repoId: string, path: string) => ({
-    data: { path, root: "specs", content: `# Heading of ${path}`, tokens: 120 },
+  useProjectDoc: (_repoId: string, path: string | null) => ({
+    data: path ? { path, root: "specs", content: `# Heading of ${path}`, tokens: 120 } : undefined,
     isLoading: false,
     isError: false,
     refetch: vi.fn(),
   }),
 }));
+
+vi.mock("./helpers", async (orig) => ({ ...(await orig<typeof import("./helpers")>()), downloadMarkdown: (...a: unknown[]) => download(...a) }));
 
 import { ProjectContextView } from "./ProjectContextView";
 
@@ -36,6 +41,8 @@ afterEach(() => {
   cleanup();
   refetch.mockReset();
   refreshMutate.mockReset();
+  reindexMutate.mockReset();
+  download.mockReset();
 });
 
 const LIST: ProjectDocList = {
@@ -75,9 +82,44 @@ describe("ProjectContextView", () => {
     expect(screen.getByRole("heading", { name: "Heading of specs/a.md" })).toBeInTheDocument();
     expect(screen.getByRole("article")).toHaveTextContent("Preview");
 
-    // View only: no editor, upload or new-folder affordances.
+    // View only: no editor, upload or new-folder affordances (the Edit tab is a stub, see below).
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(screen.queryByRole("button", { name: /edit|upload|new folder/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /upload|new folder/i })).toBeNull();
+  });
+
+  it("Edit tab is a stub: it explains the view-only state, never renders an editor, and Preview returns", () => {
+    listState = { data: LIST, isLoading: false, isError: false, refetch };
+    renderView();
+    // No tabs until a document is selected.
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /specs\/a\.md/ }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByRole("note")).toHaveTextContent("Editing isn’t available yet");
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByRole("article")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+    expect(screen.getByRole("article")).toBeInTheDocument();
+  });
+
+  it("Download is disabled until a document is selected, then saves that document's Markdown", () => {
+    listState = { data: LIST, isLoading: false, isError: false, refetch };
+    renderView();
+    const btn = screen.getByRole("button", { name: "Download" });
+    expect(btn).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /specs\/a\.md/ }));
+    expect(screen.getByRole("button", { name: "Download" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    expect(download).toHaveBeenCalledWith("specs/a.md", "# Heading of specs/a.md");
+  });
+
+  it("Reindex triggers a repo resync for the active repo", () => {
+    listState = { data: LIST, isLoading: false, isError: false, refetch };
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Reindex" }));
+    expect(reindexMutate).toHaveBeenCalledWith("repo-1");
   });
 
   it("AC-5: Refresh triggers a checkout sync for the repo", () => {

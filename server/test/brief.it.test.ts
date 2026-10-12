@@ -252,8 +252,9 @@ d('PR brief (Testcontainers pg)', () => {
 
   it('AC-3/NFR-2/EC-1: a brief stored before this change (what/why only) is read as a valid 200 page with no summary or missing_inputs, on GET and on both POST paths', async () => {
     const pr = await mkPr();
-    const legacy = { what: 'Legacy what.', why: 'Legacy why.', risk_level: 'low', risks: [], review_focus: [] };
-    await db().insert(t.prBrief).values({ prId: pr.id, json: legacy, headSha: pr.headSha, model: 'gpt-4.1' });
+    // The head sha (state key) lives inside the JSON column, as the 0019 backfill writes it.
+    const legacy = { what: 'Legacy what.', why: 'Legacy why.', risk_level: 'low', risks: [], review_focus: [], head_sha: pr.headSha };
+    await db().insert(t.prBrief).values({ prId: pr.id, json: legacy, model: 'gpt-4.1' });
     const a = await mkApp();
 
     const res = await get(a, pr.id);

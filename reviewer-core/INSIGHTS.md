@@ -16,6 +16,9 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-12 — renderProjectContext groups documents by type with fixed ### headings
+The `## Project context` block is now `### Specs`, `### Docs`, `### Insights`, `### Other` groups (fixed order, empty groups omitted) of per-document untrusted blocks; the group is the document's FIRST path segment (exact match, so `docs.md` or `specs-old/x.md` is `Other`) and documents keep their priority order inside a group. Titles are constants, never built from paths or content, so a document cannot forge a heading outside its `<untrusted>` block. Prompt, server token totals and the skill 'Serializes as' preview all use this one renderer, so they stay byte-identical; tests that count `###` lines must skip lines inside `<untrusted>` blocks.
+
 ### 2026-10-10 — OpenRouterProvider: StructuredOutputError and per-request transport options
 `completeStructured` throws `StructuredOutputError` (same message as before) whose `details.raw` is the last raw model text, defined NON-enumerable so pino's err serializer and `JSON.stringify` cannot leak repo-derived model output into logs; read it as `err.details.raw` (the server's `rawOutputOf`). The OpenAI SDK client's `maxRetries`/`timeout` are set in the constructor (default 2 / 90s): per-request `transportRetries` and `timeoutMs` only take effect when passed as the SECOND argument to `chat.completions.create` (`{ maxRetries, timeout }`, only when defined, so review runs keep the defaults). `req.maxRetries` is the separate parse-repair loop; 'exactly one call' needs both at 0. Tests: the same `messages` array is mutated across attempts, so record `messages.length` inside the `create` mock.
 

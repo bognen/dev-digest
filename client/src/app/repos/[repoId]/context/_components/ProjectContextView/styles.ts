@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 export const s = {
   page: { padding: "28px 32px", maxWidth: 1280, margin: "0 auto" } satisfies CSSProperties,
-  headerRow: { display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 4 } satisfies CSSProperties,
+  headerRow: { display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4 } satisfies CSSProperties,
   heading: { fontSize: 26, fontWeight: 700, flex: 1 } satisfies CSSProperties,
   subtitle: { fontSize: 13, color: "var(--text-muted)", marginBottom: 20, lineHeight: 1.5 } satisfies CSSProperties,
   refreshError: {

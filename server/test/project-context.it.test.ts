@@ -195,6 +195,14 @@ d('project context API (Testcontainers pg)', () => {
     expect(sk.attached.map((x: { path: string }) => x.path)).toEqual(['specs/a.md']);
     expect(sk.serialized).toContain('## Project context');
     expect(sk.serialized).toContain('AAA');
+
+    // The preview groups documents by type, so it shows exactly what the prompt will contain.
+    expect((await putSkill(skill.id, repo.id, ['docs/b.md', 'specs/a.md'])).statusCode).toBe(200);
+    const grouped = (await app.inject({ method: 'GET', url: `/skills/${skill.id}/context?repo_id=${repo.id}` })).json();
+    const text: string = grouped.serialized;
+    expect(text.indexOf('### Specs')).toBeGreaterThan(-1);
+    expect(text.indexOf('### Specs')).toBeLessThan(text.indexOf('### Docs'));
+    expect(text.indexOf('project-doc:specs/a.md')).toBeLessThan(text.indexOf('project-doc:docs/b.md'));
   });
 
   it('AC-16/AC-17/AC-18/AC-20: inherited rows come only from enabled, non-flagged skills; shared doc marked duplicate', async () => {

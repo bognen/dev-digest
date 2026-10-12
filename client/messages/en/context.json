@@ -2,6 +2,15 @@
   "title": "Project Context",
   "repoFallback": "this repository",
   "subtitle": "Specs, docs and insights Markdown files in {repo}. Attach them to agents and skills to ground reviews. View only.",
+  "download": "Download",
+  "reindex": "Reindex",
+  "reindexing": "Reindexing…",
+  "reindexFailed": "Couldn’t start the reindex",
+  "tabs": { "preview": "Preview", "edit": "Edit" },
+  "edit": {
+    "title": "Editing isn’t available yet",
+    "body": "Project documents are view-only. Edit the file in the repository and press Refresh to pick up the change."
+  },
   "refresh": "Refresh",
   "refreshing": "Refreshing…",
   "refreshFailed": "Couldn’t refresh the checkout",

@@ -51,6 +51,19 @@ export function useRefreshProjectDocs() {
   });
 }
 
+/** POST /repos/:id/resync (202): fetch latest + incremental reindex, then re-read the document list. */
+export function useReindexProjectDocs() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (repoId: string) => api.post<{ status: string }>(`/repos/${repoId}/resync`),
+    onSuccess: (_res, repoId) => {
+      qc.invalidateQueries({ queryKey: ["project-docs", repoId] });
+      qc.invalidateQueries({ queryKey: ["project-doc", repoId] });
+      qc.invalidateQueries({ queryKey: ["repo-intel-state", repoId] });
+    },
+  });
+}
+
 export function useAgentContext(
   agentId: string | null | undefined,
   repoId: string | null | undefined,

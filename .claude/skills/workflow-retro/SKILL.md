@@ -1,6 +1,6 @@
 ---
 name: workflow-retro
-description: Workflow retrospective, run manually as /workflow-retro after a multi-agent workflow (/run-plan, orchestrator, spec-creator fan-out, review loops). Collects hard metrics from the session transcripts (tokens, agent count, spawn order, parallelism, durations, tool errors, duplicated file reads) and turns them into insights - what was hard or easy for each agent, what context was duplicated, what was missed - plus concrete prompt/plan/agent improvements. Read-only; writes a report only on request.
+description: Workflow retrospective, run manually as /workflow-retro after a multi-agent workflow (/run-plan, orchestrator, spec-creator fan-out, review loops). Collects hard metrics from the session transcripts (tokens, agent count, spawn order, parallelism, durations, tool errors, duplicated file reads) and turns them into insights - what was hard or easy for each agent, what context was duplicated, what was missed - plus concrete prompt/plan/agent improvements. Read-only except one append-only row per run in docs/retros/ledger.md (trend across runs); writes a full report only on request.
 disable-model-invocation: true
 argument-hint: [session-id-or-transcript-path] [--save] [focus notes...]
 metadata:
@@ -73,9 +73,35 @@ via the `engineering-insights` skill — *suggest* it, don't write it here.
 
 ## 4. Saving
 
-Default: print the report only. With `--save`, write
-`docs/workflow-retros/<YYYY-MM-DD>-<short-topic>.md` (create the folder if missing)
-and nothing else. Never commit.
+Default: print the report, then append the ledger row (below). With `--save`, also
+write `docs/workflow-retros/<YYYY-MM-DD>-<short-topic>.md` (create the folder if
+missing). Never commit.
+
+### Ledger — `docs/retros/ledger.md`
+
+One row per run, so the trend between runs is visible at a glance. This is the only
+write the skill makes without `--save`.
+
+- If the file is missing, create it with exactly this header (the table is the only
+  content below the title):
+
+  ```markdown
+  # Workflow retro ledger
+
+  One row per `/workflow-retro` run, newest last. Numbers come from `scripts/collect.mjs`.
+
+  | Date | Workflow / topic | Session | Agents | Wall time | New-work tokens | Tool errors | Fix rounds | Verdict | Report |
+  |---|---|---|---|---|---|---|---|---|---|
+  ```
+- Append **one** row at the end of the table (never edit or delete earlier rows;
+  a corrected run gets a new row). Cells: ISO date; workflow and topic (e.g.
+  `/run-plan pr-brief-polish`); first 8 chars of the session id; agent count; wall
+  time (`12m`); new-work tokens (cacheWrite + input + output, e.g. `1.2M`); tool-error
+  count; review/fix rounds; the one-line verdict from the report's Overview; link to
+  the saved report, or `-` when `--save` was not used.
+- A number the script did not report is `n/a`, never an estimate.
+- After appending, compare with the previous row of the same workflow and add one
+  line to the report: better / worse / flat on new-work tokens and tool errors.
 
 ## Possible extensions (not implemented — propose to the user when relevant)
 

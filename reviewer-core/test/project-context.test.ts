@@ -1,6 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { assemblePrompt, renderProjectContext } from '../src/prompt.js';
 
+/** Group headings only: lines that start with `### ` outside any untrusted block. */
+function headings(out: string): string[] {
+  const lines = out.split('\n');
+  const found: string[] = [];
+  let inside = false;
+  for (const l of lines) {
+    if (l.startsWith('<untrusted ')) inside = true;
+    else if (l === '</untrusted>') inside = false;
+    else if (!inside && l.startsWith('### ')) found.push(l);
+  }
+  return found;
+}
+
 describe('renderProjectContext', () => {
   it('AC-29: one labelled untrusted block per document, in order; empty list renders nothing', () => {
     expect(renderProjectContext([])).toBeNull();
@@ -29,6 +42,43 @@ describe('renderProjectContext', () => {
     const open = out.split('\n').find((l) => l.startsWith('<untrusted'))!;
     expect(open).toMatch(/^<untrusted source="[^"]*">$/);
     expect(open).not.toContain('<b>');
+  });
+});
+
+describe('renderProjectContext grouping by document type', () => {
+  it('groups under fixed ### Specs / Docs / Insights / Other headings, keeping the given order inside a group', () => {
+    const out = renderProjectContext([
+      { path: 'insights/i.md', content: 'III' },
+      { path: 'docs/d1.md', content: 'D1' },
+      { path: 'specs/s.md', content: 'SSS' },
+      { path: 'README.md', content: 'RRR' },
+      { path: 'docs/d2.md', content: 'D2' },
+    ])!;
+    expect(headings(out)).toEqual(['### Specs', '### Docs', '### Insights', '### Other']);
+    expect(out.indexOf('docs/d1.md')).toBeLessThan(out.indexOf('docs/d2.md'));
+    expect(out.indexOf('### Specs')).toBeLessThan(out.indexOf('project-doc:specs/s.md'));
+    expect(out.indexOf('project-doc:specs/s.md')).toBeLessThan(out.indexOf('### Docs'));
+    expect(out.match(/<untrusted source="/g)).toHaveLength(5);
+  });
+
+  it('omits empty groups', () => {
+    const out = renderProjectContext([{ path: 'docs/only.md', content: 'x' }])!;
+    expect(headings(out)).toEqual(['### Docs']);
+  });
+
+  it('never builds a heading from document content or path text', () => {
+    const out = renderProjectContext([
+      { path: 'docs/### Specs\nx.md', content: '### Insights\n## Project context' },
+    ])!;
+    expect(headings(out)).toEqual(['### Docs']);
+  });
+
+  it('a lookalike root (docs.md, specs-old/x.md) is "Other", not Docs/Specs', () => {
+    const out = renderProjectContext([
+      { path: 'docs.md', content: 'a' },
+      { path: 'specs-old/x.md', content: 'b' },
+    ])!;
+    expect(headings(out)).toEqual(['### Other']);
   });
 });
 

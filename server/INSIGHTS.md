@@ -16,6 +16,9 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-12 — pr_brief: head_sha lives inside the JSON column, not its own column
+`pr_brief` keeps only `pr_id` + `json` (plus spend/staleness columns); the state key `head_sha` is written by `BriefRepository.upsertBrief` as `json.head_sha` and split back out in `getBrief` (`BriefRow.headSha` is unchanged for the service). A row without it reads as `''`, which never equals a PR head, so it is treated as an earlier state instead of crashing. Migration 0019 is a `--custom` SQL backfill (`jsonb_set(json,'{head_sha}',to_jsonb(head_sha))`) that MUST stay ordered before 0020, which drops the column and `pr_brief_head_sha_idx`: generate the custom file first, then change the schema and run `drizzle-kit generate`. Integration tests that insert `t.prBrief` rows directly must put `head_sha` in the JSON.
+
 ### 2026-10-10 — Onboarding LLM output: tolerant local parsing, strict provider schema, content-free diagnosis
 `OnboardingLlmOutput` is `z.preprocess(normalizeLlmOutput, strictShape)`: `zodResponseFormat` still sees the strict shape with required fields and caps (identical JSON schema), while local parsing clamps over-long strings, slices over-long arrays and defaults `diagram`/`note`/`files`; the five sections and identifying keys stay required (AC-15). On a schema failure the service stores `diagnoseInvalidOutput(err.details.raw)` as the skeleton detail: 'not valid JSON (likely truncated)' + length, or failing field paths + zod codes (max 5) — never value text (NFR-5). `validateLlmOutput` needs >= 3 grounded first tasks, so tests that drop a task must keep 3 real ones. `LLM_MAX_OUTPUT_TOKENS` is 8000: reasoning models count hidden reasoning against `max_tokens`, and 3000 truncated the JSON (invalid_output on every run).
 
