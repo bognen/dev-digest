@@ -30,6 +30,10 @@ Produce:
   why            — 1-2 sentences: why, grounded in the intent/issue/spec facts
                     given to you. If none of those signals are available, say
                     so plainly rather than inventing a motivation.
+  summary        — at most 3 sentences: what this PR does and why, in plain
+                    language, grounded in the facts; if no intent/issue/spec
+                    signal is available, say so rather than inventing a
+                    motivation.
   risk_level     — one of "high" | "medium" | "low" for the PR as a whole.
   risks          — up to 6 risk areas. Each has:
                       kind        — one of: auth_surface, dependency,
@@ -82,6 +86,10 @@ export interface RenderedBriefPayload {
    *  value persisted as `dropped_inputs` (AC-8). A category counts once
    *  regardless of how many individual entries it removed. */
   droppedCount: number;
+  /** The budget this payload was measured against. */
+  budget: number;
+  /** True when the input is STILL over budget after every drop step (AC-19). */
+  overBudget: boolean;
 }
 
 /** The full messages array for the one `completeStructured` call, plus what
@@ -112,7 +120,13 @@ export function buildBriefMessages(
           { role: 'system', content: system },
           { role: 'user', content: user },
         ],
-        payload: { text: user, tokens, droppedCount: countDroppedCategories(facts, flags) },
+        payload: {
+          text: user,
+          tokens,
+          droppedCount: countDroppedCategories(facts, flags),
+          budget: BRIEF_INPUT_TOKEN_BUDGET,
+          overBudget: tokens > BRIEF_INPUT_TOKEN_BUDGET,
+        },
       };
     }
     flags = DROP_STEPS[stepIdx]!(flags);

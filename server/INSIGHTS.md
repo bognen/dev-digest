@@ -169,6 +169,12 @@ contracts between client and server with no compiler error until runtime.
 
 ## Tool & Library Notes
 
+### 2026-10-11 — Correction: optional request body needs `z.preprocess((v) => v ?? {}, schema)`, not `.default({})`
+Fastify passes `null` (not `undefined`) as the body of a POST with no payload and no content-type, and zod `.default()` only fires on `undefined`, so the entry below saying `.default({})` works is wrong: an absent body returned 422 (found by `test/brief.it.test.ts`, fixed in `brief/routes.ts`). Test absent-body paths with `app.inject` and no payload; a throwaway `safeParse(undefined)` check does not reproduce it.
+
+### 2026-10-11 — Optional request body: zod `.default({})`, not `.optional()`; empty JSON body 400s before zod
+In zod 3.24 `z.object({...}).default({})` parses an absent body to defaults and keeps `req.body` non-optional (`.optional()` forces `req.body?.`). Registering one route on two paths in a `for` loop keeps `req` typed by the Zod type provider (a shared standalone handler needs casts) — see `brief/routes.ts`. Fastify rejects `Content-Type: application/json` with an empty body (`FST_ERR_CTP_EMPTY_JSON_BODY`, 400) before zod runs, so absent-body tests must send no content-type and no body.
+
 ### 2026-10-10 — Exactly-one-LLM-call needs both `maxRetries: 0` and `transportRetries: 0`; MockLLMProvider seams
 The openai/anthropic adapters re-prompt on schema failure (`maxRetries`) AND retry 429/5xx/network up to 3 times (`transportRetries`, default 3 in `completeStructured`). Pass both as 0 when a call-count is a requirement (NFR-1). In tests: the 'onboarding' feature-model default provider is openrouter, so register the mock under `openrouter`; `structuredBySchema` can be a shared object filled after `buildApp`; a fixture that fails its schema throws 'fixture failed schema', which `classifyLlmError` maps to `invalid_output`; `MockLLMProvider` records the call before throwing/delaying.
 
@@ -210,6 +216,9 @@ directly instead. If you add or rename a script, check
 whoever has the skip-worktree bit set.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-11 — Editing CRLF files on Windows (brief module, vendored contracts)
+With `core.autocrlf` the working tree is CRLF while HEAD blobs are LF; `Edit`/`Write` can flip endings. Edit via a node/python script that normalizes to LF, applies unique exact-match replacements, and writes back with explicit CRLF endings; then `fs.copyFileSync` the server `vendor/shared/contracts/brief.ts` over the client copy. Verify with `file <path>` — a `grep -c` for a carriage return returned 0 on CRLF files in this Git Bash.
 
 ### 2026-10-10 — LLM emitted the whole Mermaid diagram on one line; the client rendered nothing
 The onboarding prompt said 'keep every node label on ONE line' and the model applied it to the whole diagram (`flowchart LR A[Client] --> B[Express] B --> C[...]`). Mermaid cannot parse several statements on one line, so `MermaidDiagram` silently rendered null. Fixed in two places: the prompt now says one STATEMENT per line with real newlines (only a single LABEL must stay on one line), and `sanitizeDiagram` runs the deterministic `repairDiagramLines` first (splits a one-line diagram into statements; bails out unchanged on subgraph/unbalanced/unknown syntax; multiline input is byte-identical). When a diagram goes missing, inspect the stored string first: `mermaid.parse` returns false for the one-line form and `{diagramType:'flowchart-v2'}` for the repaired one.

@@ -1,5 +1,6 @@
 /* RiskArea — one risk in the RISK AREAS list (AC-37). Collapsed: severity +
-   kind + title + file refs. Expanded (aria-expanded button): the explanation.
+   kind + title + first file ref (plain mono text, never a link; SPEC-05 AC-7).
+   Expanded (aria-expanded button): the explanation.
    With `onNavigate` wired (useBriefNavigation) each file ref is a button that
    focuses it in Files changed, or shows an inline "not in this PR's diff"
    notice whose secondary link goes to the repository host, pinned to the
@@ -46,6 +47,11 @@ export function RiskArea({
         <I size={14} style={{ color: meta.color, flexShrink: 0 }} />
         <span style={s.kindLabel}>{t(`risk.kind.${risk.kind}`)}</span>
         <span style={s.riskTitle}>{risk.title}</span>
+        {!expanded && risk.file_refs[0] && (
+          <span className="mono" style={s.riskRef}>
+            {risk.file_refs[0]}
+          </span>
+        )}
         <Icon.ChevronDown size={14} style={s.chevron(expanded)} />
       </button>
       {expanded && (

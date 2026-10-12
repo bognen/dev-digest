@@ -106,12 +106,30 @@ export const ReviewFocusItem = z.object({
 });
 export type ReviewFocusItem = z.infer<typeof ReviewFocusItem>;
 
+/**
+ * The four fact inputs a brief can be generated from. `missing_inputs` on
+ * PrBrief names the ones that were unavailable for a given generation.
+ */
+export const BriefInput = z.enum(['intent', 'blast_radius', 'linked_issue', 'specs']);
+export type BriefInput = z.infer<typeof BriefInput>;
+
 export const PrBrief = z.object({
   what: z.string(),
   why: z.string(),
+  /**
+   * What this PR does and why, in at most 3 sentences. Absent on briefs
+   * stored before SPEC-04 (AC-3), so optional.
+   */
+  summary: z.string().optional(),
   risk_level: RiskSeverity,
   risks: z.array(Risk),
   review_focus: z.array(ReviewFocusItem),
+  /**
+   * Inputs that were unavailable when this brief was generated. Computed by
+   * the server from the fact set, never model-authored. Absent on legacy
+   * rows; `[]` when all four inputs were available.
+   */
+  missing_inputs: z.array(BriefInput).optional(),
 });
 export type PrBrief = z.infer<typeof PrBrief>;
 
@@ -181,7 +199,8 @@ export const BriefPage = z.object({
 });
 export type BriefPage = z.infer<typeof BriefPage>;
 
-/** POST /pulls/:id/brief/generate response shape — the same envelope plus
+/** POST /pulls/:id/brief (canonical) and /brief/generate (alias) response
+ *  shape — the same envelope plus
  *  what THIS generation's grounding dropped (null when nothing was dropped,
  *  or the call never reached grounding — e.g. `refused`/`generating`). */
 export const BriefGenerateResult = BriefPage.extend({

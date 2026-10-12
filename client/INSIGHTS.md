@@ -278,6 +278,21 @@ contracts with no compiler error until a runtime mismatch shows up.
 
 ## Tool & Library Notes
 
+### 2026-10-11 — Stubbing a slot-taking component in tests: the stub must render the slot
+IntentCard now takes a `riskAreas` ReactNode slot; `page.test.tsx` stubbed it as `() => <div>intent-stub</div>`, so Risk areas vanished and an unrelated NFR-5 test failed. Stubs of components with slot props need `({ riskAreas }) => <div>stub{riskAreas}</div>`.
+
+### 2026-10-11 — PrBriefCard collapsed risk header's accessible name now includes the first file ref
+Tests matching header buttons with an anchored regex (`/Auth surface T$/`) broke; use `( |$)` or `getByRole('button', { name })` scoping. `Badge` in `vendor/ui` accepts no `data-testid`, so wrap it in a `<span data-testid>` for test hooks (vendor/ui is do-not-touch).
+
+### 2026-10-11 — Check EOLs with `git ls-files --eol`; several client files are CRLF in the working tree
+Under `core.autocrlf=true` the index is LF but many working copies are CRLF (RiskArea, styles.ts, OverviewTab, ...), so plan claims like "all LF" can be wrong. `grep` for a carriage return and `file` are unreliable in this Git Bash; edit via a newline-preserving script and confirm `git diff --stat` shows no whole-file churn.
+
+### 2026-10-11 — client vitest and typecheck take ~2 minutes each on this machine
+Even `vitest run -t <name>` takes ~110s because it still collects every file. Use `run_in_background` or a 600000ms timeout, never the default 120s foreground call; `-t` filters by test name, not file.
+
+### 2026-10-11  Hook tests that need a QueryClientProvider wrapper must be `.tsx`
+The wrapper is JSX, so a plan-named `brief.test.ts` fails to parse; name it `.test.tsx` (as `intent.test.tsx`, `brief.test.tsx` in `src/lib/hooks`). Keep the real `ApiError` via `vi.importActual` when mocking `../api`.
+
 ### 2026-10-11 â€” Testing scroll/focus and brief states in jsdom
 jsdom has no layout: mock `Element.prototype.scrollIntoView` and assert the element via `mock.contexts[i]`, never positions; `jsdom` keeps the shorthand `style.outline` for focus-outline assertions. Inline style objects cannot express `:focus-visible`, so merge `fcs.focusOutline` from `onFocus`/`onBlur` state (guard `e.target === e.currentTarget` because React's `onFocus` bubbles). Build patch fixtures with `.join('\n')` and no trailing newline (a trailing newline adds a ctx row). `@devdigest/ui` `Tabs` render buttons, not `role=tab`; `useToast` throws outside `ToastProvider` (spy it); back a mocked `useSearchParams` with `useSyncExternalStore`. Catalogue-sentinel tests (replace every `brief` string with `@@dotted.path@@`) are a cheap proof that no label is hard-coded. `vitest run <path with [brackets]>` finds no files (read as a glob): filter by test name instead, and a full `src/app/repos` run takes ~3 minutes.
 

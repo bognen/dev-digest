@@ -39,6 +39,7 @@ const RawFocusItem = z.object({
 export const BriefGenerationOutput = z.object({
   what: z.string().min(1).max(2000),
   why: z.string().min(1).max(2000),
+  summary: z.string().min(1).max(2000), // SPEC-04 AC-1: what + why, ≤3 sentences (clamped by grounding)
   risk_level: z.enum(['high', 'medium', 'low']),
   risks: z.array(RawRisk).max(MAX_RISKS * 2), // headroom — grounding/Q5 does the real clamp
   review_focus: z.array(RawFocusItem).max(MAX_FOCUS * 2),

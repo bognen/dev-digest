@@ -38,6 +38,19 @@ export const s = {
     lineHeight: 1.5,
     color: "var(--text-secondary)",
   } satisfies CSSProperties,
+  summary: {
+    fontSize: 15,
+    fontWeight: 400,
+    lineHeight: 1.4,
+    margin: 0,
+    color: "var(--text-primary)",
+  } satisfies CSSProperties,
+  missingInputs: {
+    fontSize: 12,
+    lineHeight: 1.4,
+    margin: 0,
+    color: "var(--text-muted)",
+  } satisfies CSSProperties,
   refresh: {
     position: "absolute",
     top: 14,
@@ -77,22 +90,17 @@ export const s = {
     fontSize: 12,
     color: "var(--text-muted)",
   } satisfies CSSProperties,
-  detailsToggle: {
-    background: "none",
-    border: "none",
-    padding: 0,
-    cursor: "pointer",
-    font: "inherit",
-    fontSize: 12,
-    color: "var(--accent-text)",
-  } satisfies CSSProperties,
-  details: {
-    gridColumn: "1 / -1",
+  riskSection: {
+    marginTop: 16,
     borderTop: "1px solid var(--border)",
-    paddingTop: 16,
+    paddingTop: 14,
   } satisfies CSSProperties,
-  block: {
-    marginBottom: 18,
+  focusCard: {
+    padding: "18px 20px",
+    marginBottom: 24,
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    background: "var(--bg-elevated)",
   } satisfies CSSProperties,
   blockLabel: {
     fontSize: 11,
@@ -121,6 +129,7 @@ export const s = {
   riskHeader: {
     display: "flex",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: 8,
     width: "100%",
     padding: "10px 12px",
@@ -154,11 +163,15 @@ export const s = {
   riskTitle: {
     flex: 1,
     minWidth: 0,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
+    overflowWrap: "anywhere",
     fontSize: 13.5,
     color: "var(--text-primary)",
+  } satisfies CSSProperties,
+  riskRef: {
+    fontSize: 12,
+    color: "var(--text-muted)",
+    overflowWrap: "anywhere",
+    minWidth: 0,
   } satisfies CSSProperties,
   chevron: (open: boolean) =>
     ({
@@ -210,9 +223,12 @@ export const s = {
     cursor: "pointer",
     font: "inherit",
     color: "var(--accent-text)",
+    overflowWrap: "anywhere",
+    textAlign: "left",
   } satisfies CSSProperties,
   focusReason: {
     color: "var(--text-secondary)",
     marginLeft: 6,
+    overflowWrap: "anywhere",
   } satisfies CSSProperties,
 } as const;

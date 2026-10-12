@@ -57,10 +57,6 @@ function renderCard(props: Props = {}, msgs: unknown = messages): RenderResult {
   return render(ui(msgs, props));
 }
 
-function expandDetails() {
-  fireEvent.click(screen.getByRole("button", { name: /show details|@@details\.show@@/i }));
-}
-
 const FILES = [{ path: "src/a.ts" }, { path: "src/b.ts" }] as PrFile[];
 
 const PAGE: BriefPage = {
@@ -118,7 +114,6 @@ describe("PrBriefCard - risk header (AC-6)", () => {
     pageData = PAGE;
     const onFocusFile = vi.fn();
     renderCard({ onFocusFile, files: FILES });
-    expandDetails();
 
     const header = screen.getByRole("button", { name: /Risk title one/ });
     expect(header).toHaveAttribute("aria-expanded", "false");
@@ -208,18 +203,14 @@ describe("PrBriefCard - catalogue sentinels (AC-22, AC-24)", () => {
     renderCard({ onFocusFile: vi.fn(), files: FILES, reviewRunCount: 0 }, SENT);
 
     for (const k of [
-      "section.title",
       "risk.badge.high",
       "reviewNotRun",
-      "details.show",
     ]) {
       expect(screen.getAllByText(`@@${k}@@`).length).toBeGreaterThan(0);
     }
     expect(screen.getByRole("button", { name: "@@generate.regenerate@@" })).toBeInTheDocument();
     expect(screen.getByText(/^@@provenance\.generatedBy@@$/)).toBeInTheDocument();
 
-    expandDetails();
-    expect(screen.getByText("@@details.hide@@")).toBeInTheDocument();
     for (const k of ["section.risks", "section.focus", "risk.level.high", "risk.kind.auth_surface"]) {
       expect(screen.getByText(`@@${k}@@`)).toBeInTheDocument();
     }
@@ -252,7 +243,6 @@ describe("PrBriefCard - catalogue sentinels (AC-22, AC-24)", () => {
     mutationFailed = false;
     pageData = withBrief({ risks: [], review_focus: [] });
     renderCard({}, SENT);
-    expandDetails();
     expect(screen.getByText("@@section.noRisks@@")).toBeInTheDocument();
     expect(screen.getByText("@@focus.empty@@")).toBeInTheDocument();
   });
@@ -291,7 +281,6 @@ describe("PrBriefCard - untrusted text (AC-30)", () => {
 
     for (const props of [{ onFocusFile: vi.fn(), files: FILES }, {}] as Props[]) {
       const { container } = renderCard(props);
-      expandDetails();
       fireEvent.click(screen.getByRole("button", { name: /Auth surface title/ }));
 
       expect(screen.getByText(`what ${SCRIPT}`)).toBeInTheDocument();
@@ -314,8 +303,7 @@ describe("PrBriefCard - untrusted text (AC-30)", () => {
     const risk = PAGE.brief!.risks[0]!;
     pageData = withBrief({ risks: [{ ...risk, title: "T", file_refs: [`${LINK}`] }], review_focus: [] });
     const { container } = renderCard({ onFocusFile: vi.fn(), files: FILES });
-    expandDetails();
-    fireEvent.click(screen.getByRole("button", { name: /Auth surface T$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Auth surface T( |$)/ }));
     fireEvent.click(screen.getByRole("button", { name: LINK }));
     expect(screen.getByText(messages.navigation.notInDiff)).toBeInTheDocument();
     // The only anchor allowed is the pinned, percent-encoded host blob link - never brief markup.
@@ -339,10 +327,9 @@ describe("PrBriefCard - edge cases at card level (EC-5, EC-7, EC-9)", () => {
     });
     const onFocusFile = vi.fn();
     renderCard({ onFocusFile, files: FILES });
-    expandDetails();
     fireEvent.click(screen.getByRole("button", { name: "src/a.ts" }));
     expect(onFocusFile).toHaveBeenLastCalledWith("src/a.ts", null);
-    fireEvent.click(screen.getByRole("button", { name: /Auth surface R$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Auth surface R( |$)/ }));
     fireEvent.click(screen.getByRole("button", { name: "src/b.ts" }));
     expect(onFocusFile).toHaveBeenLastCalledWith("src/b.ts", null);
   });
@@ -351,7 +338,6 @@ describe("PrBriefCard - edge cases at card level (EC-5, EC-7, EC-9)", () => {
     pageData = PAGE;
     const onFocusFile = vi.fn();
     renderCard({ onFocusFile, files: [] });
-    expandDetails();
     fireEvent.click(screen.getByRole("button", { name: "src/a.ts:3" }));
     expect(onFocusFile).not.toHaveBeenCalled();
     expect(screen.getByText(messages.navigation.notInDiff)).toBeInTheDocument();
@@ -367,7 +353,6 @@ describe("PrBriefCard - edge cases at card level (EC-5, EC-7, EC-9)", () => {
     });
     const onFocusFile = vi.fn();
     renderCard({ onFocusFile, files: FILES });
-    expandDetails();
 
     const inDiff = screen.getByRole("button", { name: "src/a.ts:3" });
     fireEvent.click(inDiff);
@@ -393,7 +378,6 @@ describe("PrBriefCard - edge cases at card level (EC-5, EC-7, EC-9)", () => {
   it("EC-9/AC-26: header, ref and focus controls are tabbable native buttons that can take focus", () => {
     pageData = PAGE;
     renderCard({ onFocusFile: vi.fn(), files: FILES });
-    expandDetails();
     fireEvent.click(screen.getByRole("button", { name: /Risk title one/ }));
 
     const controls = [

@@ -12,7 +12,19 @@ import { usePrIntent, useRegenerateIntent } from "@/lib/hooks/intent";
 import { captionFor, joinWithAnd, SOURCE_I18N_KEY, whyLineInfo } from "./helpers";
 import { s } from "./styles";
 
-export function IntentCard({ prId }: { prId: string | null | undefined }) {
+/* The brief's "Risk areas" arrive as a slot so IntentCard never imports brief
+   code. Without an intent record they get a card of their own. */
+function RiskCard({ children }: { children: React.ReactNode }) {
+  return children ? <div style={s.riskCard}>{children}</div> : null;
+}
+
+export function IntentCard({
+  prId,
+  riskAreas,
+}: {
+  prId: string | null | undefined;
+  riskAreas?: React.ReactNode;
+}) {
   const t = useTranslations("intent");
   const { data, isLoading, isError } = usePrIntent(prId);
   const regenerate = useRegenerateIntent(prId);
@@ -22,13 +34,20 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
       <section style={s.root}>
         <div style={s.labelRow}><SectionLabel icon="Target">{t("title")}</SectionLabel></div>
         <Skeleton height={110} />
+        <RiskCard>{riskAreas}</RiskCard>
       </section>
     );
   }
 
   // Hard failure (network/API down) — the intent card is non-essential; the
   // rest of the Overview tab still renders.
-  if (isError || !data) return null;
+  if (isError || !data) {
+    return riskAreas ? (
+      <section style={s.root}>
+        <RiskCard>{riskAreas}</RiskCard>
+      </section>
+    ) : null;
+  }
 
   const { intent: record, unavailable_reason } = data;
 
@@ -50,6 +69,7 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
               {t("notAnalysed.run")}
             </Button>
           </div>
+          <RiskCard>{riskAreas}</RiskCard>
         </section>
       );
     }
@@ -70,6 +90,7 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
               {t("retry")}
             </Button>
           </div>
+          <RiskCard>{riskAreas}</RiskCard>
         </section>
       );
     }
@@ -93,6 +114,7 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
             </Button>
           </div>
         </div>
+        <RiskCard>{riskAreas}</RiskCard>
       </section>
     );
   }
@@ -202,6 +224,8 @@ export function IntentCard({ prId }: { prId: string | null | undefined }) {
             {regenerate.isPending ? t("notAnalysed.running") : t("notAnalysed.run")}
           </Button>
         </div>
+
+        {riskAreas ? <div style={s.riskDivider}>{riskAreas}</div> : null}
       </div>
     </section>
   );

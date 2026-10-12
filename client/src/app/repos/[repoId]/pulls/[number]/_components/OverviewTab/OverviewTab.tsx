@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { SectionLabel } from "@devdigest/ui";
 import type { PrFile } from "@devdigest/shared";
 import { usePrReviews, usePrRuns } from "@/lib/hooks/reviews";
@@ -9,6 +10,7 @@ import { LatestReviewBanner } from "./_components/LatestReviewBanner";
 import { selectLatestReview, isNewestRunFailed, countBlockers } from "./helpers";
 import { BlastRadiusCard } from "../BlastRadiusCard";
 import { PrBriefCard } from "../PrBriefCard";
+import { useStackedLayout } from "./useStackedLayout";
 import { s } from "./styles";
 
 interface OverviewTabProps {
@@ -43,9 +45,14 @@ export function OverviewTab({
   const { data: reviews } = usePrReviews(prId);
   const { data: prRuns } = usePrRuns(prId);
   const latest = selectLatestReview(reviews ?? []);
+  const t = useTranslations("brief");
+  const stacked = useStackedLayout();
 
   return (
     <>
+      {/* The single "PR Brief" label (AC-1); PrBriefCard no longer renders one. */}
+      <SectionLabel icon="FileText">{t("section.title")}</SectionLabel>
+
       <LatestReviewBanner
         review={latest}
         newestRunFailed={isNewestRunFailed(prRuns)}
@@ -53,29 +60,36 @@ export function OverviewTab({
         blockers={latest ? countBlockers(latest.findings) : 0}
       />
 
-      {/* specs/11-why-risk-brief.md Q8 — full-width, ABOVE the Intent/Blast
-          grid, matching the design mockup's placement. No label is added to
-          the verdict/score block within it (D1). */}
-      <div style={s.briefSection}>
-        <PrBriefCard
-          prId={prId}
-          repoFullName={repoFullName}
-          files={files}
-          reviewRunCount={reviewRunCount}
-          onFocusFile={onFocusFile}
-          onRunStart={onRunStart}
-          onRunsStarted={onRunsStarted}
-        />
-      </div>
+      {/* Order: banner, brief panel, Intent/Blast grid (Risk areas slotted into
+          the Intent cell), Review focus. One PrBriefCard instance, so the
+          render prop keeps IntentCard/BlastRadiusCard mounted across brief
+          status changes. */}
+      <PrBriefCard
+        prId={prId}
+        repoFullName={repoFullName}
+        files={files}
+        reviewRunCount={reviewRunCount}
+        onFocusFile={onFocusFile}
+        onRunStart={onRunStart}
+        onRunsStarted={onRunsStarted}
+      >
+        {({ panel, riskAreas, reviewFocus }) => (
+          <>
+            <div style={s.briefSection}>{panel}</div>
 
-      <div style={s.overviewGrid}>
-        <div style={s.overviewGridCell}>
-          <IntentCard prId={prId} />
-        </div>
-        <div style={s.overviewGridCell}>
-          <BlastRadiusCard prId={prId} repoFullName={repoFullName} headSha={headSha} />
-        </div>
-      </div>
+            <div style={stacked ? s.overviewGridStacked : s.overviewGrid}>
+              <div style={s.overviewGridCell}>
+                <IntentCard prId={prId} riskAreas={riskAreas} />
+              </div>
+              <div style={s.overviewGridCell}>
+                <BlastRadiusCard prId={prId} repoFullName={repoFullName} headSha={headSha} />
+              </div>
+            </div>
+
+            {reviewFocus}
+          </>
+        )}
+      </PrBriefCard>
 
       {prBody && (
         <section>

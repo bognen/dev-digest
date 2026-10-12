@@ -101,7 +101,7 @@ vi.mock("@/app/repos/[repoId]/pulls/[number]/_components/RunReviewDropdown", () 
   RunReviewDropdown: () => <button type="button">Run Review</button>,
 }));
 vi.mock("@/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/_components/IntentCard", () => ({
-  IntentCard: () => <div>intent-stub</div>,
+  IntentCard: ({ riskAreas }: { riskAreas?: React.ReactNode }) => <div>intent-stub{riskAreas}</div>,
 }));
 vi.mock("@/app/repos/[repoId]/pulls/[number]/_components/BlastRadiusCard", () => ({
   BlastRadiusCard: () => <div>blast-stub</div>,
@@ -238,14 +238,12 @@ afterEach(() => {
   fetchSpy.mockRestore();
 });
 
-const showDetails = () => fireEvent.click(screen.getByRole("button", { name: /show details/i }));
 const tabButton = (name: RegExp) => screen.getByRole("button", { name });
 
 describe("PR detail page: brief navigation", () => {
   it("AC-1/AC-7/AC-11/NFR-5: focus click opens Files changed and scrolls once; absent file stays on Overview; tab return does not re-scroll", () => {
     renderPage();
     expect(nav.get().get("tab")).toBeNull();
-    showDetails();
 
     // AC-7: absent file -> stays on Overview, notice shown, nothing scrolled.
     fireEvent.click(screen.getByRole("button", { name: "src/missing.ts" }));
@@ -271,7 +269,6 @@ describe("PR detail page: brief navigation", () => {
 
     // A fresh brief click (new nonce) scrolls again.
     fireEvent.click(tabButton(/^overview/i));
-    showDetails();
     fireEvent.click(screen.getByRole("button", { name: "src/core.ts:2" }));
     expect(scrollIntoView).toHaveBeenCalledTimes(2);
 
@@ -282,7 +279,6 @@ describe("PR detail page: brief navigation", () => {
   it("AC-28: an earlier_state brief navigates end-to-end through the page", () => {
     state.briefPage = briefPage({ status: "earlier_state" });
     renderPage();
-    showDetails();
     fireEvent.click(screen.getByRole("button", { name: "src/core.ts:2" }));
     expect(nav.get().get("tab")).toBe("diff");
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
@@ -291,7 +287,6 @@ describe("PR detail page: brief navigation", () => {
   it("NFR-5: script markup in a brief explanation renders as inert text", () => {
     state.briefPage = briefPage({ explanation: "<script>alert(1)</script>" });
     const { container } = renderPage();
-    showDetails();
     fireEvent.click(screen.getByRole("button", { name: /New endpoint/ }));
     expect(container.querySelector("script")).toBeNull();
     expect(document.querySelector("script")).toBeNull();
@@ -322,5 +317,53 @@ describe("PR detail page: review banner and finding jump", () => {
     fireEvent.click(screen.getByRole("button", { name: shell.diffViewer.goToFinding }));
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById("finding-f1"));
+  });
+});
+
+describe("PR detail page: SPEC-05 Overview layout", () => {
+  const riskRegion = () => screen.getByRole("region", { name: brief.section.risks });
+  const focusRegion = () => screen.getByRole("region", { name: brief.section.focus });
+  const withRef = () => {
+    const page = briefPage() as unknown as { brief: { risks: { file_refs: string[] }[] } };
+    page.brief.risks[0]!.file_refs = ["src/core.ts:2"];
+    state.briefPage = page;
+  };
+
+  it("AC-3/AC-13: Risk areas and Review focus are visible with no click, and focus navigation needs no details toggle", () => {
+    renderPage();
+    expect(riskRegion()).toBeInTheDocument();
+    expect(within(riskRegion()).getByText("New endpoint")).toBeInTheDocument();
+    expect(within(focusRegion()).getByRole("button", { name: "src/core.ts:2" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /show details|hide details/i })).not.toBeInTheDocument();
+
+    fireEvent.click(within(focusRegion()).getByRole("button", { name: "src/core.ts:2" }));
+    expect(nav.get().get("tab")).toBe("diff");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it("AC-8: expanding a risk then clicking its in-diff ref opens Files changed and scrolls once", () => {
+    withRef();
+    renderPage();
+    const header = within(riskRegion()).getByRole("button", { name: /New endpoint/ });
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(header);
+    expect(header).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(within(riskRegion()).getByRole("button", { name: "src/core.ts:2" }));
+    expect(nav.get().get("tab")).toBe("diff");
+    expect(screen.getByText("Files changed · 2 files")).toBeInTheDocument();
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it("AC-2: banner precedes the brief panel, which precedes Review focus", () => {
+    state.reviews = [REVIEW];
+    renderPage();
+    const banner = screen.getByRole("region", { name: brief.banner.regionLabel });
+    const panel = screen.getByText("Adds rate limiting.");
+    const focus = focusRegion();
+    const follows = (a: Element, b: Element) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(banner, panel)).toBe(true);
+    expect(follows(panel, focus)).toBe(true);
+    expect(follows(banner, focus)).toBe(true);
   });
 });

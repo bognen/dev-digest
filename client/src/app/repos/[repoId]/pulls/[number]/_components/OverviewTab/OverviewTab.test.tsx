@@ -249,7 +249,6 @@ describe("OverviewTab latest-review banner", () => {
       onFocusFile,
       files: [{ path: "src/x.ts" }] as unknown as React.ComponentProps<typeof OverviewTab>["files"],
     });
-    fireEvent.click(screen.getByRole("button", { name: /show details/i }));
     fireEvent.click(screen.getByText("src/x.ts:7"));
     expect(onFocusFile).toHaveBeenCalledWith("src/x.ts", 7);
   });
