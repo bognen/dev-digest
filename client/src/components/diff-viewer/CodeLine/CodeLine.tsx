@@ -6,7 +6,8 @@ import React from "react";
 import { commentTargetFor, type CommentThread, type DiffCommentApi, cs } from "../comments";
 import { type Line } from "../helpers";
 import { type FindingAnchor } from "../findings";
-import { s, fs, lineRowFor, lineSignFor } from "../styles";
+import { Icon } from "@devdigest/ui";
+import { s, fs, fcs, lineRowFor, lineSignFor } from "../styles";
 import { CommentThreadView } from "../CommentThreadView";
 import { InlineComposer } from "../InlineComposer";
 import { FindingPill } from "../FindingPill";
@@ -21,6 +22,9 @@ export function CodeLine({
   isHidden,
   onToggleHidden,
   toggleLabel,
+  rowRef,
+  highlighted,
+  targetMarkerLabel,
 }: {
   ln: Line;
   path: string;
@@ -32,13 +36,26 @@ export function CodeLine({
   isHidden?: (id: string) => boolean;
   onToggleHidden?: (ids: string[]) => void;
   toggleLabel?: string;
+  /** Brief-navigation focus: ref to the row so the card can scroll/focus it. */
+  rowRef?: React.Ref<HTMLDivElement>;
+  /** Marks this line as the navigation target (non-colour marker + outline). */
+  highlighted?: boolean;
+  targetMarkerLabel?: string;
 }) {
   const [hover, setHover] = React.useState(false);
   const [composing, setComposing] = React.useState(false);
+  const [hunkFocused, setHunkFocused] = React.useState(false);
 
   if (ln.kind === "hunk") {
     return (
-      <div className="mono" style={s.hunk}>
+      <div
+        ref={rowRef}
+        tabIndex={rowRef ? -1 : undefined}
+        onFocus={rowRef ? () => setHunkFocused(true) : undefined}
+        onBlur={rowRef ? () => setHunkFocused(false) : undefined}
+        className="mono"
+        style={hunkFocused ? { ...s.hunk, ...fcs.focusOutline } : s.hunk}
+      >
         {ln.text}
       </div>
     );
@@ -51,7 +68,10 @@ export function CodeLine({
   return (
     <div
       id={findingAnchors && findingAnchors.length > 0 ? `finding-${findingAnchors[0]!.id}` : undefined}
-      style={cs.rowWrap}
+      ref={rowRef}
+      tabIndex={rowRef ? -1 : undefined}
+      aria-current={highlighted ? "location" : undefined}
+      style={highlighted ? { ...cs.rowWrap, ...fcs.highlight } : cs.rowWrap}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
@@ -76,6 +96,11 @@ export function CodeLine({
         <span className="mono" style={s.lineText}>
           {ln.text || " "}
         </span>
+        {highlighted && (
+          <span role="img" aria-label={targetMarkerLabel} style={fcs.marker}>
+            <Icon.Target size={13} />
+          </span>
+        )}
         {findingAnchors && findingAnchors.length > 0 && (
           <span style={fs.pillStack}>
             {findingAnchors.map((a) => (

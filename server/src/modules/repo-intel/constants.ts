@@ -47,7 +47,19 @@ export const INDEX_SOFT_BUDGET_MS = 110_000;
 
 // --- [T3] Graph / hotness / repo-map ---------------------------------------
 export const BFS_DEPTH = 2;
-export const HOTNESS_WINDOW_DAYS = 180;
+export const HOTNESS_WINDOW_DAYS = 90;
 export const DEFAULT_REPO_MAP_TOKEN_BUDGET = 1500;
 /** Signatures are trimmed to this many chars in the parse phase (cache stability). */
 export const MAX_SIGNATURE_CHARS = 120;
+
+// --- Repo facts (onboarding tour) -------------------------------------------
+/** Hard cap on files collected by the facts walk of a checkout. */
+export const FACTS_MAX_WALK_ENTRIES = 20_000;
+/** Max directory depth of the facts walk. */
+export const FACTS_MAX_WALK_DEPTH = 6;
+/** Max `package.json` manifests read for commands / stack. */
+export const FACTS_MAX_MANIFESTS = 50;
+/** Max bytes read from any one manifest / README. */
+export const FACTS_MAX_FILE_BYTES = 256 * 1024;
+/** Max shell lines extracted from README fences. */
+export const FACTS_MAX_FENCE_LINES = 40;

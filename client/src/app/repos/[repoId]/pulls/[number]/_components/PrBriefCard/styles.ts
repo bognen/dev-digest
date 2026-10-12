@@ -178,6 +178,20 @@ export const s = {
     flexWrap: "wrap",
     gap: 10,
   } satisfies CSSProperties,
+  refItem: {
+    display: "inline-flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+  } satisfies CSSProperties,
+  refButton: {
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    font: "inherit",
+    fontSize: 12,
+    color: "var(--accent-text)",
+  } satisfies CSSProperties,
   focusList: {
     listStyle: "decimal",
     margin: 0,

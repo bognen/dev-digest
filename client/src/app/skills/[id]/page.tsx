@@ -15,7 +15,7 @@ import { SkillsPanel } from "../_components/SkillsPanel";
 import { SkillEditor } from "./_components/SkillEditor";
 import { s } from "./styles";
 
-const VALID_TABS = ["config", "preview", "stats", "versions"];
+const VALID_TABS = ["config", "preview", "stats", "context", "versions"];
 
 export default function SkillEditorPage() {
   const t = useTranslations("skills");

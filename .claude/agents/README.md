@@ -10,45 +10,58 @@ not duplicate them.
 | Agent | Role | Tools | Model | Preloaded skills | Reads | Produces |
 |---|---|---|---|---|---|---|
 | [`researcher`](./researcher.md) | Investigate a specific question (internal repo or external web) and report findings | `Read, Grep, Glob, Bash, WebFetch, WebSearch, AskUserQuestion` | sonnet | none | a scoped question | a structured findings report (Conclusions / Evidence / References / Could not find) |
-| [`planner`](./planner.md) | Turn a feature/fix request into a Development Plan before any code is written | `Read, Grep, Glob, Bash, AskUserQuestion` | opus | all 13 domain skills (see below) | the request, module `AGENTS.md`/`INSIGHTS.md`, `pr-self-review`'s Phase 4 routing table | a Development Plan (markdown, fixed headings); assigns test steps to `implementer` (trivial) or `test-writer` (non-trivial) |
-| [`implementer`](./implementer.md) | Execute an approved Development Plan across `client/`/`server/`, self-verify mechanically | `Read, Write, Edit, Grep, Glob, Bash, Skill` | sonnet | all 13 domain skills (see below) | a Development Plan | code changes + an Implementation Report (files↔plan-step mapping, test evidence, deviations, flags for review) |
+| [`implementation-planner`](./implementation-planner.md) | Review requirements, clarify + recommend improvements, ask multi-agent vs single-agent, then produce an implementation plan (never writes specs) | `Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion, Agent, Skill` + `PreToolUse` hook (writes only `*-plan.md`) | opus | `onion-architecture`, `frontend-architecture` (others on demand via `Skill`) | the request, module `AGENTS.md`/`INSIGHTS.md`, `pr-self-review`'s Phase 4 routing table | a Development Plan saved as `<specs-folder>/YYYY-MM-DD-name-plan.md` (`Status: draft`; fixed headings, waves, file ownership, spec-coverage matrix); assigns test steps to `implementer` (trivial) or `test-writer` (non-trivial) |
+| [`implementer`](./implementer.md) | Execute an approved Development Plan (or one wave / a fix pass) across `client/`/`server/`/`reviewer-core/`/`mcp-server/`, self-verify mechanically via `scripts/verify-changed.sh` | `Read, Write, Edit, Grep, Glob, Bash, Skill` | sonnet | none — loads routed skills on demand | a Development Plan (or wave / findings list) | code changes + an Implementation Report (files↔plan-step mapping, verify output, deviations, flags for review, insights to capture) |
 | [`test-writer`](./test-writer.md) | Write UI/backend tests for non-trivial cases (business logic, integration flows, permission rules), sourced from the plan, not the implementation | `Read, Write, Edit, Grep, Glob, Bash, Skill` | sonnet | `react-testing-library`, `frontend-architecture`, `onion-architecture`, `fastify-best-practices`, `typescript-expert`, `engineering-insights` | a Development Plan (or a standalone "add tests for X" request) | test files only + a Test report |
-| [`architecture-reviewer`](./architecture-reviewer.md) | Read-only: check architectural boundaries (server onion/Fastify edge, reviewer-core purity, client placement/RSC) | `Read, Grep, Glob, Bash, ReportFindings` | opus | `onion-architecture`, `fastify-best-practices`, `frontend-architecture`, `next-best-practices` | a diff or path set | evidence-backed findings (`ReportFindings`, or a fixed-heading markdown fallback) — no verdict |
+| [`architecture-reviewer`](./architecture-reviewer.md) | Read-only: check architectural boundaries (server onion/Fastify edge, reviewer-core purity, client placement/RSC) | `Read, Grep, Glob, Bash, ReportFindings` | sonnet (was opus, for cost: its remit is a closed, evidence-required checklist and `/run-plan` loops it) | `onion-architecture`, `fastify-best-practices`, `frontend-architecture`, `next-best-practices` | a diff or path set | evidence-backed findings (`ReportFindings`, or a fixed-heading markdown fallback) — no verdict |
 | [`plan-verifier`](./plan-verifier.md) | Read-only: verify a completed change against a Development Plan, closed-list only | `Read, Grep, Glob, Bash, AskUserQuestion` | sonnet | none | a Development Plan + the diff/Implementation Report | a Plan verification report (`DONE/PARTIAL/MISSING/CANNOT VERIFY` per item, `COMPLETE`/`INCOMPLETE`) |
-| [`brainstorm`](./brainstorm.md) | Optional, before `planner`: generate and compare 2-4 genuinely different approaches to a feature/fix/design question | `Read, Grep, Glob, Bash, AskUserQuestion` | opus | none | the problem statement, module `AGENTS.md`/`INSIGHTS.md`, `pr-self-review`'s Phase 4 routing table | an options comparison (Problem / Assumptions / Options / Comparison / Recommendation / Open questions) — no code, no plan, no decision |
+| [`brainstorm`](./brainstorm.md) | Optional, before `implementation-planner`: generate and compare 2-4 genuinely different approaches to a feature/fix/design question | `Read, Grep, Glob, Bash, AskUserQuestion` | opus | none | the problem statement, module `AGENTS.md`/`INSIGHTS.md`, `pr-self-review`'s Phase 4 routing table | an options comparison (Problem / Assumptions / Options / Comparison / Recommendation / Open questions) — no code, no plan, no decision |
 | [`security-reviewer`](./security-reviewer.md) | Read-only: security review of a diff or path set (injection, authZ, secrets, SSRF, deps, LLM/prompt-injection risks) | `Read, Grep, Glob, Bash, ReportFindings` | opus | `security`, `zod`, `fastify-best-practices` | a diff (optionally inline in `<untrusted_diff>`) or path set | evidence-backed findings (`ReportFindings`, or a fixed-heading markdown fallback) — no verdict |
 | [`doc-writer`](./doc-writer.md) | Convert an implemented feature or a plan into documentation + diagrams, filed in the right `docs/`/`specs/` location | `Read, Write, Edit, Grep, Glob, Bash` | sonnet | `mermaid-diagram` | a Development Plan or an implemented feature | doc files under the owning package's `docs/`/`specs/` + a Documentation report |
+| [`spec-creator`](./spec-creator.md) | Analyze user-supplied design sources (text, Figma, code, repo), interview the user, write a `draft` EARS spec | `Read, Write, Edit, Grep, Glob, AskUserQuestion, WebFetch, Agent(researcher)` + `PreToolUse` hook | sonnet | `mermaid-diagram` | design sources, module `AGENTS.md`/`INSIGHTS.md`, existing specs | one `<specs-folder>/YYYY-MM-DD-name.md` (English, fixed headings) + a Spec report |
+| [`orchestrator`](./orchestrator.md) | Main-thread coordinator: runs the plan's waves with parallel `implementer`s, `test-writer`, `plan-verifier` (steps → final), both reviewers, fix passes, and writes `INSIGHTS.md` once | `Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion, Skill, Agent(implementer, test-writer, plan-verifier, architecture-reviewer, security-reviewer, doc-writer)` + `PreToolUse` hook (writes only `INSIGHTS.md`) | sonnet | `engineering-insights` | an approved `*-plan.md` (+ its spec) | a stage ledger + Orchestration report; run as `claude --agent orchestrator` |
 
-**Preloaded skills (planner and implementer, identical set):** `onion-architecture`,
-`fastify-best-practices`, `drizzle-orm-patterns`, `postgresql-table-design`,
-`zod`, `frontend-architecture`, `next-best-practices`, `react-best-practices`,
-`react-testing-library`, `typescript-expert`, `security`,
-`engineering-insights`, `mermaid-diagram`. The other agents each preload
-only what their narrower role needs (see their own rows above).
+**Skill preloading.** Preloading injects every listed `SKILL.md` in full into the
+agent's context on every turn (all 13 domain skills ≈ 124 KB ≈ 30k tokens), so
+`implementer` preloads none and loads only the routed skills with `Skill`;
+`implementation-planner` preloads just the two structural ones. The other agents
+each preload only what their narrower role needs (see their own rows above).
 Deliberately excluded everywhere: `pr-self-review` — it's the manual-only
-review gate (`disable-model-invocation: true`); none of the nine agents runs
+review gate (`disable-model-invocation: true`); none of the eleven agents runs
 its skill-conformance grading (see "Pipeline" below).
 
 ## Pipeline
 
+**Lean default: `/run-plan <plan>`** (skill `.claude/skills/run-plan`) runs the middle of this
+pipeline in the main session: implementers per wave, then `verify-changed.sh`, then
+`plan-verifier`, then an architecture-review fix loop. It skips `test-writer` and
+`security-reviewer` (opt in with `--security`). The `orchestrator` agent below is
+the full variant (adds test-writer, security review, hook-restricted writes).
+
 ```
-request → [brainstorm, optional] → human picks option → planner → Development Plan
-        → implementer (+ test-writer for non-trivial tests)
-        → code + Implementation Report (+ Test report)
-        → plan-verifier → architecture-reviewer → security-reviewer
-        → doc-writer → PR
+request → spec-creator → Spec (draft → human approves) → [brainstorm, optional] → human picks option
+        → implementation-planner → Development Plan file (docs/plans/*-plan.md, draft → human approves)
+        → new session: `claude --agent orchestrator <plan path>`:
+            [test-writer test-first ‖] implementer(s) per wave (parallel, disjoint files)
+            → scripts/verify-changed.sh → plan-verifier (steps) → fix pass
+            → test-writer → architecture-reviewer ‖ security-reviewer → fix pass
+            → plan-verifier (final) → INSIGHTS.md written once
+        → doc-writer (optional) → human: /pr-self-review → PR
 ```
 
-- **`brainstorm`** is optional and sits *before* `planner`: it widens the
+- **`brainstorm`** is optional and sits *before* `implementation-planner`: it widens the
   solution space (2-4 different approaches, same criteria for each, one
-  recommendation), a human picks an option, and `planner` narrows that
+  recommendation), a human picks an option, and `implementation-planner` narrows that
   option into a Development Plan. It has no `Write`/`Edit`, emits no code or
   step lists, and routes architecture/security judgments and external-fact
   questions to "Open questions" for `architecture-reviewer` /
   `security-reviewer` / `researcher`.
-- **`planner`** has no `Write`/`Edit` — it cannot touch code, only produce the
-  plan as its returned message. Persisting it to a file (e.g. under
-  `server/specs/` or `client/specs/`) is the caller's choice, not the agent's.
+- **`implementation-planner`** cannot touch code or specs: its `Write`/`Edit` are
+  limited by `planner-guard.mjs` to one `docs/plans/*-plan.md` file with
+  `Status: draft` (the human approves). The file is the handoff to the fresh
+  session that executes it. The plan carries waves, a per-wave file-ownership
+  table (so implementers can run in parallel safely) and a spec-coverage matrix
+  (every `MUST` AC/NFR → step + test owner).
   It also decides, per step, whether a needed test is trivial enough for
   `implementer` to write inline or must be its own step owned by
   `test-writer` (business logic, integration flows, permission rules —
@@ -60,7 +73,17 @@ request → [brainstorm, optional] → human picks option → planner → Develo
   It never touches non-test source.
 - **`plan-verifier`** checks `implementer`'s (and `test-writer`'s) work
   against the plan only — closed-list, three-state per item, never a general
-  code-quality pass.
+  code-quality pass. Two modes: `steps` right after the implementer (cheap
+  completeness gate before tests/reviewers spend tokens) and `final` after fixes
+  (re-checks only what wasn't `DONE`). Spec `MUST` criteria are checked directly,
+  so a criterion the plan forgot shows up as `MISSING`.
+- **`orchestrator`** exists because subagents can't spawn subagents: multi-agent
+  execution needs a main-thread agent. It delegates everything, caps fix loops
+  at 2 per stage, and is hook-restricted to writing `INSIGHTS.md`.
+- **Cheap verification.** `scripts/verify-changed.sh` replaces per-package
+  full-suite runs: typecheck + `vitest related` for the diff, `arch:check` and
+  vendor-sync when relevant; one line per check, last 40 lines of a failure,
+  logs in `.devdigest/cache/verify/`. `--full` is opt-in per plan.
 - **`architecture-reviewer`** is read-only and evidence-required (`file:line`
   citations, dedup, no verdict) across server, reviewer-core, and client
   boundaries. It formalizes and extends `pr-self-review`'s
@@ -74,7 +97,7 @@ request → [brainstorm, optional] → human picks option → planner → Develo
   reviews other people's PRs and handles cloned repos), has no write or
   network capability, and reports injection attempts as findings.
   `/pr-self-review` remains the manual local gate that owns the overall
-  verdict; none of the nine agents runs its phases 4-6 skill-conformance
+  verdict; none of the eleven agents runs its phases 4-6 skill-conformance
   verdict — a plan/implement/verify/review cycle ends at `doc-writer`'s
   report, not at a merge-ready verdict.
 
@@ -86,9 +109,9 @@ each with its own report format. No delegation, no writes, asks via
 `AskUserQuestion` before researching an underspecified question rather than
 guessing scope. Full rules: [`researcher.md`](./researcher.md).
 
-## `planner`
+## `implementation-planner` (Implementation Planner)
 
-Produces a Development Plan that names, per step, the file(s) it touches and
+Reviews the supplied requirements (asking the user to clarify unclear points and recommending improvements), asks whether to run multi-agent or single-agent, and only then produces a Development Plan that names, per step, the file(s) it touches and
 the skill(s) that govern them — so the plan can't propose something the
 implementer's skills would later reject (e.g. business logic in a route
 handler, a hand-edited migration, direct Drizzle access outside a
@@ -96,28 +119,28 @@ repository). Treats `pr-self-review`'s Phase 4 file→skill table as the live
 source of truth for path routing rather than hardcoding a second copy of it.
 Architectural/security judgment calls go into the plan's "Open questions"
 section, not resolved inline. Full rules and the exact output schema:
-[`planner.md`](./planner.md).
+[`implementation-planner.md`](./implementation-planner.md).
 
 **Sources for its rules:**
 
 | Rule | Source |
 |---|---|
-| Strict tool allowlist per role (no `Write`/`Edit` on a planning agent) | Claude Code docs, *sub-agents* (code.claude.com/docs/en/sub-agents) |
+| Strict tool allowlist per role (planner's `Write`/`Edit` hook-limited to its plan file) | Claude Code docs, *sub-agents* (code.claude.com/docs/en/sub-agents) |
 | `model: opus` — complex reasoning/planning gets the stronger tier | platform.claude.com, *choosing a model* |
 | Description states *when* to invoke ("use proactively before...") | Claude Code docs, *sub-agents* |
 | Output format spelled out explicitly (objective, format, task boundaries) | Anthropic Engineering, *How we built our multi-agent research system* |
 | Plan is pre-briefed on the not-yet-invoked implementer's constraints | Anthropic Engineering, *multi-agent research system* (task-boundary guidance) |
 | Architecture/security review kept separate from planning | Claude Code docs, *best practices* ("Explore → Plan → Implement → Commit"; adversarial review step) |
 | Route by the existing `pr-self-review` table instead of a hardcoded copy | Repo-internal: `.claude/skills/pr-self-review/SKILL.md` Phase 4 + its documented `skills-lock.json`/disk drift incident |
-| Preload skills via the `skills:` frontmatter field | Claude Code docs, *features overview* (Skill vs Subagent — subagents preload skills) |
+| Preload only the two structural skills via `skills:`; rest on demand | Claude Code docs, *features overview* (Skill vs Subagent — subagents preload skills) |
 
 ## `implementer`
 
 Executes a given plan, selecting skills by the files it's touching (Phase 4
-table again), running only mechanical self-checks (typecheck, the relevant
-unit-test lane per touched package, `arch:check`, vendor-sync) scoped to what
-it changed, and appending any non-obvious gotcha to the touched module's
-`INSIGHTS.md` before finishing. Stops and reports rather than silently
+table again), loading only those skills on demand, running only mechanical self-checks
+(`scripts/verify-changed.sh`: typecheck + tests related to the diff, `arch:check`,
+vendor-sync) once per wave, and reporting non-obvious gotchas as "Insights to
+capture" (the orchestrator writes `INSIGHTS.md` once, so parallel runs don't collide). Stops and reports rather than silently
 expanding scope if the plan turns out to be wrong or incomplete. Full rules
 and the exact report schema: [`implementer.md`](./implementer.md).
 
@@ -131,7 +154,7 @@ and the exact report schema: [`implementer.md`](./implementer.md).
 | Self-verification is mechanical (run existing tests/typecheck, show evidence) — never a full audit | Claude Code docs, *best practices* ("Give Claude a way to verify its work"; adversarial-review scope wording) |
 | Skill-conformance grading (`pr-self-review` phases 4-6) excluded — reserved for a separate review agent in a fresh context | Claude Code docs, *best practices* (adversarial review step) |
 | Skills selected via the existing file-routing table, not duplicated | Repo-internal: `.claude/skills/pr-self-review/SKILL.md` Phase 4 |
-| Preload skills via `skills:`; skill content vs. subagent isolation are complementary, not competing | Claude Code docs, *features overview* (Skill vs Subagent) |
+| Skills loaded on demand rather than preloaded (preload injects full content every turn); skill content vs. subagent isolation are complementary | Claude Code docs, *features overview* (Skill vs Subagent) |
 | Respect repo-wide do-not-touch lists (`server/clones/**`, applied migrations, vendored dirs) | Repo-internal: `server/AGENTS.md`, `client/AGENTS.md`, `e2e/AGENTS.md` |
 | Append to `INSIGHTS.md` before finishing a coding task | Repo-internal: `engineering-insights` skill trigger ("MUST be invoked... immediately after completing an implementation/fix/feature") |
 
@@ -140,7 +163,7 @@ and the exact report schema: [`implementer.md`](./implementer.md).
 Writes tests for already-implemented code, leading on anything non-trivial
 (business logic, integration flows, permission rules) by sourcing cases from
 the Development Plan's stated requirements/edge cases rather than from
-reading the implementation — the split `planner` now encodes when it writes
+reading the implementation — the split `implementation-planner` now encodes when it writes
 "owner: test-writer" on a step. Never touches non-test source or `e2e/`
 flow JSON. Full rules and output schema: [`test-writer.md`](./test-writer.md).
 
@@ -170,7 +193,7 @@ and output schema: [`architecture-reviewer.md`](./architecture-reviewer.md).
 | Rule | Source |
 |---|---|
 | Read-only tool allowlist, no `Write`/`Edit` | Claude Code docs, *sub-agents* |
-| `model: opus` — boundary-tracing judgment calls | platform.claude.com, *choosing a model* |
+| `model: sonnet` — closed-remit, evidence-required checks; move back to opus only if false negatives show up | platform.claude.com, *choosing a model* |
 | Every finding needs a `file:line` citation; "if not certain, don't flag it" | Anthropic, code.claude.com/docs/en/code-review ("verification bar"); `anthropics/claude-code` code-review agent prompt |
 | One finding per unique issue (dedup); pre-existing/baselined violations aren't findings | Anthropic, code.claude.com/docs/en/code-review; repo-internal `.dependency-cruiser-known-violations.json` ratchet (`server/AGENTS.md`) |
 | Output via the `ReportFindings` tool (typed, most-severe-first) | This harness's `ReportFindings` tool |
@@ -191,7 +214,7 @@ general code review. Full rules and output schema:
 | Read-only tool allowlist (mirrors `researcher`) | Claude Code docs, *sub-agents* |
 | Three-way verdict per item (`DONE`/`PARTIAL`/`MISSING`/`CANNOT VERIFY`), never a forced binary | Anthropic Engineering, *Demystifying evals for AI agents* ("give the LLM a way out... return 'Unknown'") |
 | Closed-list scope: only checks what the plan states, no code-quality/architecture/style commentary | Anthropic Engineering, *Demystifying evals for AI agents* ("two domain experts would independently reach the same pass/fail verdict"); Claude Code docs, *best practices* (adversarial review scope wording) |
-| No plan supplied → ask or stop, never reconstruct the plan from the diff | Repo convention, mirrors `planner`'s own "ambiguous scope → ask" rule |
+| No plan supplied → ask or stop, never reconstruct the plan from the diff | Repo convention, mirrors `implementation-planner`'s own "ambiguous scope → ask" rule |
 | No skills preloaded — avoids drifting into general advice | Repo-internal design choice, mirrors `researcher`'s empty preload |
 
 ## `brainstorm`
@@ -209,11 +232,11 @@ and output schema: [`brainstorm.md`](./brainstorm.md).
 
 | Rule | Source |
 |---|---|
-| Read-only tool allowlist, no `Write`/`Edit`; read-only `Bash` stated as a rule because `tools:` can't enforce it | Claude Code docs, *sub-agents*; repo-internal convention (`researcher.md`, `planner.md`) |
+| Read-only tool allowlist, no `Write`/`Edit`; read-only `Bash` stated as a rule because `tools:` can't enforce it | Claude Code docs, *sub-agents*; repo-internal convention (`researcher.md`, `implementation-planner.md`) |
 | `model: opus` — open-ended trade-off reasoning | platform.claude.com, *choosing a model* |
-| Ask via `AskUserQuestion` before proceeding on an ambiguous problem | Repo-internal: `planner.md`, `researcher.md` |
-| Ground options in module `AGENTS.md`/`INSIGHTS.md`; route by `pr-self-review` Phase 4 instead of a copy | Repo-internal: `planner.md`, `.claude/skills/pr-self-review/SKILL.md` Phase 4 |
-| Recommend but don't decide; widen here, narrow in `planner` (Explore → Plan separation) | Claude Code docs, *best practices* ("Explore → Plan → Implement → Commit") |
+| Ask via `AskUserQuestion` before proceeding on an ambiguous problem | Repo-internal: `implementation-planner.md`, `researcher.md` |
+| Ground options in module `AGENTS.md`/`INSIGHTS.md`; route by `pr-self-review` Phase 4 instead of a copy | Repo-internal: `implementation-planner.md`, `.claude/skills/pr-self-review/SKILL.md` Phase 4 |
+| Recommend but don't decide; widen here, narrow in `implementation-planner` (Explore → Plan separation) | Claude Code docs, *best practices* ("Explore → Plan → Implement → Commit") |
 | Architecture/security judgments and external research handed to other agents | Repo-internal role split (`architecture-reviewer`, `researcher`). **No external source found** for the 2-4 option count or the fixed comparison criteria — those are this repo's design choices. |
 
 ## `security-reviewer`
@@ -270,12 +293,44 @@ non-Anthropic, flagged as such:
 
 | Rule | Source |
 |---|---|
-| `Write`/`Edit` scoped to docs paths only, by hard rule (same "`tools:` can't enforce this structurally" pattern as `researcher`'s read-only `Bash`) | Repo-internal convention (`researcher.md`, `planner.md`) |
+| `Write`/`Edit` scoped to docs paths only, by hard rule (same "`tools:` can't enforce this structurally" pattern as `researcher`'s read-only `Bash`) | Repo-internal convention (`researcher.md`, `implementation-planner.md`) |
 | `model: sonnet` — authoring/synthesis tier | platform.claude.com, *choosing a model* |
 | Classify new content against the existing docs taxonomy before inventing a new location | Diátaxis (diataxis.fr) — **non-Anthropic** |
 | Diagrams generated from the same source material as the prose, not drawn separately | Mermaid / diagrams-as-code practice — **non-Anthropic** |
 | Docs stay in sync with code/plans via the same workflow (version control, PR review) | Write the Docs, "docs as code" — **non-Anthropic** |
 | Never touches DB-synced `docs/agent-prompts`/`docs/agent-skills`, `AGENTS.md`, `INSIGHTS.md`, or source | Repo-internal: `docs/agent-prompts/AGENTS.md`, `server/INSIGHTS.md` |
+
+## `spec-creator`
+
+Spec-Driven Development entry point. Takes design sources the user supplies,
+analyzes them (missing elements, uncovered edge cases, cross-module
+interactions, UX ideas), interviews the user, then writes a `Status: draft`
+spec — English-only body, EARS criteria with WHEN/WHILE/IF…THEN/WHERE + "(shall)". Writes
+only `<specs-folder>/*.md`: `specs/` for multi-module features, `<pkg>/specs/`
+for single-module ones, `e2e/design-specs/` for e2e. The restriction is stated
+as a hard rule **and** enforced by a `PreToolUse` hook
+([`../hooks/spec-creator-guard.mjs`](../hooks/spec-creator-guard.mjs)), because
+`tools:` can't path-restrict `Write`; the hook also freezes specs whose `Status`
+is `approved`/`implemented`, and the agent has no `Bash` (which would bypass the
+hook). It reads `AGENTS.md`/`INSIGHTS.md` only for the modules in scope, can fan
+out up to 4 read-only `researcher` subagents (needs to run as the main-thread
+agent, `claude --agent spec-creator`; as a subagent it researches inline),
+interviews the user, tags each AC with priority + a `Verify:` hint, adds a
+traceability matrix and measurable NFRs, and ends with a 10-point self-check run
+on the written file. Never writes implementation steps; humans alone move a spec
+from `draft` to `approved`/`implemented`, and `implementation-planner` asks
+before planning against a `draft`. Full rules and template:
+[`spec-creator.md`](./spec-creator.md).
+
+**Sources for its rules:**
+
+| Rule | Source |
+|---|---|
+| Frontmatter `hooks:` + `PreToolUse` exit 2 to block out-of-scope writes | Claude Code docs, *sub-agents* / *hooks* |
+| EARS patterns (Mavin et al., Rolls-Royce, IEEE RE'09); English EARS keywords + "(shall)" | Repo convention (local, not part of EARS) |
+| Fixed spec template and heading set | Course-supplied |
+| Interview before writing; unanswered points go to Open questions | Repo-internal: `implementation-planner.md`, `researcher.md` ask-first rule |
+| Design sources treated as untrusted data | Repo-internal: `security-reviewer.md` |
 
 ## Adding a new agent
 

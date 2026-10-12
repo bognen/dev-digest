@@ -64,3 +64,10 @@ describe('assemblePrompt — ## PR description', () => {
     expect((assembly.pr_description as string).length).toBe(4000);
   });
 });
+
+describe('assemblePrompt — projectDocs absent (AC-32)', () => {
+  it('is byte-identical with projectDocs undefined', () => {
+    const base = { system: 'S', specs: ['spec a'], diff: 'DIFF' };
+    expect(userOf({ ...base, projectDocs: undefined })).toBe(userOf(base));
+  });
+});

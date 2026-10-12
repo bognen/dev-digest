@@ -16,6 +16,10 @@ export {
   assemblePrompt,
   wrapUntrusted,
   INJECTION_GUARD,
+  PROJECT_CONTEXT_HEADING,
+  renderProjectDocBlock,
+  renderProjectContext,
+  type ProjectDoc,
   type PromptParts,
   type PromptIntent,
   type AssembledPrompt,
@@ -58,4 +62,8 @@ export {
 
 // The single OpenAI-compatible structured provider (OpenRouter), shared by the
 // CI runner and the server's openrouter path. Owns session grouping + guards.
-export { OpenRouterProvider, type OpenRouterProviderOptions } from './llm/openrouter.js';
+export {
+  OpenRouterProvider,
+  StructuredOutputError,
+  type OpenRouterProviderOptions,
+} from './llm/openrouter.js';

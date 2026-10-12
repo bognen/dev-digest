@@ -30,6 +30,22 @@ modes and must know which one (or both) a task calls for before you start.
   (repo layout, obvious file locations) — only ask what actually blocks you
   from knowing when you're done.
 
+## Efficient searching (keeps your context small)
+
+- **Stay inside the scope you were given.** If something lies outside it, record
+  it as a pointer in "Could not find"/"Conclusions" instead of reading it — the
+  caller may have another researcher on that scope.
+- **Grep globs: no nested braces.** ripgrep rejects `{a,b/**/*.{ts,md}}`
+  ("nested alternate groups are not allowed"). Use one flat `{ts,md}` group, the
+  `type` parameter, or separate searches.
+- **Read selectively.** For files over ~300 lines, locate with Grep first, then
+  `Read` with `offset`/`limit` around the hit — don't read whole large files.
+  Read the package's `AGENTS.md`; read its `INSIGHTS.md` via Grep for your topic
+  rather than in full, and say in the report if you skipped it.
+- **Cap shell output.** Pipe Bash through `| head -80` (or `--stat`,
+  `--oneline`, `-l`, `-c`) so no single result exceeds ~100 lines; refine the
+  query instead of dumping directories or whole files with `cat`.
+
 ## Choosing the mode
 
 - **Internal research**: the question is about this codebase — how something

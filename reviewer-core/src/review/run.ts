@@ -7,7 +7,7 @@ import type {
   UnifiedDiff,
 } from '@devdigest/shared';
 import { Review as ReviewSchema } from '@devdigest/shared';
-import { assemblePrompt, type PromptIntent } from '../prompt.js';
+import { assemblePrompt, type ProjectDoc, type PromptIntent } from '../prompt.js';
 import { groundFindings, groundingSummary } from '../grounding.js';
 import { reduceReviews, scoreFromFindings, sliceDiff } from './reduce.js';
 
@@ -59,6 +59,12 @@ export interface ReviewInput {
   memory?: string[];
   /** Project-context spec chunks (untrusted; delimiter-wrapped downstream). */
   specs?: string[];
+  /**
+   * Path-labelled project documents (untrusted). When non-empty they replace
+   * `specs` in the project-context section. Read once by the caller, so every
+   * map-reduce chunk carries identical text. Never defaulted.
+   */
+  projectDocs?: ProjectDoc[];
   /**
    * Optional callers-of-changed-symbols digest (T1.3). Untrusted; rendered
    * before the diff section. Empty/undefined → section omitted.
@@ -139,6 +145,7 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
     skills: input.skills,
     memory: input.memory,
     specs: input.specs,
+    projectDocs: input.projectDocs,
     callers: input.callers,
     repoMap: input.repoMap,
     prDescription: input.prDescription,

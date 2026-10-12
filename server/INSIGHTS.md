@@ -16,6 +16,24 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-10 — Onboarding LLM output: tolerant local parsing, strict provider schema, content-free diagnosis
+`OnboardingLlmOutput` is `z.preprocess(normalizeLlmOutput, strictShape)`: `zodResponseFormat` still sees the strict shape with required fields and caps (identical JSON schema), while local parsing clamps over-long strings, slices over-long arrays and defaults `diagram`/`note`/`files`; the five sections and identifying keys stay required (AC-15). On a schema failure the service stores `diagnoseInvalidOutput(err.details.raw)` as the skeleton detail: 'not valid JSON (likely truncated)' + length, or failing field paths + zod codes (max 5) — never value text (NFR-5). `validateLlmOutput` needs >= 3 grounded first tasks, so tests that drop a task must keep 3 real ones. `LLM_MAX_OUTPUT_TOKENS` is 8000: reasoning models count hidden reasoning against `max_tokens`, and 3000 truncated the JSON (invalid_output on every run).
+
+### 2026-10-10 — Onboarding Tour: persistence rule, local ports, synchronous generation
+`onboarding/helpers.ts` `decidePersistence` is the single place that decides what gets stored (C1 default: a skeleton never replaces a stored generated tour; an LLM-caused skeleton only lands when no tour exists, otherwise it is recorded as `last_failure`), so integration tests for AC-15/16/17 must start from a repo with NO stored tour. `onboarding/types.ts` keeps its own structural copies of the repo-intel shapes (no-cross-module forbids even `import type`); the container assigns `RepoIntelService` to the port. Generation is synchronous with an in-process in-flight set (second trigger = 409), the `brief` precedent; the job queue has no de-duplication and retries failed handlers.
+
+### 2026-10-10 — repo-intel hotness is anchored at the indexed commit, ranked reads break ties by path
+`getFileHotness` measures the 90-day window back from the committer date of `repo_index_state.last_indexed_sha`, not wall-clock now, so an unchanged checkout always gives the same reading path (AC-7). `getRankedFiles` orders `pagerank DESC, file_path ASC`; `getRankedPaths`/`file_rank.rank` ties come back in arbitrary order, so don't use them where output must be deterministic. Shallow clones (depth 1, resync depth 50) usually cannot cover the window: the tour then says hotness was not applied.
+
+### 2026-10-10 — Project Context: one `assemble()` pipeline serves UI totals and runs
+`project-context/service.ts` computes the agent/skill Context totals and the run-time block through the same `assemble()` (single reviewer-core `renderProjectContext`), so AC-23 (UI total == injected block) holds by construction. `applyBudget` assumes the block counter returns 0 for an empty list (`renderProjectContext([])` is null). `repository.getAgent` must return provider+model, or the preview silently budgets with the 16k fallback while runs use the model-derived budget. `PriceBook.contextLength()` is null on a cold cache and for non-OpenRouter models: always fall back to the constant.
+
+### 2026-10-10 — A new `db/schema/<x>.ts` needs three edits in `db/schema.ts`
+Barrel `export *`, the import, AND an entry in the `schema` convenience object. Do all three before `pnpm db:generate` (see the 2026-09-20 DROP TABLE entry) and read the generated SQL: it should only CREATE the new tables/indexes/FKs.
+
+### 2026-10-10 — run-executor keeps the project-context result outside the try
+`resolveProjectContext` runs once per run, fail-open; its result lives in a variable declared outside the try block so the failure/cancel trace can still record `specs_read` and `project_context` (`run-executor.ts`, next to `resolveActiveSkills`). `traceFromBuffer` is intentionally untouched.
+
 ### 2026-09-30 — Smart Diff classifier lives in `pulls/helpers.ts`, not a new file, so arch-check covers it
 `.dependency-cruiser.cjs`'s INNER regex only names `service|run-executor|helpers|status|constants|findings|diff-loader`; a new `classify.ts` would silently escape `inner-no-outer`/`inner-no-container`. `classifyPath` (first match wins in boilerplate -> tests -> wiring -> docs order) therefore sits in `modules/pulls/helpers.ts` with its pattern tables in `constants.ts`. Precedence is deliberate: `e2e/README.md` is tests, `.claude/skills/x/SKILL.md` is wiring, `src/__tests__/__snapshots__/x.snap` is boilerplate. Never use `node:path` there — GitHub paths are always `/`.
 
@@ -151,6 +169,15 @@ contracts between client and server with no compiler error until runtime.
 
 ## Tool & Library Notes
 
+### 2026-10-10 — Exactly-one-LLM-call needs both `maxRetries: 0` and `transportRetries: 0`; MockLLMProvider seams
+The openai/anthropic adapters re-prompt on schema failure (`maxRetries`) AND retry 429/5xx/network up to 3 times (`transportRetries`, default 3 in `completeStructured`). Pass both as 0 when a call-count is a requirement (NFR-1). In tests: the 'onboarding' feature-model default provider is openrouter, so register the mock under `openrouter`; `structuredBySchema` can be a shared object filled after `buildApp`; a fixture that fails its schema throws 'fixture failed schema', which `classifyLlmError` maps to `invalid_output`; `MockLLMProvider` records the call before throwing/delaying.
+
+### 2026-10-10 — Real-git unit tests on Windows
+Build fixtures at `<cloneDir>/<owner>/<name>` and call `SimpleGitClient.historyChurn` for real (no mocking). Use fixed past commit dates (e.g. 2020) so a window anchored at 'now' would fail the test, set `GIT_AUTHOR_DATE`/`GIT_COMMITTER_DATE`, and use `pathToFileURL(dir).href` for `git clone --depth 1` — a plain path copies full history and reports shallow=false. Float tie fixtures such as `0.2 * (1 + 0.5)` are not exact ties (0.30000000000000004); use powers of two for tie-break tests.
+
+### 2026-10-10 — Asserting structured logs and testing run-time skip paths (project-context)
+The project-context logger is the global `console`: `vi.spyOn(console, 'info')` before the run and read `mock.calls[n][0]` (restore in `afterEach`). Run-time skip paths (missing/binary/over-size/containment) can only be reached by inserting rows into `agent_context_docs` directly, because the PUT API rejects those paths up front. `all:true` runs every enabled agent in the workspace, so disable the seeded agents first or LLM-mock call counts are wrong.
+
 ### 2026-09-20 — A "green" `.it` run can be 100% skipped: `dockerAvailable()` uses a 5 s `docker info` timeout
 `test/helpers/pg.ts` skips every integration file when `docker info` doesn't answer within 5 s, and Docker Desktop on Windows does exactly that while it's busy (e.g. right after other testcontainers runs). The summary then reads `N skipped` with 0 failures. Always check the `skipped` count in the vitest summary; if it's non-zero for `*.it.test.ts`, rerun once Docker is responsive (`docker info` by hand) before trusting the result.
 
@@ -183,6 +210,27 @@ directly instead. If you add or rename a script, check
 whoever has the skip-worktree bit set.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-10 — LLM emitted the whole Mermaid diagram on one line; the client rendered nothing
+The onboarding prompt said 'keep every node label on ONE line' and the model applied it to the whole diagram (`flowchart LR A[Client] --> B[Express] B --> C[...]`). Mermaid cannot parse several statements on one line, so `MermaidDiagram` silently rendered null. Fixed in two places: the prompt now says one STATEMENT per line with real newlines (only a single LABEL must stay on one line), and `sanitizeDiagram` runs the deterministic `repairDiagramLines` first (splits a one-line diagram into statements; bails out unchanged on subgraph/unbalanced/unknown syntax; multiline input is byte-identical). When a diagram goes missing, inspect the stored string first: `mermaid.parse` returns false for the one-line form and `{diagramType:'flowchart-v2'}` for the repaired one.
+
+### 2026-10-10 — Project Context: `discovered_count` must not depend on attachments
+`assemble()` only resolves the checkout when the agent has attached/inherited documents (so a run with nothing attached does no checkout lookup or `discover` walk, NFR-3), which made `buildAgentState` report `discovered_count: 0` for an agent with no attachments; the agent Context tab then hid the available documents and the first attach was impossible. The count is UI state: resolve the checkout in the state builders (`a.clonePath ?? await usableCheckout(repo)`), never in `assemble()`. The first integration tests missed it because every test attached a document first; always cover the zero-attachment state of a list/count endpoint.
+
+### 2026-10-10 — A repo's local clone goes stale until Refresh
+DevDigest's clone (`server/clones/<owner>/<name>`) only advances on a resync (`POST /repos/:id/context/refresh` or the repo refresh): documents pushed to the default branch do not appear in Project Context until Refresh is clicked. The seeded demo repo `acme/payments-api` has a null `clone_path` and can never be cloned, so every Project Context call for it returns 409 `checkout_unavailable`; the Context tabs use the active repo, so an active seeded repo makes them fail.
+
+### 2026-10-10 — Correction: `indexer-pipeline.test.ts` Windows failures are fixed
+The 2026-09-20 entry saying 6 `indexer-pipeline.test.ts` tests fail on Windows is stale: the cause was the test helper `writeFileAt` slicing the path with `lastIndexOf('/')`, so `mkdir` never created the nested dir on backslash paths (ENOENT). It now uses `path.dirname()` and all 11 tests pass; no source bug was involved. In test helpers never split paths on '/'.
+
+### 2026-10-10 — Python heredocs that write TypeScript corrupt `\n` and `\0` escapes
+A TS string literal written through a Python heredoc had `\n`/`\0` turned into real newline/NUL bytes: typecheck failed and grep reported 'Binary file'. Write TS files with the Write tool (or build the escapes with `chr(92)`), then check for NUL bytes and UTF-8 validity. `scripts/verify-changed.sh` now chunks its `vitest related` file list (40 per call) because a big feature overflows the Windows command-line limit.
+
+### 2026-10-10 — Spread-then-override in a structured log object silently drops a counter
+`{ ...counts, skipped: a.skipped }` overwrote the numeric `skipped` counter with the array (NFR-6 integration test caught it, `project-context/service.ts` `resolveForRun`). Use a distinct key (`skippedDocs`) for the array. Separately, the NFR-1 500x20KB p95<=1000ms test (`project-context.it.test.ts`) passes alone but can reach ~1.2s when both project-context Testcontainers files run together: it is load-sensitive, set `NFR1_SKIP=1` on a busy CI.
+
+### 2026-10-10 — Edit/Write on CRLF sources: LF flattening and stray cp1252 bytes
+On the Windows checkout the `Edit` tool flattened `container.ts`/`modules/index.ts` to LF, and an agent wrote three 0x97 (cp1252 em dash) bytes into `run-executor.ts`; `tsc` and vitest both still passed. Check with `python -c "open(p,'rb').read().decode('utf-8')"` and fix at byte level (`rb`/`replace`/`wb`) to keep CRLF. `git diff --stat` should show only the intended additions.
 
 ### 2026-10-07 — Blast Radius showed 0 callers: three independent indexer causes (Windows paths, default branch, default exports)
 All must hold before callers resolve: (1) `adapters/depgraph/index.ts` `toRel` must return POSIX paths — on Windows `relative()` yields backslashes, none match the walked file set, so `file_edges` stays empty and `resolveReferences` links nothing (the adapter swallows the error and returns `[]`). (2) `repos.default_branch` must match the real branch (a `master` fork stored as `main` makes `resyncRepo` fail at `git fetch origin main`; the job still reports `done` and writes no state). (3) `astgrep` must treat `export default Foo;` / `export { Foo }` as exporting the class and its methods; `resolveReferences` only links `symbols.exported = true`. Diagnose with: `select count(*) from file_edges`, and `count(decl_file)` vs `count(*)` on `"references"`. Resync is incremental and a no-op when the SHA is unchanged — to force a full reindex after an indexer fix, delete that repo's `repo_index_state` row and resync. Also: `BlastRadiusResponse` caught a contract bug — caller `rank` is a fractional PageRank, so it must be `z.number()`, not `.int()`.

@@ -31,3 +31,19 @@ describe("VerdictBanner (smoke)", () => {
     expect(screen.getByText(/1 finding\(s\) · 1 blockers/)).toBeInTheDocument();
   });
 });
+
+describe("VerdictBanner (SPEC-03 regression)", () => {
+  it("AC-21: score null -> verdict label present, no PR SCORE label or score element", () => {
+    renderWithIntl(
+      <VerdictBanner
+        verdict="approve"
+        summary="Looks fine."
+        score={null}
+        findingsCount={0}
+        blockers={0}
+      />,
+    );
+    expect(screen.getByText("Approve")).toBeInTheDocument();
+    expect(screen.queryByText("PR SCORE")).not.toBeInTheDocument();
+  });
+});

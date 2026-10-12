@@ -24,6 +24,23 @@ import { toJsonSchema, parseWithRepair } from './structured.js';
 
 const NOT_SUPPORTED = 'OpenRouterProvider only implements completeStructured';
 
+/**
+ * Thrown when the model's output never validates. Carries the last raw model
+ * text on `details.raw` (same shape as the server's ExternalServiceError) so a
+ * caller can diagnose it content-free. `message` stays free of model output.
+ * Callers must log `message` only, never `details`.
+ */
+export class StructuredOutputError extends Error {
+  declare readonly details: { raw: string };
+  constructor(message: string, raw: string) {
+    super(message);
+    this.name = 'StructuredOutputError';
+    // Non-enumerable: pino's err serializer / JSON.stringify copy own enumerable
+    // props, which would leak raw model output into logs. Reads still work.
+    Object.defineProperty(this, 'details', { value: { raw }, enumerable: false });
+  }
+}
+
 export interface OpenRouterProviderOptions {
   /** OpenAI-compatible base URL (default: OpenRouter). */
   baseURL?: string;
@@ -64,6 +81,10 @@ export class OpenRouterProvider implements LLMProvider {
     let tokensOut = 0;
     let costFromApi: number | null = null;
     let lastRaw = '';
+    // Per-request overrides of the client defaults; only set when the caller asks.
+    const requestOptions: { maxRetries?: number; timeout?: number } = {};
+    if (req.transportRetries !== undefined) requestOptions.maxRetries = req.transportRetries;
+    if (req.timeoutMs !== undefined) requestOptions.timeout = req.timeoutMs;
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
       const res = await this.client.chat.completions.create({
@@ -81,7 +102,7 @@ export class OpenRouterProvider implements LLMProvider {
         // OpenRouter usage accounting — ask it to return the REAL generation
         // cost (USD) in `usage.cost`, instead of estimating from a price book.
         ...(this.id === 'openrouter' ? { usage: { include: true } } : {}),
-      });
+      }, requestOptions);
 
       // OpenRouter can return HTTP 200 with no `choices` (an upstream provider
       // error / moderation / free-tier limit in the body) — surface it.
@@ -112,7 +133,10 @@ export class OpenRouterProvider implements LLMProvider {
       messages.push({ role: 'assistant', content: lastRaw });
       messages.push({ role: 'user', content: parsed.repromptMessage });
     }
-    throw new Error(`OpenRouter structured output failed schema validation for ${req.schemaName}`);
+    throw new StructuredOutputError(
+      `OpenRouter structured output failed schema validation for ${req.schemaName}`,
+      lastRaw,
+    );
   }
 
   /**

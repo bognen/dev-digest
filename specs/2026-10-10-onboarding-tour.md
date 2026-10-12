@@ -1,6 +1,6 @@
 # Spec: Onboarding Tour
 Spec ID: SPEC-02
-Status: draft
+Status: approved
 Supersedes: —
 
 ## Problem and user

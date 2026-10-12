@@ -1,24 +1,31 @@
 {
   "title": "Project Context",
-  "chunks": "{count} chunks",
-  "reindex": "Re-index",
-  "indexing": "Indexing…",
-  "resync": "Resync",
-  "resyncing": "Resyncing…",
-  "indexStatus": "Index status: {status}",
-  "loadError": "Couldn’t load specs",
-  "kb": "{kb}kb",
+  "repoFallback": "this repository",
+  "subtitle": "Specs, docs and insights Markdown files in {repo}. Attach them to agents and skills to ground reviews. View only.",
+  "refresh": "Refresh",
+  "refreshing": "Refreshing…",
+  "refreshFailed": "Couldn’t refresh the checkout",
+  "loading": "Loading documents",
+  "loadError": "Couldn’t load project documents",
+  "checkoutUnavailable": "Repository checkout unavailable",
+  "selectPrompt": "Select a document to preview it.",
   "empty": {
-    "title": "No spec files yet",
-    "body": "Drop your PRDs, tech specs, and acceptance criteria under .devdigest/specs/. Every agent and the PR brief read them as grounding context."
+    "title": "No project documents found",
+    "body": "Add Markdown (.md) files under specs/, docs/ or insights/ in the repository, then refresh."
   },
-  "mode": {
-    "preview": "preview",
-    "edit": "edit"
+  "list": {
+    "label": "Project documents",
+    "group": "{root}/ ({count})",
+    "groupLabel": "{root} documents",
+    "tokens": "≈ {count} tokens",
+    "usedBy": "{count, plural, one {Used by # agent} other {Used by # agents}}",
+    "tooLarge": "Too large"
   },
-  "editor": {
-    "loadError": "Couldn’t load spec",
-    "save": "Save",
-    "saving": "Saving…"
+  "preview": {
+    "label": "Preview of {path}",
+    "mode": "Preview",
+    "tokens": "≈ {count} tokens",
+    "loading": "Loading document",
+    "loadError": "Couldn’t load this document"
   }
 }

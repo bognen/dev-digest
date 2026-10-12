@@ -32,6 +32,19 @@ describe('mock adapters (no network)', () => {
     expect(url).toContain('github.com');
   });
 
+  it('MockLLMProvider.throwOnStructured records exactly one call, then rejects', async () => {
+    const llm = new MockLLMProvider('openai', { throwOnStructured: new Error('boom') });
+    await expect(
+      llm.completeStructured({
+        model: 'm',
+        schema: Review,
+        schemaName: 'Review',
+        messages: [],
+      } as never),
+    ).rejects.toThrow('boom');
+    expect(llm.calls.filter((c) => c.method === 'completeStructured')).toHaveLength(1);
+  });
+
   it('MockCodeIndex + MockEmbedder return deterministic shapes', async () => {
     const ci = new MockCodeIndex();
     expect((await ci.symbols({ owner: 'a', name: 'b' }))[0]!.name).toBe('rateLimit');

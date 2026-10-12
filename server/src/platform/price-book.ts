@@ -20,6 +20,7 @@ const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
  */
 export class PriceBook {
   private prices = new Map<string, { in: number; out: number }>();
+  private contextLengths = new Map<string, number>();
   private expires = 0;
   private refreshing = false;
 
@@ -38,6 +39,16 @@ export class PriceBook {
     return this.fallback(model, tokensIn, tokensOut);
   }
 
+  /**
+   * Synchronous context window (tokens) from the cached OpenRouter list, or null
+   * when the cache is cold or the model is unknown (e.g. OpenAI/Anthropic).
+   * Triggers the same lazy background refresh as `estimate`.
+   */
+  contextLength(model: string): number | null {
+    this.maybeRefresh();
+    return this.contextLengths.get(model) ?? null;
+  }
+
   /** Force a synchronous-await refresh (e.g. to warm the cache). Never throws. */
   async refresh(): Promise<void> {
     try {
@@ -50,6 +61,7 @@ export class PriceBook {
 
   private ingest(models: ModelInfo[]): void {
     for (const m of models) {
+      if (m.contextLength != null) this.contextLengths.set(m.id, m.contextLength);
       if (m.pricing) {
         this.prices.set(m.id, { in: m.pricing.promptPerM, out: m.pricing.completionPerM });
       }

@@ -10,7 +10,7 @@ import { AGENT_RUN_TIMEOUT_MS, REVIEW_STRATEGY } from './constants.js';
 import { taskLine, summarizePromptAssembly } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
 import { hunkContexts, toPromptIntent } from './pipeline/intent-signals.js';
-import type { IntentDeriver } from './types.js';
+import type { IntentDeriver, ProjectContextResolved, ProjectContextResolver } from './types.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
 export class RunCancelledError extends Error {
@@ -52,6 +52,7 @@ export class ReviewRunExecutor {
     private repo: ReviewRepository,
     private agents: Container['agentsRepo'],
     private intent?: IntentDeriver,
+    private projectContext?: ProjectContextResolver,
   ) {}
 
   /**
@@ -198,6 +199,10 @@ export class ReviewRunExecutor {
 
     runLog.info(`Starting review with agent "${agent.name}" (${agent.provider}/${agent.model})`);
 
+    // Project docs resolved ONCE per run (SPEC-01); kept outside the try so the
+    // failure trace can still record which docs were read.
+    let projectCtx: ProjectContextResolved | undefined;
+
     try {
       // Resolve the agent's LLM provider. (container.llm throws if the provider
       // key is missing — caught below and persisted as a failed run.)
@@ -234,6 +239,10 @@ export class ReviewRunExecutor {
       const activeSkills = await this.resolveActiveSkills(agent, runLog);
       const skillBodies = activeSkills.map((s) => s.body);
 
+      // Project Context - attached repo docs (own + active skills'), resolved once
+      // before the LLM call. FAIL-OPEN: any unexpected error just means no docs.
+      projectCtx = await this.resolveProjectContext(workspaceId, pull, agent, activeSkills, runLog);
+
       // ---- Engine: assemble → single-pass → grounding -----------------------
       // The pure review pipeline lives in @devdigest/reviewer-core (shared with
       // the CI runner). The service owns only I/O: repo-intel context resolution
@@ -259,6 +268,9 @@ export class ReviewRunExecutor {
         // Linked + enabled skill bodies (`## Skills / rules`), same omit-when-empty
         // contract; surfaces in the trace's prompt_assembly.skills.
         ...(skillBodies.length ? { skills: skillBodies } : {}),
+        // Project docs - omitted when empty so the prompt stays byte-identical to
+        // the no-documents baseline (AC-32).
+        ...(projectCtx && projectCtx.docs.length > 0 ? { projectDocs: projectCtx.docs } : {}),
         // PR author's description/body — untrusted; assemblePrompt wraps +
         // truncates it. Omitted when the PR has no body.
         ...(pull.body ? { prDescription: pull.body } : {}),
@@ -399,7 +411,8 @@ export class ReviewRunExecutor {
         })),
         raw_output: outcome.raw,
         memory_pulled: [],
-        specs_read: [],
+        specs_read: projectCtx ? projectCtx.docs.map((d) => d.path) : [],
+        ...(projectCtx && hasAttachment(projectCtx) ? { project_context: projectCtx.trace } : {}),
         // Persisted log = the run's FULL event buffer (incl. shared pre-work:
         // diff load + intent), not just events recorded inside this method.
         log: runLog.logFor(runId),
@@ -429,10 +442,62 @@ export class ReviewRunExecutor {
         })
         .catch(() => undefined);
       await this.repo
-        .saveRunTrace(runId, this.traceFromBuffer(runId, pull, agent, '0/0 passed', Date.now() - start))
+        .saveRunTrace(runId, {
+          ...this.traceFromBuffer(runId, pull, agent, '0/0 passed', Date.now() - start),
+          ...(projectCtx
+            ? {
+                specs_read: projectCtx.docs.map((d) => d.path),
+                ...(hasAttachment(projectCtx) ? { project_context: projectCtx.trace } : {}),
+              }
+            : {}),
+        })
         .catch(() => undefined);
       this.container.runBus.complete(runId);
       throw err;
+    }
+  }
+
+  /**
+   * Resolve the project docs attached to this agent (and its active skills).
+   * Fail-open: returns `undefined` on any unexpected error. Logs paths/counts
+   * only, NEVER document content.
+   */
+  private async resolveProjectContext(
+    workspaceId: string,
+    pull: PullRow,
+    agent: AgentRow,
+    activeSkills: { id: string; name: string }[],
+    runLog: RunLogger,
+  ): Promise<ProjectContextResolved | undefined> {
+    if (!this.projectContext) return undefined;
+    try {
+      const res = await this.projectContext.resolveForRun({
+        workspaceId,
+        repoId: pull.repoId,
+        agentId: agent.id,
+        provider: agent.provider,
+        model: agent.model,
+        activeSkills: activeSkills.map((s) => ({ id: s.id, name: s.name })),
+      });
+      if (hasAttachment(res)) {
+        const { attached, added, skipped, dropped } = res.counts;
+        runLog.info(
+          `project context: ${res.docs.length} doc(s) included (~${res.blockTokens.toLocaleString()} tokens), ${skipped} skipped, ${dropped} dropped`,
+          {
+            event: 'project_context',
+            agentId: agent.id,
+            attached,
+            added,
+            skipped,
+            dropped,
+            totalTokens: res.blockTokens,
+          },
+        );
+      }
+      return res;
+    } catch (err) {
+      runLog.info(`project context: unavailable (${(err as Error).message}) - continuing without documents`);
+      return undefined;
     }
   }
 
@@ -580,4 +645,9 @@ export class ReviewRunExecutor {
       log: this.container.runBus.buffer(runId).map((e) => ({ t: e.t, kind: e.kind, msg: e.msg })),
     };
   }
+}
+
+/** True when the run had any attachment at all (docs included or skipped/dropped). */
+function hasAttachment(res: ProjectContextResolved): boolean {
+  return res.counts.attached + res.counts.added > 0 || res.docs.length > 0 || res.trace.skipped.length > 0;
 }

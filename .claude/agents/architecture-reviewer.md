@@ -2,7 +2,7 @@
 name: architecture-reviewer
 description: Read-only reviewer of architectural boundaries across the whole repo — server onion layering and the Fastify edge, reviewer-core purity (no DB/GitHub/filesystem access), and client placement/import-direction rules including the RSC boundary. Returns evidence-backed findings (file:line citations, no unverified claims) via the `ReportFindings` tool. Formalizes and extends `pr-self-review`'s backend-architecture cluster without editing that skill. Not a security, style, or plan-completion review, and never produces an overall PASS/WARN/BLOCKED verdict. Use on a diff or path set after implementation, before a PR.
 tools: Read, Grep, Glob, Bash, ReportFindings
-model: opus
+model: sonnet
 skills:
   - onion-architecture
   - fastify-best-practices

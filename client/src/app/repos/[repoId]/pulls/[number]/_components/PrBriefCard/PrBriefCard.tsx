@@ -11,6 +11,7 @@
 import React from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Button, Icon, SectionLabel, Skeleton } from "@devdigest/ui";
+import type { PrFile } from "@devdigest/shared";
 import { useBrief, useGenerateBrief } from "@/lib/hooks/brief";
 import { useToast } from "@/lib/toast";
 import { ApiError } from "@/lib/api";
@@ -18,6 +19,8 @@ import { formatCost, relativeTime } from "@/lib/format";
 import { RunReviewDropdown } from "../RunReviewDropdown";
 import { RiskArea } from "./RiskArea";
 import { ReviewFocusList } from "./ReviewFocusList";
+import { GeneratingSkeleton } from "./_components/GeneratingSkeleton";
+import { useBriefNavigation } from "./useBriefNavigation";
 import { STATUS_META, SEVERITY_COLOR, SEVERITY_ICON, SEVERITY_BG } from "./constants";
 import { s } from "./styles";
 
@@ -25,6 +28,7 @@ export function PrBriefCard({
   prId,
   repoFullName,
   reviewRunCount = 0,
+  files,
   onFocusFile,
   onRunStart,
   onRunsStarted,
@@ -33,6 +37,8 @@ export function PrBriefCard({
   repoFullName?: string | null;
   /** How many agent runs exist for this PR — drives the "Review not run yet" note. */
   reviewRunCount?: number;
+  /** The PR's changed files — brief references are resolved against these. */
+  files?: readonly PrFile[];
   onFocusFile?: (file: string, line: number | null) => void;
   onRunStart?: () => void;
   onRunsStarted?: (runIds: string[]) => void;
@@ -42,16 +48,19 @@ export function PrBriefCard({
   const { data: page, isLoading } = useBrief(prId);
   const generate = useGenerateBrief(prId);
   const [showDetails, setShowDetails] = React.useState(false);
+  const nav = useBriefNavigation(files, onFocusFile);
+  const onNavigate = nav.canNavigate ? nav.navigate : undefined;
 
   const generating = generate.isPending || page?.status === "generating";
   const hasBrief = !!page?.brief;
+  const mutationFailed = generate.isError && !generating;
 
   function onGenerate(regenerate: boolean) {
     generate.mutate(
       { regenerate },
       {
         onError: (e) => {
-          toast.error(e instanceof ApiError ? e.message : "Couldn't generate the brief.");
+          toast.error(e instanceof ApiError && e.message ? e.message : t("generate.error"));
         },
       },
     );
@@ -90,7 +99,14 @@ export function PrBriefCard({
         cost: formatCost(page.provenance.cost_usd),
       })
     : null;
-  const footerNote =
+  const failedMeta = STATUS_META.failed;
+  const FailedIcon = Icon[failedMeta.icon];
+  const footerNote = generating ? null : mutationFailed ? (
+    <span style={s.footerNote} role="status" aria-live="polite">
+      <FailedIcon size={13} style={{ color: failedMeta.color, flexShrink: 0 }} />
+      {t("status.failed")}
+    </span>
+  ) : (
     page.status === "generated" && hasBrief ? (
       <span style={s.footerNote}>{provenanceText}</span>
     ) : page.status !== "none" ? (
@@ -98,7 +114,8 @@ export function PrBriefCard({
         <StatusIcon size={13} style={{ color: meta.color, flexShrink: 0 }} />
         {statusText}
       </span>
-    ) : null;
+    ) : null
+  );
 
   const brief = page.brief;
 
@@ -106,7 +123,11 @@ export function PrBriefCard({
     <section>
       {label}
       <div style={s.panel}>
-        {hasBrief && brief ? (
+        {generating ? (
+          <div style={s.body}>
+            <GeneratingSkeleton />
+          </div>
+        ) : hasBrief && brief ? (
           <>
             <div style={s.badgeCol}>
               <Badge
@@ -142,7 +163,7 @@ export function PrBriefCard({
         <div style={s.footer}>
           <div style={s.footerLeft}>
             {footerNote}
-            {hasBrief && (
+            {hasBrief && !generating && (
               <button
                 type="button"
                 style={s.detailsToggle}
@@ -171,7 +192,7 @@ export function PrBriefCard({
           </div>
         </div>
 
-        {hasBrief && brief && showDetails && (
+        {hasBrief && brief && showDetails && !generating && (
           <div style={s.details}>
             <div style={s.block}>
               <div style={s.blockLabel}>{t("section.risks")}</div>
@@ -185,6 +206,9 @@ export function PrBriefCard({
                       risk={risk}
                       repoFullName={repoFullName}
                       headSha={page.provenance?.head_sha}
+                      navKeyPrefix={`risk:${i}`}
+                      onNavigate={onNavigate}
+                      notInDiffKey={nav.notInDiffKey}
                     />
                   ))}
                 </div>
@@ -196,7 +220,8 @@ export function PrBriefCard({
                 items={brief.review_focus}
                 repoFullName={repoFullName}
                 headSha={page.provenance?.head_sha}
-                onFocusFile={onFocusFile}
+                onNavigate={onNavigate}
+                notInDiffKey={nav.notInDiffKey}
               />
             </div>
           </div>

@@ -22,6 +22,7 @@ import type {
   UnifiedDiff,
   BlameLine,
   GitCommit,
+  HistoryChurn,
   CodeIndex,
   CodeMatch,
   CodeSymbol,
@@ -54,6 +55,10 @@ export interface MockLLMOptions {
   structuredBySchema?: Record<string, unknown>;
   completionText?: string;
   embedding?: number[];
+  /** completeStructured records the call, then rejects with this error. */
+  throwOnStructured?: Error;
+  /** completeStructured records the call, then waits this long before resolving. */
+  structuredDelayMs?: number;
 }
 
 export class MockLLMProvider implements LLMProvider {
@@ -89,6 +94,10 @@ export class MockLLMProvider implements LLMProvider {
 
   async completeStructured<T>(req: StructuredRequest<T>): Promise<StructuredResult<T>> {
     this.calls.push({ method: 'completeStructured', req });
+    if (this.opts.throwOnStructured) throw this.opts.throwOnStructured;
+    if (this.opts.structuredDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, this.opts.structuredDelayMs));
+    }
     const fixture = this.opts.structuredBySchema?.[req.schemaName] ?? this.opts.structured ?? {};
     const parsed = (req.schema as z.ZodType<T>).safeParse(fixture);
     if (!parsed.success) {
@@ -250,6 +259,8 @@ export interface MockGitOptions {
   head?: string;
   /** Head `currentHead()` returns AFTER `sync()` runs — simulates fetch+reset advancing HEAD. */
   syncedHead?: string;
+  /** `historyChurn()` result; defaults to a shallow, empty history. */
+  churn?: HistoryChurn;
 }
 
 export class MockGitClient implements GitClient {
@@ -272,6 +283,11 @@ export class MockGitClient implements GitClient {
   }
   async readFileAtRef(): Promise<string | null> {
     return null;
+  }
+  async historyChurn(): Promise<HistoryChurn> {
+    return (
+      this.opts.churn ?? { shallow: true, anchorDate: null, oldestDate: null, commits: 1, counts: {} }
+    );
   }
   async sync(repo: RepoRef, branch: string): Promise<{ head: string }> {
     this.syncs.push({ repo, branch });

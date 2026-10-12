@@ -117,6 +117,7 @@ export class AnthropicProvider implements LLMProvider {
           }),
           req.timeoutMs ?? DEFAULT_TIMEOUT,
         ),
+        { retries: req.transportRetries ?? 3 },
       );
       tokensIn += res.usage.input_tokens;
       tokensOut += res.usage.output_tokens;

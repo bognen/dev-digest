@@ -43,4 +43,12 @@ describe('PriceBook (live OpenRouter pricing for cost attribution)', () => {
     await pb.refresh(); // swallows the error
     expect(pb.estimate('deepseek/deepseek-v4-flash', 0, 0)).toBe(0.5);
   });
+
+  it('returns the model context length after refresh, null when cold or unknown', async () => {
+    const pb = new PriceBook(async () => MODELS, () => null);
+    expect(pb.contextLength('deepseek/deepseek-v4-flash')).toBe(null); // cold
+    await pb.refresh();
+    expect(pb.contextLength('deepseek/deepseek-v4-flash')).toBe(1_000_000);
+    expect(pb.contextLength('mystery/model')).toBe(null);
+  });
 });

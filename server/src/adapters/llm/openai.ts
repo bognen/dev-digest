@@ -108,6 +108,7 @@ export class OpenAIProvider implements LLMProvider {
           }),
           req.timeoutMs ?? DEFAULT_TIMEOUT,
         ),
+        { retries: req.transportRetries ?? 3 },
       );
       lastRaw = res.choices?.[0]?.message?.content ?? '';
       tokensIn += res.usage?.prompt_tokens ?? 0;

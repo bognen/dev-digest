@@ -88,7 +88,40 @@
     "config": "Config",
     "preview": "Preview",
     "stats": "Stats",
+    "context": "Context",
     "versions": "Versions"
+  },
+  "context": {
+    "title": "Project context to use",
+    "attached": "{count} attached",
+    "subtitle": "Any agent using this skill inherits these documents.",
+    "total": "≈ {count} tokens attached",
+    "rowTokens": "≈ {count} tokens",
+    "filterPlaceholder": "Filter documents…",
+    "filterLabel": "Filter documents",
+    "listLabel": "Project documents",
+    "orderHint": "Order matters — earlier documents appear earlier in the assembled prompt. Drag attached documents (or use the handle with the keyboard) to reorder.",
+    "dragHandle": "Drag to reorder {name}",
+    "dragDisabledTitle": "Clear the filter to reorder",
+    "toggleAria": "Attach {path} to this skill",
+    "previewAria": "Preview {path}",
+    "serializesAs": "Serializes as",
+    "serializedEmpty": "No documents attached.",
+    "loading": "Loading project context",
+    "loadError": "Couldn’t load project context",
+    "saveError": "Couldn’t save the change. It was reverted.",
+    "empty": "No project documents found in this repository.",
+    "noMatches": "No documents match the filter.",
+    "noRepo": {
+      "title": "No repository selected",
+      "body": "Select a repository to attach project documents to this skill."
+    },
+    "state": {
+      "missing": "Missing",
+      "too_large": "Too large",
+      "unreadable": "Unreadable",
+      "refused_containment": "Refused"
+    }
   },
   "config": {
     "title": "Configuration",

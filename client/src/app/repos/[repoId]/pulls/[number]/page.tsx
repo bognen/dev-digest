@@ -14,6 +14,7 @@ import { PrDetailHeader } from "./_components/PrDetailHeader";
 import { OverviewTab } from "./_components/OverviewTab";
 import { FindingsTab } from "./_components/FindingsTab";
 import { DiffTab } from "./_components/DiffTab";
+import type { DiffFocusTarget } from "@/components/diff-viewer";
 import RunTraceDrawer from "./_components/RunTraceDrawer";
 import { usePullDetail, usePulls } from "@/lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
@@ -78,6 +79,20 @@ export default function PRDetailPage() {
     router.replace(`/repos/${repoId}/pulls/${number}${sp.toString() ? `?${sp.toString()}` : ""}`);
   };
   const setTab = (t: string) => setParam("tab", t);
+
+  // Brief → Files focus request. Monotonic nonce lives in a ref so it survives
+  // the clear below; the request is dropped whenever the tab leaves "diff" so
+  // returning later never re-scrolls (SPEC-03 AC-11).
+  const [focusRequest, setFocusRequest] = React.useState<DiffFocusTarget | null>(null);
+  const focusNonce = React.useRef(0);
+  const focusFile = (file: string, line: number | null) => {
+    focusNonce.current += 1;
+    setFocusRequest({ path: file, line, nonce: focusNonce.current });
+    setTab("diff");
+  };
+  React.useEffect(() => {
+    if (tab !== "diff") setFocusRequest(null);
+  }, [tab]);
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
@@ -155,7 +170,8 @@ export default function PRDetailPage() {
             prBody={pr.body}
             repoFullName={repoFullName}
             headSha={pr.head_sha}
-            onFocusFile={() => setTab("diff")}
+            files={pr.files}
+            onFocusFile={focusFile}
             reviewRunCount={runsCount}
             onRunStart={() => setTab("findings")}
             onRunsStarted={() => invalidateActiveRuns()}
@@ -197,6 +213,7 @@ export default function PRDetailPage() {
             headSha={pr.head_sha}
             reviews={runs}
             repoFullName={repoFullName}
+            focusRequest={focusRequest}
           />
         )}
       </div>

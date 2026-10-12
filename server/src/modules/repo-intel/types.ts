@@ -139,6 +139,58 @@ export interface RepoMapResult {
   reason?: DegradedReason;
 }
 
+// ---------------------------------------------------------------------------
+// Onboarding-tour reads (ranked files, git hotness, repo facts).
+// ---------------------------------------------------------------------------
+
+/** A ranked file with its distinct-importer count (self-imports excluded). */
+export interface RankedFileRow {
+  path: string;
+  pagerank: number;
+  importers: number;
+}
+
+export interface FileHotness {
+  /** False when hotness could not be computed reliably (see `reason`). */
+  applied: boolean;
+  windowDays: number;
+  /** The indexed commit the window is anchored at (null when unindexed). */
+  anchorSha: string | null;
+  /** Days of history available in the checkout (oldest to anchor commit). */
+  historyDays: number;
+  commitsAvailable: number;
+  reason?: 'shallow_history' | 'no_clone' | 'commit_missing' | 'git_failed' | 'flag_off';
+  /** Raw per-path commit counts inside the window; normalisation is the consumer's job. */
+  counts: Record<string, number>;
+}
+
+export interface DetectedCommand {
+  command: string;
+  kind: 'install' | 'configure' | 'services' | 'run' | 'other';
+  /** Repo-relative path of the file the command was derived from. */
+  source: string;
+}
+
+export interface StackItem {
+  name: string;
+  evidence: string;
+}
+
+export interface DirStat {
+  path: string;
+  files: number;
+}
+
+export interface RepoFacts {
+  stack: StackItem[];
+  structure: DirStat[];
+  routes: string[];
+  commands: DetectedCommand[];
+  totalFiles: number;
+  degraded?: boolean;
+  reason?: DegradedReason;
+}
+
 /**
  * The facade. Studio (T2+) serves reads purely from the Postgres cache; T1 and
  * CI may parse diff-scoped on the hot path. Indexing runs through
@@ -179,4 +231,12 @@ export interface RepoIntel {
     opts?: { exclude?: string[] },
   ): Promise<string[]>;
   getCriticalPaths(repoId: string): Promise<string[][]>;
+
+  // --- Onboarding tour (deterministic facts; never throw, degrade to empty) ---
+  /** Ranked files with importer counts, pagerank DESC then path ASC. */
+  getRankedFiles(repoId: string): Promise<RankedFileRow[]>;
+  /** Per-path commit counts over the window anchored at the indexed commit. */
+  getFileHotness(repoId: string, windowDays?: number): Promise<FileHotness>;
+  /** Stack, structure, routes and run commands derived from the checkout. */
+  getRepoFacts(repoId: string): Promise<RepoFacts>;
 }

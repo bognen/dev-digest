@@ -17,7 +17,13 @@ import { and, asc, desc, eq, inArray, isNotNull, ne, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import { clampIndexedName } from '../../db/schema/context.js';
-import type { DegradedReason, FileRankRow, IndexState, IndexStatus } from './types.js';
+import type {
+  DegradedReason,
+  FileRankRow,
+  IndexState,
+  IndexStatus,
+  RankedFileRow,
+} from './types.js';
 
 /** Chunk size for batched inserts — same value blast already uses. */
 const INSERT_CHUNK_SIZE = 500;
@@ -456,6 +462,51 @@ export class RepoIntelRepository {
       .where(eq(t.fileRank.repoId, repoId))
       .orderBy(desc(t.fileRank.rank))
       .limit(limit);
+  }
+
+  /**
+   * Every ranked file with its distinct importer count (self-edges excluded),
+   * ordered pagerank DESC then path ASC so ties are deterministic.
+   */
+  async getRankedFilesWithImporters(repoId: string): Promise<RankedFileRow[]> {
+    const rows = await this.db
+      .select({
+        path: t.fileRank.filePath,
+        pagerank: t.fileRank.pagerank,
+        importers: sql<number>`count(distinct ${t.fileEdges.fromFile})::int`,
+      })
+      .from(t.fileRank)
+      .leftJoin(
+        t.fileEdges,
+        and(
+          eq(t.fileEdges.repoId, t.fileRank.repoId),
+          eq(t.fileEdges.toFile, t.fileRank.filePath),
+          ne(t.fileEdges.fromFile, t.fileEdges.toFile),
+        ),
+      )
+      .where(eq(t.fileRank.repoId, repoId))
+      .groupBy(t.fileRank.filePath, t.fileRank.pagerank)
+      .orderBy(desc(t.fileRank.pagerank), asc(t.fileRank.filePath));
+    return rows.map((r) => ({
+      path: r.path,
+      pagerank: r.pagerank,
+      importers: Number(r.importers),
+    }));
+  }
+
+  /** Every HTTP endpoint recorded in `file_facts`, flattened, de-duplicated, sorted. */
+  async getAllEndpoints(repoId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ endpoints: t.fileFacts.endpoints })
+      .from(t.fileFacts)
+      .where(eq(t.fileFacts.repoId, repoId));
+    const out = new Set<string>();
+    for (const r of rows) {
+      for (const e of (r.endpoints as string[]) ?? []) {
+        if (typeof e === 'string') out.add(e);
+      }
+    }
+    return [...out].sort();
   }
 
   /** Repo-map candidates: symbols with a signature, joined to rank, ordered. */

@@ -27,18 +27,23 @@ import {
   parseSymbols,
   langForFile,
 } from '../../adapters/astgrep/index.js';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+import { resolveContainedPath } from '../_shared/checkout-paths.js';
 import { RepoIntelRepository, type FullSymbolRow, type ResolvedCallerRow } from './repository.js';
 import type {
   BlastCallerRow,
   BlastHeadRef,
   BlastChangedSymbol,
   BlastResult,
+  DetectedCommand,
+  FileHotness,
   FileRankRow,
   IndexResult,
   IndexState,
+  RankedFileRow,
   RefRow,
+  RepoFacts,
   RepoIntel,
   RepoMapResult,
   SignatureRow,
@@ -47,6 +52,12 @@ import type {
 import {
   BFS_DEPTH,
   DEFAULT_REPO_MAP_TOKEN_BUDGET,
+  EXCLUDED_DIRS,
+  FACTS_MAX_FILE_BYTES,
+  FACTS_MAX_MANIFESTS,
+  FACTS_MAX_WALK_DEPTH,
+  FACTS_MAX_WALK_ENTRIES,
+  HOTNESS_WINDOW_DAYS,
   INDEX_JOB_KIND,
   INDEXER_VERSION,
   MAX_CALLERS_PER_SYMBOL,
@@ -56,6 +67,15 @@ import {
 } from './constants.js';
 import { runFullIndex, type IndexPayload } from './pipeline/full.js';
 import { runIncremental } from './pipeline/incremental.js';
+import {
+  commandsFromPackageJson,
+  composeCommand,
+  detectPackageManager,
+  detectStack,
+  envExampleCommand,
+  extractShellFences,
+  summarizeStructure,
+} from './pipeline/facts.js';
 
 /**
  * GLOBALS allowlist — common JS/TS builtins + runtime that appear as bare
@@ -852,6 +872,155 @@ export class RepoIntelService implements RepoIntel {
     }
     return paths;
   }
+
+  // -------------------------------------------------------------------------
+  // Onboarding-tour reads. Deterministic facts only; every method degrades to
+  // an empty / not-applied result and NEVER throws.
+  // -------------------------------------------------------------------------
+
+  /** Ranked files with importer counts (pagerank DESC, path ASC). */
+  async getRankedFiles(repoId: string): Promise<RankedFileRow[]> {
+    if (!this.container.config.repoIntelEnabled) return [];
+    try {
+      return await this.repo.getRankedFilesWithImporters(repoId);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Per-path commit counts over `windowDays`, anchored at the committer date of
+   * the INDEXED commit (not "now") so an unchanged checkout always yields the
+   * same counts. `applied` is false when history is shallow and does not cover
+   * the full window, or when git/clone/commit is unavailable.
+   */
+  async getFileHotness(
+    repoId: string,
+    windowDays: number = HOTNESS_WINDOW_DAYS,
+  ): Promise<FileHotness> {
+    const base: FileHotness = {
+      applied: false,
+      windowDays,
+      anchorSha: null,
+      historyDays: 0,
+      commitsAvailable: 0,
+      counts: {},
+    };
+    if (!this.container.config.repoIntelEnabled) return { ...base, reason: 'flag_off' };
+    try {
+      const state = await this.repo.tryGetIndexState(repoId);
+      if (!state || !state.lastIndexedSha) return { ...base, reason: 'commit_missing' };
+      const anchorSha = state.lastIndexedSha;
+      const withAnchor: FileHotness = { ...base, anchorSha };
+
+      const repo = await this.repo.getRepoBasics(repoId);
+      if (!repo || !repo.clonePath) return { ...withAnchor, reason: 'no_clone' };
+      const ref: RepoRef = { owner: repo.owner, name: repo.name };
+
+      if (!(await this.container.git.hasCommit(ref, anchorSha))) {
+        return { ...withAnchor, reason: 'commit_missing' };
+      }
+
+      let churn;
+      try {
+        churn = await this.container.git.historyChurn(ref, anchorSha, windowDays);
+      } catch {
+        return { ...withAnchor, reason: 'git_failed' };
+      }
+
+      const anchorMs = churn.anchorDate ? Date.parse(churn.anchorDate) : Number.NaN;
+      const oldestMs = churn.oldestDate ? Date.parse(churn.oldestDate) : Number.NaN;
+      if (Number.isNaN(anchorMs)) {
+        return { ...withAnchor, commitsAvailable: churn.commits, reason: 'git_failed' };
+      }
+      const dayMs = 24 * 60 * 60 * 1000;
+      const historyDays = Number.isNaN(oldestMs)
+        ? 0
+        : Math.max(0, Math.floor((anchorMs - oldestMs) / dayMs));
+      const windowStartMs = anchorMs - windowDays * dayMs;
+      const insufficient = churn.shallow && (Number.isNaN(oldestMs) || oldestMs > windowStartMs);
+
+      return {
+        ...withAnchor,
+        applied: !insufficient,
+        historyDays,
+        commitsAvailable: churn.commits,
+        ...(insufficient ? { reason: 'shallow_history' as const } : {}),
+        counts: churn.counts,
+      };
+    } catch {
+      return { ...base, reason: 'git_failed' };
+    }
+  }
+
+  /**
+   * Stack, directory structure (with file counts), routes and run commands.
+   * Reads the checkout through a bounded walk and containment-checked reads;
+   * parsing is inert (see pipeline/facts.ts). No clone gives a degraded empty result.
+   */
+  async getRepoFacts(repoId: string): Promise<RepoFacts> {
+    const empty: RepoFacts = {
+      stack: [],
+      structure: [],
+      routes: [],
+      commands: [],
+      totalFiles: 0,
+      degraded: true,
+      reason: 'no_data',
+    };
+    try {
+      const repo = await this.repo.getRepoBasics(repoId);
+      if (!repo || !repo.clonePath) return empty;
+      const root = repo.clonePath;
+
+      const paths = await walkCheckout(root);
+      const pathSet = new Set(paths);
+      const pm = detectPackageManager(paths);
+
+      const manifestPaths = paths
+        .filter((p) => p === 'package.json' || p.endsWith('/package.json'))
+        .slice(0, FACTS_MAX_MANIFESTS);
+      const manifests: Array<{ path: string; raw: string }> = [];
+      for (const p of manifestPaths) {
+        const raw = await readContainedText(root, p);
+        if (raw != null) manifests.push({ path: p, raw });
+      }
+
+      const commands: DetectedCommand[] = [];
+      for (const m of manifests) {
+        commands.push(...commandsFromPackageJson(m.path, m.raw, pm?.pm ?? null));
+      }
+      for (const p of paths) {
+        const name = p.slice(p.lastIndexOf('/') + 1);
+        if (/^\.?env\.(example|sample|template)$/.test(name) || name === 'env.example') {
+          commands.push(envExampleCommand(p));
+        } else if (/^(docker-compose[^/]*|compose)\.ya?ml$/.test(name)) {
+          commands.push(composeCommand(p));
+        }
+      }
+      for (const readme of ['README.md', 'readme.md']) {
+        if (!pathSet.has(readme)) continue;
+        const md = await readContainedText(root, readme);
+        if (md != null) commands.push(...extractShellFences(md, readme));
+        break;
+      }
+
+      let routes: string[] = [];
+      if (this.container.config.repoIntelEnabled) {
+        routes = await this.repo.getAllEndpoints(repoId).catch(() => []);
+      }
+
+      return {
+        stack: detectStack(paths, manifests),
+        structure: summarizeStructure(paths),
+        routes,
+        commands,
+        totalFiles: paths.length,
+      };
+    } catch {
+      return empty;
+    }
+  }
 }
 
 /** How many top-ranked files seed `getCriticalPaths` dependency chains. */
@@ -913,4 +1082,49 @@ function enclosingSymbolName(
 
 async function readClone(clonePath: string, file: string): Promise<string | null> {
   return readFile(join(clonePath, file), 'utf8').catch(() => null);
+}
+
+const FACTS_EXCLUDED_DIRS: ReadonlySet<string> = new Set(EXCLUDED_DIRS);
+
+/**
+ * Bounded, deterministic walk of a checkout: POSIX relative file paths, sorted
+ * per directory, skipping EXCLUDED_DIRS and symlinks, capped by depth and count.
+ */
+async function walkCheckout(root: string): Promise<string[]> {
+  const out: string[] = [];
+  async function visit(rel: string, depth: number): Promise<void> {
+    if (out.length >= FACTS_MAX_WALK_ENTRIES) return;
+    let entries;
+    try {
+      entries = await readdir(rel ? join(root, rel) : root, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    for (const e of entries) {
+      if (out.length >= FACTS_MAX_WALK_ENTRIES) return;
+      if (e.isSymbolicLink()) continue;
+      const childRel = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) {
+        if (FACTS_EXCLUDED_DIRS.has(e.name) || depth >= FACTS_MAX_WALK_DEPTH) continue;
+        await visit(childRel, depth + 1);
+      } else if (e.isFile()) {
+        out.push(childRel);
+      }
+    }
+  }
+  await visit('', 0);
+  return out;
+}
+
+/** Containment-checked, size-capped UTF-8 read; null on any failure. */
+async function readContainedText(root: string, rel: string): Promise<string | null> {
+  try {
+    const real = await resolveContainedPath(root, rel);
+    const st = await stat(real);
+    if (!st.isFile() || st.size > FACTS_MAX_FILE_BYTES) return null;
+    return await readFile(real, 'utf8');
+  } catch {
+    return null;
+  }
 }

@@ -8,6 +8,7 @@ import type {
   LLMProvider,
   PrIntentResponse,
   Provider,
+  RunTrace,
 } from '@devdigest/shared';
 
 /**
@@ -131,3 +132,35 @@ export interface IntentDeriver {
 }
 
 export type { PrIntentResponse, IntentUnavailableReason };
+
+// ---------------------------------------------------------------------------
+// Project Context port (SPEC-01). Structurally identical to the project-context
+// module's `resolveForRun`; the shapes are copied here (no import from
+// `modules/project-context`, see `no-cross-module`) and the composition root
+// supplies the real service.
+// ---------------------------------------------------------------------------
+
+export interface ProjectContextSkillRef {
+  id: string;
+  name: string;
+}
+
+export interface ProjectContextResolveInput {
+  workspaceId: string;
+  repoId: string;
+  agentId: string;
+  provider: string;
+  model: string;
+  activeSkills?: ProjectContextSkillRef[];
+}
+
+export interface ProjectContextResolved {
+  docs: { path: string; content: string }[];
+  trace: NonNullable<RunTrace['project_context']>;
+  counts: { attached: number; added: number; skipped: number; dropped: number };
+  blockTokens: number;
+}
+
+export interface ProjectContextResolver {
+  resolveForRun(input: ProjectContextResolveInput): Promise<ProjectContextResolved>;
+}
