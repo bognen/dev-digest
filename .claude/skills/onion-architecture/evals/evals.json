@@ -1,0 +1,113 @@
+{
+  "skill_name": "onion-architecture",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review the backend code under evals/fixtures/notes/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "Flags 3: GET /notes in routes.ts queries drizzle/db schema directly; NotesService takes whole Container and builds its own repository; adapters/slack imports modules/notes/constants.",
+      "files": [
+        "evals/fixtures/notes"
+      ],
+      "assertions": [
+        "Reports that notes/routes.ts runs drizzle queries (db.select / schema import) directly in the GET /notes handler instead of delegating to the service",
+        "Reports that NotesService depends on the whole Container (and constructs NotesRepository itself) instead of an explicit Deps object of ports",
+        "Reports that adapters/slack/index.ts imports from modules/notes/constants (adapter reaching into a feature module)",
+        "Does not flag notes/repository.ts, notes/helpers.ts or adapters/slack/mock.ts as violations"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Review the backend code under evals/fixtures/tags/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "Flags 3: helpers.ts imports db/schema and uses $inferSelect; service.ts imports and instantiates concrete OctokitClient; POST handler parses body with safeParse instead of route schema body.",
+      "files": [
+        "evals/fixtures/tags"
+      ],
+      "assertions": [
+        "Reports that tags/helpers.ts (pure domain helper) imports db/schema and types its input with $inferSelect",
+        "Reports that tags/service.ts imports and instantiates the concrete OctokitClient adapter instead of using an injected port",
+        "Reports that the POST /repos/:repoId/tags handler validates the body inside the handler (safeParse) rather than via route schema body",
+        "Does not flag tags/repository.ts or the other two routes as violations"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Review the backend code under evals/fixtures/invoices/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "Flags 3: invoices/service.ts imports FastifyReply and sets headers; service imports customers/repository (private file of another module); invoices/repository returns typeof t.invoices.$inferSelect rows.",
+      "files": [
+        "evals/fixtures/invoices"
+      ],
+      "assertions": [
+        "Reports that invoices/service.ts imports FastifyReply from fastify and sets an HTTP header (HTTP concept in application service)",
+        "Reports that invoices/service.ts imports ../customers/repository.js, a private file of another module (cross-module import; should go via port/Container or index.ts/types.ts)",
+        "Reports that invoices/repository.ts returns raw ORM row types (typeof t.invoices.$inferSelect) rather than mapped domain records",
+        "Does not flag status.ts, customers/repository.ts or invoices/routes.ts as violations"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Review the backend code under evals/fixtures/shipments/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "Flags 3: service.ts runs drizzle queries itself (listByCarrier); routes.ts GET /shipments/:id/events calls the carrier adapter via the container directly; helpers.ts imports CARRIER_BASE_URL from adapters/carrier. Must not flag the documented compromises.",
+      "files": [
+        "evals/fixtures/shipments"
+      ],
+      "assertions": [
+        "Reports that shipments/service.ts imports drizzle-orm and db/schema and runs a query directly (listByCarrier) instead of going through the repository",
+        "Reports that the GET /shipments/:id/events handler in routes.ts calls the carrier adapter (app.container.carrier().track) directly instead of through a service method",
+        "Reports that shipments/helpers.ts (pure domain helper) imports CARRIER_BASE_URL from adapters/carrier",
+        "Does not report as violations: services throwing NotFoundError/ExternalServiceError, the service importing its own module's concrete ShipmentsRepository, the route building the service from app.container, or the @devdigest/shared CarrierCode type used in types/service"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Review the backend code under evals/fixtures/billing/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "Flags 3: routes.ts POST charge handler holds business logic and several service calls; adapters/stripe imports modules/billing/types; billing/service.ts imports ledger/helpers (private file of another module). Must not flag the documented compromises.",
+      "files": [
+        "evals/fixtures/billing"
+      ],
+      "assertions": [
+        "Reports that the POST /invoices/:invoiceId/charges handler in billing/routes.ts contains business logic (already-paid sum, remaining amount, discount, retry loop, multiple service calls) instead of validate -> one service call -> return",
+        "Reports that adapters/stripe/index.ts imports from modules/billing/types (adapter reaching into a feature module)",
+        "Reports that billing/service.ts imports ../ledger/helpers.js, a private file of another module (no-cross-module)",
+        "Does not report as violations: services throwing ExternalServiceError/ValidationError, the service importing its own module's concrete BillingRepository, the route building the service from app.container, or the @devdigest/shared PaymentMethod type used in services/helpers/types"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Review the backend code under evals/fixtures/orders/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "5 planted: OrderRow alias re-exported by repository.ts and used by the service; snake_case contract input in OrdersService.place; pipeline/fulfil.ts imports the concrete warehouse adapter; service imports inventory/service.js; helpers.ts reads process.env.",
+      "files": [
+        "evals/fixtures/orders"
+      ],
+      "assertions": [
+        "Every planted violation listed in expected-findings.json for this fixture is reported with the right file and line",
+        "No decoy or clean file is reported as a violation"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Review the backend code under evals/fixtures/projects/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "5 planted: helpers.ts<->service.ts cycle; platform/jobs.ts imports a module repository; service holds Db and opens a transaction; progress route computes health inline; sync service dynamically imports projects/service.js.",
+      "files": [
+        "evals/fixtures/projects"
+      ],
+      "assertions": [
+        "Every planted violation listed in expected-findings.json for this fixture is reported with the right file and line",
+        "No decoy or clean file is reported as a violation"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Review the backend code under evals/fixtures/catalog/server/src for architectural and layering problems (where code lives, what imports what, who touches the DB or external systems). List each finding with file:line, what is wrong and the fix.",
+      "expected_output": "5 planted: search adapter imports catalog helpers; service reaches ElasticSearchIndex through the adapters barrel; GET /catalog/:id validates by hand; service parses the CatalogListResponse envelope; constants.ts reads process.env.",
+      "files": [
+        "evals/fixtures/catalog"
+      ],
+      "assertions": [
+        "Every planted violation listed in expected-findings.json for this fixture is reported with the right file and line",
+        "No decoy or clean file is reported as a violation"
+      ]
+    }
+  ],
+  "expected_findings_file": "evals/expected-findings.json",
+  "notes": "Ground truth (planted violations, decoys, clean files, known defects) lives in expected-findings.json. Score runs with grade_runs.py. Each fixture is a partial server/src tree; imports of files that are not in the tree (platform/*, vendor/shared, db/client) are intentional."
+}

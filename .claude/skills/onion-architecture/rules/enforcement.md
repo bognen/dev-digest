@@ -36,7 +36,7 @@ CI: `.github/workflows/server-unit.yml` runs the check as its own `arch` job (in
 
 ## The ratchet
 
-`.dependency-cruiser-known-violations.json` holds **42** entries (as generated 2026-09-19). Rules:
+`.dependency-cruiser-known-violations.json` holds the pre-existing violations (`jq length` for the current count; it was 42 on 2026-09-19). Rules:
 
 1. It may only **shrink**. A PR that adds an entry is rejected.
 2. After a fix, run `pnpm arch:baseline` and review `git diff` of the file — it must show removals only.
