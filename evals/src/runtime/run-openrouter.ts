@@ -28,10 +28,11 @@ export async function runOpenRouter(prompt: string, opts: RunOptions = {}): Prom
     "Answer directly and completely from the information given in the prompt.";
   const system = (opts.systemPrompt ?? "") + directive;
 
-  // 90s was too short: reasoning models (DeepSeek V4 Flash) writing a full multi-section report
-  // routinely take 2-3 min, so every attempt timed out. 240s x (1 + 1 retry) = 480s stays inside
-  // vitest's 600s testTimeout.
-  const client = new OpenAI({ apiKey: key, baseURL: BASE_URL, timeout: 240_000, maxRetries: 1 });
+  // Streamed, not one blocking request: reasoning models (DeepSeek V4 Flash) can think for 3-4+
+  // minutes before writing a long report, so any fixed whole-request timeout either cuts off
+  // correct answers or is uselessly large. With streaming the client timeout only covers the
+  // time to first response; the overall cap is vitest's testTimeout.
+  const client = new OpenAI({ apiKey: key, baseURL: BASE_URL, timeout: 120_000, maxRetries: 1 });
 
   const started = Date.now();
   let text = "";
@@ -39,23 +40,32 @@ export async function runOpenRouter(prompt: string, opts: RunOptions = {}): Prom
   let outputTokens = 0;
   let isError = false;
   try {
-    const res = await client.chat.completions.create({
+    const stream = await client.chat.completions.create({
       model: opts.model ?? EVAL_MODEL,
       temperature: 0,
+      stream: true,
+      stream_options: { include_usage: true },
       messages: [
         { role: "system", content: system },
         { role: "user", content: prompt },
       ],
     });
-    const choice = res.choices?.[0];
-    if (!choice) {
-      // OpenRouter can return HTTP 200 with no choices (upstream error / moderation) — surface it.
-      const errMsg = (res as unknown as { error?: { message?: string } }).error?.message;
-      throw new Error(`OpenRouter returned no choices${errMsg ? `: ${errMsg}` : ""}`);
+    let sawChoice = false;
+    for await (const chunk of stream) {
+      // OpenRouter can send an in-band error chunk (upstream error / moderation) — surface it.
+      const errMsg = (chunk as unknown as { error?: { message?: string } }).error?.message;
+      if (errMsg) throw new Error(`OpenRouter stream error: ${errMsg}`);
+      const choice = chunk.choices?.[0];
+      if (choice) {
+        sawChoice = true;
+        text += choice.delta?.content ?? "";
+      }
+      if (chunk.usage) {
+        inputTokens = chunk.usage.prompt_tokens ?? 0;
+        outputTokens = chunk.usage.completion_tokens ?? 0;
+      }
     }
-    text = choice.message?.content ?? "";
-    inputTokens = res.usage?.prompt_tokens ?? 0;
-    outputTokens = res.usage?.completion_tokens ?? 0;
+    if (!sawChoice) throw new Error("OpenRouter returned no choices");
   } catch (err) {
     isError = true;
     text = err instanceof Error ? err.message : String(err);
