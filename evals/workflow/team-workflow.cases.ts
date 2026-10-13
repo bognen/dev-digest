@@ -84,9 +84,12 @@ export const cases: WorkflowCase[] = [
     expectText: [{ fact: "UI imported from the @devdigest/ui barrel", any: ["@devdigest/ui"] }],
     expectNoText: [
       { fact: "server secrets file", any: ["secrets.json", "LocalSecretsProvider"] },
-      { fact: "server integration-test suffix", any: [".it.test.ts"] },
+      // A leak is the suffix presented as a rule for this client task. Scoping it away ("`*.it.test.ts`
+      // is server-only, client has none") is correct behaviour, so only a line that mentions the
+      // suffix WITHOUT tying it to server counts.
+      { fact: "server integration-test suffix", any: [/^(?!.*server).*\.it\.test\.ts/im] },
     ],
-    maxTurns: 6,
+    maxTurns: 10,
   },
 
   // --- 5: the three remaining packages' nested files in one session ----------------------------

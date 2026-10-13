@@ -34,7 +34,8 @@ package — own `package.json`/lockfile, no workspace.
 Running log of non-obvious decisions and hard-won lessons: [INSIGHTS.md](./INSIGHTS.md).
 The `engineering-insights` skill keeps this updated proactively — Claude appends
 entries as issues are found and during end-of-session wrap-ups, so treat it as
-current guidance, not a write-only log.
+current guidance, not a write-only log. Add entries only by invoking that skill, never by editing
+this file directly.
 
 ## Do not touch
 - `src/vendor/ui/**` — vendored design system; edits should be deliberate (see its
@@ -43,5 +44,5 @@ current guidance, not a write-only log.
 
 ## Links
 [README](./README.md) · [docs/](./docs/) · [specs/](./specs/) · [INSIGHTS.md](./INSIGHTS.md) ·
-[vendor/ui/AGENTS.md](./src/vendor/ui/AGENTS.md) · [Testing strategy](../TESTING.md) ·
+[vendor/ui/AGENTS.md](./src/vendor/ui/AGENTS.md) · [Testing strategy — client suite](../TESTING.md#what-each-suite-covers) ·
 [Root AGENTS.md](../AGENTS.md)

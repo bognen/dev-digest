@@ -43,7 +43,8 @@ it may only shrink, never add entries.
 Running log of non-obvious decisions and hard-won lessons: [INSIGHTS.md](./INSIGHTS.md).
 The `engineering-insights` skill keeps this updated proactively — Claude appends
 entries as issues are found and during end-of-session wrap-ups, so treat it as
-current guidance, not a write-only log.
+current guidance, not a write-only log. Add entries only by invoking that skill, never by editing
+this file directly.
 
 ## Do not touch
 - `server/clones/**` — git-ignored runtime data (cloned repos), never hand-edit.

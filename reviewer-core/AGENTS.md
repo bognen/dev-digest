@@ -38,7 +38,8 @@ Named so reviewers can cite them (`architecture-reviewer` quotes these ids in fi
 Running log of non-obvious decisions and hard-won lessons: [INSIGHTS.md](./INSIGHTS.md).
 The `engineering-insights` skill keeps this updated proactively — Claude appends
 entries as issues are found and during end-of-session wrap-ups, so treat it as
-current guidance, not a write-only log.
+current guidance, not a write-only log. Add entries only by invoking that skill, never by editing
+this file directly.
 
 ## Links
 [README](./README.md) · [docs/](./docs/) · [specs/](./specs/) · [INSIGHTS.md](./INSIGHTS.md) ·

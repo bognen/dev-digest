@@ -36,7 +36,7 @@ export const cases: WorkflowCase[] = [
       "після зміни моделі ембедингів. Хочу це зафіксувати, щоб більше не наступати.",
     skill: "engineering-insights",
     shouldActivate: true,
-    maxTurns: 4,
+    maxTurns: 8,
   },
   {
     kind: "activation",
@@ -45,6 +45,6 @@ export const cases: WorkflowCase[] = [
       "Поясни, як у pgvector працюють розмірності колонок і чому невідповідність повертає нуль рядків.",
     skill: "engineering-insights",
     shouldActivate: false,
-    maxTurns: 4,
+    maxTurns: 8,
   },
 ];

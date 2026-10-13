@@ -83,7 +83,8 @@ cd e2e && npm install && npm test
 
 ## Conventions
 
-- **Integration tests end in `*.it.test.ts`.** The unit lane excludes that glob
+- **`server/` only — integration tests end in `*.it.test.ts`.** No other package
+  has an integration lane (client tests are `*.test.tsx` component tests). The unit lane excludes that glob
   (`vitest run --exclude '**/*.it.test.ts'`); the integration lane selects only
   it (`vitest run .it.test`). A DB-backed test that imports `test/helpers/pg.ts`
   must use the `.it.test.ts` suffix.

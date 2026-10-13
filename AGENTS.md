@@ -38,6 +38,9 @@ Only Postgres runs in Docker; API and web run on the host.
 - Shared Zod contracts (`@devdigest/shared`) are **vendored separately** into both
   `server/src/vendor/shared` and `client/src/vendor/shared` (no symlink/workspace)
   — a change to one must be manually mirrored to the other.
+- **Recording a lesson / gotcha / dead end → invoke the `engineering-insights`
+  skill.** Never open or edit a module's `INSIGHTS.md` by hand to add an entry —
+  the skill owns placement, format and dedup.
 - Each package has its own test suite + CI workflow, gated by path filters — see
   [TESTING.md](./TESTING.md) before adding cross-package logic.
 
