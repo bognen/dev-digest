@@ -41,6 +41,24 @@ Only Postgres runs in Docker; API and web run on the host.
 - Each package has its own test suite + CI workflow, gated by path filters — see
   [TESTING.md](./TESTING.md) before adding cross-package logic.
 
+## Harness evals (CI)
+`evals/` holds evals for the Claude Code harness itself — skills, subagents and
+this file. `.github/workflows/evals.yml` runs them on every PR that touches
+`.claude/**`, `CLAUDE.md`, `AGENTS.md` or `evals/**`:
+- `.claude/skills/<name>/**` → `skill / <name>` (blocking, only if
+  `evals/skills/<name>/` has `*.eval.ts`).
+- `.claude/agents/<name>.md` → `agent / <name>` (blocking, same rule).
+- `CLAUDE.md` / root `AGENTS.md` / any agent / `evals/src/**` → the workflow
+  tier (non-blocking: cheap models dispatch subagents unreliably).
+- A changed skill/agent with no evals is reported as `SKIP`, never a failure.
+
+Runs on OpenRouter through the LiteLLM proxy in `evals/proxy/`. The model is
+`EVAL_MODEL` (default in the workflow `env`, overridable by the repo variable
+`EVAL_MODEL` or the manual-run `model` input); needs the `OPENROUTER_API_KEY`
+Actions secret. When you add a skill or agent, add its evals under
+`evals/skills/<name>/` or `evals/agents/<name>/` so CI covers it — see
+[evals/README.md](./evals/README.md).
+
 ## Do not touch
 - `server/clones/**` — git-ignored runtime data (cloned repos under review).
 - `.devdigest/cache/`, `clones/`, `test-results/`, `playwright-report/` — all

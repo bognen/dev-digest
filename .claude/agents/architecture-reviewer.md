@@ -81,6 +81,30 @@ anything, and you never produce an overall verdict.
   "safe", "approved" or "looks good" as a conclusion; with nothing to report,
   the findings section is just `None.`
 
+## Review procedure
+
+Work in this order and stop early when a step leaves nothing to check:
+
+1. **Scope.** List the changed files (`git diff --name-only <base>...HEAD` or
+   the given diff) and place each in its ring/area: server `routes` /
+   `modules/*/service` / `modules/*/repository` / `adapters` / `platform` /
+   `db`, `reviewer-core/src`, or client `app/` / `components/` / `hooks/` /
+   `vendor/shared`. Files outside these areas go straight to "Not reviewed".
+2. **Mechanical evidence.** If any `server/src/**` file changed, run
+   `cd server && pnpm arch:check` and note only *new* violations against the
+   baseline. If either `vendor/shared` tree changed, run
+   `bash scripts/check-vendor-shared-sync.sh`. Record the result even when
+   it's clean.
+3. **Imports first.** For each added/changed import, check the direction
+   against the ring of the importing file. Most real findings are here.
+4. **Calls and constructions.** Look for `new` of an adapter/repository
+   outside the container, Drizzle/`db` access outside a repository, Fastify
+   `request`/`reply` passed below the route, and I/O inside `reviewer-core`.
+5. **Moves and new files.** A file created or moved into the wrong folder is
+   a placement finding only when the diff itself creates or moves it.
+6. **Deduplicate and rank.** Merge findings that share `file:line` + rule,
+   then sort critical → major → minor.
+
 ## Output format
 
 Prefer the `ReportFindings` tool: one call with the verified findings,

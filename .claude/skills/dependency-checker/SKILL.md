@@ -79,6 +79,20 @@ Tier definitions, verification and recommendation style:
   is usually Info, not a runtime bug.
 - Install size is **not** bundle size — never claim client bundle impact from it.
 
+## Common false positives (verify before reporting)
+
+| Script signal | Why it may be wrong | How to confirm |
+|---|---|---|
+| "unused" `@types/*` | Type packages are never imported by name | Check `tsconfig` `types` / ambient usage; usually Info, not unused |
+| "unused" CLI tool (`tsx`, `vitest`, `drizzle-kit`, `dependency-cruiser`) | Used from `package.json` scripts, not source | Grep the package's `scripts` block |
+| "unused" plugin / preset (`@vitejs/*`, `eslint-*`, `postcss`) | Loaded by a config file by string name | Grep `*.config.*` files in that package |
+| "unused" runtime dep in `client/` | Next.js loads some deps implicitly (`sharp`, `react-dom`) | Treat as Info unless clearly orphaned |
+| version drift on a dev-only tool | Tooling drift rarely affects runtime | Downgrade to P2/Info unless it changes types of shared contracts |
+| "duplicate" between `server` and `reviewer-core` | Separate lockfiles by design (not a monorepo) | Only report when the two versions disagree on a shared contract dep |
+
+When a signal matches a row above, either confirm it with the listed check or drop
+it — never ship it as a P0/P1 on the script's word alone.
+
 ## Do not
 
 - Do not execute removals, upgrades or `audit fix`.
