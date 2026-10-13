@@ -23,6 +23,8 @@ modules or a monorepo tool.
 [server/src/modules/repo-intel/AGENTS.md](./server/src/modules/repo-intel/AGENTS.md).
 Reviewer agent prompt library:
 [docs/agent-prompts/AGENTS.md](./docs/agent-prompts/AGENTS.md).
+Harness evals (skills/agents/workflow, run per-PR by `.github/workflows/evals.yml`):
+[evals/README.md](./evals/README.md).
 
 ## Commands
 `./scripts/dev.sh` — starts Postgres (Docker), installs deps, migrates + seeds,

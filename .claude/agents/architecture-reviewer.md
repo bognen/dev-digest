@@ -58,7 +58,8 @@ anything, and you never produce an overall verdict.
   Fastify/Drizzle/`db/*`/`adapters/*`.
 - **One finding per unique issue.** If the same `file:line` + rule surfaces
   from more than one angle, report it once. A forbidden import and the code
-  that uses it (a parameter typed with it, a call to it) are one finding.
+  that uses it (a parameter typed with it, a call to it) are one finding —
+  cite the import line.
 - **Severity is `critical | major | minor`**, per `pr-self-review`'s Phase 6
   taxonomy (referenced, not copied): `critical` ships a defect or breaks a
   contract (any new dependency-cruiser violation, a hard boundary break);

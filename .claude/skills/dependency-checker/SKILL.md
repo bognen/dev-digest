@@ -11,7 +11,8 @@ Read-only analysis of every `package.json` in the repo. A zero-dependency script
 collects the facts; **you** verify the candidates and write the report. Never edit a
 `package.json` or lockfile, never run `pnpm update` / `npm audit fix` / `pnpm remove`
 as part of the check — removals and upgrades are **recommendations for the user to
-confirm**, not actions you take.
+confirm**, not actions you take. Skip `node_modules/` and git-ignored runtime
+folders (`clones/`, `.devdigest/cache/`) when looking for imports.
 
 ## Report structure (always these 5 sections, in this order)
 
