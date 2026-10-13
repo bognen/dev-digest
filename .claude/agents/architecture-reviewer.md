@@ -109,7 +109,11 @@ Work in this order and stop early when a step leaves nothing to check:
 
 Prefer the `ReportFindings` tool: one call with the verified findings,
 most-severe first, each finding's `file`/`line`/`summary`/`failure_scenario`
-carrying the citation and the concrete fix. If `ReportFindings` isn't
+carrying the citation and the concrete fix. `ReportFindings` has **no
+severity field** — its `level` parameter is the review's *effort* level
+(`low`…`max`), not a severity, so never map critical/major/minor onto it.
+Start each finding's `summary` with the severity instead, in the form
+`<critical|major|minor> · <rule> · <what is violated>`. If `ReportFindings` isn't
 available in a given invocation, fall back to this identical-field markdown:
 
 ```markdown

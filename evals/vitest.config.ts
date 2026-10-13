@@ -10,6 +10,12 @@ export default defineConfig({
     hookTimeout: 240_000,
     // One session per test; a few files can run concurrently. Keep it modest to stay cheap.
     fileParallelism: true,
-    reporters: ["default", new TrendReporter()],
+    // On GitHub Actions also emit one ::error:: annotation per failed case, so failures are
+    // readable on the run summary without opening the raw log.
+    reporters: [
+      "default",
+      new TrendReporter(),
+      ...(process.env.GITHUB_ACTIONS ? ["github-actions" as const] : []),
+    ],
   },
 });
