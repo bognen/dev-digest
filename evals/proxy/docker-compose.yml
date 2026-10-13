@@ -17,6 +17,9 @@ services:
       - "4000:4000"
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in the environment}
+      # LiteLLM >= 1.10x refuses to boot without a master key. Both eval clients already send
+      # OPENROUTER_API_KEY as their bearer token, so reusing it as the master key needs no code change.
+      LITELLM_MASTER_KEY: ${OPENROUTER_API_KEY}
     volumes:
       - ./litellm.config.yaml:/app/config.yaml:ro
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
