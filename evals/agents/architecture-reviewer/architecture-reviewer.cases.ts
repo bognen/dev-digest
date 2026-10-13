@@ -51,7 +51,9 @@ export const cases: AgentCase[] = [
     kind: "quality",
     prompt: REVIEW_PROMPT,
     practices: [
-      "reports the `FastifyReply` import in checkout.ts as an inner-no-outer finding and raises NO separate finding for the optional `reply?: FastifyReply` parameter (it is the same issue) and none about it being unused or a runtime/security concern",
+      // Not "inner-no-outer": that dependency-cruiser rule's INNER pattern doesn't cover domain/ files,
+      // so a grounded reviewer cites the onion ring map / fastify edge rule instead — both are correct.
+      "reports the `FastifyReply` import in checkout.ts as ONE dependency-direction / layer-boundary finding (citing the onion ring map, the fastify edge rule, or inner-no-outer) and raises NO separate finding for the optional `reply?: FastifyReply` parameter (it is the same issue) and none about it being unused or a runtime/security concern",
       "raises no FINDING about naming, style, or test coverage (mentioning them under 'Not reviewed' as other reviewers' remit is fine)",
     ],
     threshold: 1.0,
