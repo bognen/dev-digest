@@ -51,10 +51,6 @@ this file. `.github/workflows/evals.yml` runs them on every PR that touches
 - `CLAUDE.md` / root `AGENTS.md` / any agent / `evals/src/**` → the workflow
   tier (non-blocking: cheap models dispatch subagents unreliably).
 - A changed skill/agent with no evals is reported as `SKIP`, never a failure.
-- An agent whose `description` starts with `EVAL VARIANT` (an A/B control such as
-  `architecture-reviewer-lite`, built to score lower) is also `SKIP`ped — compare it
-  on demand with `pnpm eval:repeat` / `pnpm eval:delta`, never as a PR gate.
-
 Runs on OpenRouter through the LiteLLM proxy in `evals/proxy/`; needs the
 `OPENROUTER_API_KEY` Actions secret. Task model(s): manual-run `models` input →
 repo variable `EVAL_MODELS` (comma-separated, one matrix leg per model — use it
