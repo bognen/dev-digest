@@ -77,6 +77,7 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
   const skills: string[] = [];
   const reads: string[] = [];
   let resultText = "";
+  let reportedFindings: unknown[] | undefined;
   let isError = false;
   let numTurns = 0;
   let toolCallCount = 0;
@@ -117,6 +118,12 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
               const s = input.skill ?? input.command;
               if (s) skills.push(s);
             }
+            // Reviewer agents deliver their findings as ReportFindings tool INPUT, often with a
+            // one-line prose summary ("Reported two findings via ReportFindings"). Keep the last
+            // call (a rejected first attempt is retried) so the judge scores the real findings.
+            if (block.name === REPORT_FINDINGS_TOOL && Array.isArray(input.findings)) {
+              reportedFindings = input.findings;
+            }
             // Evidence is in — break the loop before a heavy nested subagent runs to completion.
             // Breaking the async iterator triggers its return()/abort, tearing down the subprocess.
             if (
@@ -152,8 +159,9 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
   // Early stop never reached the result message, so fall back to the wall-clock duration.
   if (stoppedEarly && durationMs === 0) durationMs = Date.now() - startedAt;
 
+  const prose = resultText || textParts.join("\n");
   return {
-    text: resultText || textParts.join("\n"),
+    text: reportedFindings ? `${prose}\n\n${renderFindings(reportedFindings)}` : prose,
     toolsUsed: [...new Set(tools)],
     subagents: [...new Set(subagents)],
     skillsInvoked: [...new Set(skills)],
@@ -162,4 +170,19 @@ export async function runClaude(prompt: string, opts: RunOptions = {}): Promise<
     isError,
     metrics: { durationMs, inputTokens, outputTokens, toolCallCount },
   };
+}
+
+const REPORT_FINDINGS_TOOL = "ReportFindings";
+
+/** Render ReportFindings tool input as markdown so text-based judges and matchers can see it. */
+function renderFindings(findings: unknown[]): string {
+  if (findings.length === 0) return "### Findings (via ReportFindings)\nNone.";
+  const lines = findings.map((raw, i) => {
+    const f = (raw ?? {}) as Record<string, unknown>;
+    const loc = [f.file, f.line].filter((v) => v !== undefined && v !== "").join(":");
+    const head = [loc, f.category, f.summary].filter(Boolean).join(" · ");
+    const scenario = f.failure_scenario ? `\n   ${String(f.failure_scenario)}` : "";
+    return `${i + 1}. ${head}${scenario}`;
+  });
+  return `### Findings (via ReportFindings)\n${lines.join("\n")}`;
 }
