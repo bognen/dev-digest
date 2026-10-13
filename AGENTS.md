@@ -38,6 +38,10 @@ Only Postgres runs in Docker; API and web run on the host.
 - Shared Zod contracts (`@devdigest/shared`) are **vendored separately** into both
   `server/src/vendor/shared` and `client/src/vendor/shared` (no symlink/workspace)
   — a change to one must be manually mirrored to the other.
+- **Launch a project subagent by name:** set the Agent tool's `subagent_type`
+  to the agent's name (e.g. `architecture-reviewer`). An Agent call without
+  `subagent_type` runs the generic agent, not the one you named in the prompt.
+  The reviewer agents are read-only — don't add `isolation: "worktree"`.
 - **Recording a lesson / gotcha / dead end → invoke the `engineering-insights`
   skill.** Never open or edit a module's `INSIGHTS.md` by hand to add an entry —
   the skill owns placement, format and dedup.
