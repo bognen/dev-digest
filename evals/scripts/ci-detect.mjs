@@ -15,7 +15,7 @@
  * to $GITHUB_OUTPUT. Pure filesystem + string work — no deps.
  */
 
-import { existsSync, readdirSync, appendFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, appendFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,10 +53,21 @@ const agentNames = touched(
   /^evals\/agents\/([^/]+)\//,
 );
 
+/**
+ * An agent whose description starts with "EVAL VARIANT" is an A/B control (e.g.
+ * architecture-reviewer-lite): it is built to score LOWER than its strict twin, so it must never
+ * gate a PR. Compare it on demand with `pnpm eval:repeat` / `pnpm eval:delta` instead.
+ */
+function isEvalVariant(name) {
+  const file = join(REPO_ROOT, ".claude", "agents", `${name}.md`);
+  if (!existsSync(file)) return false;
+  return /^description:\s*["']?EVAL VARIANT/m.test(readFileSync(file, "utf8"));
+}
+
 const skills = skillNames.filter((n) => hasEvals("skills", n));
 const skippedSkills = skillNames.filter((n) => !hasEvals("skills", n));
-const agents = agentNames.filter((n) => hasEvals("agents", n));
-const skippedAgents = agentNames.filter((n) => !hasEvals("agents", n));
+const agents = agentNames.filter((n) => hasEvals("agents", n) && !isEvalVariant(n));
+const skippedAgents = agentNames.filter((n) => !hasEvals("agents", n) || isEvalVariant(n));
 
 // The workflow tier measures the LIVE harness, so anything that changes it re-triggers it:
 // the root or .claude CLAUDE.md (and the root AGENTS.md it imports via `@AGENTS.md`), any agent
@@ -87,4 +98,4 @@ console.error(`skills → run  : ${skills.join(", ") || "(none)"}`);
 console.error(`agents → run  : ${agents.join(", ") || "(none)"}`);
 console.error(`workflow tier : ${runWorkflow ? "run" : "skip"}`);
 if (skippedSkills.length) console.error(`SKIP skills (no evals): ${skippedSkills.join(", ")}`);
-if (skippedAgents.length) console.error(`SKIP agents (no evals): ${skippedAgents.join(", ")}`);
+if (skippedAgents.length) console.error(`SKIP agents (no evals / A/B eval variant): ${skippedAgents.join(", ")}`);
