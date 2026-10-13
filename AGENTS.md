@@ -52,10 +52,12 @@ this file. `.github/workflows/evals.yml` runs them on every PR that touches
   tier (non-blocking: cheap models dispatch subagents unreliably).
 - A changed skill/agent with no evals is reported as `SKIP`, never a failure.
 
-Runs on OpenRouter through the LiteLLM proxy in `evals/proxy/`. The model is
-`EVAL_MODEL` (default in the workflow `env`, overridable by the repo variable
-`EVAL_MODEL` or the manual-run `model` input); needs the `OPENROUTER_API_KEY`
-Actions secret. When you add a skill or agent, add its evals under
+Runs on OpenRouter through the LiteLLM proxy in `evals/proxy/`; needs the
+`OPENROUTER_API_KEY` Actions secret. Task model(s): manual-run `models` input →
+repo variable `EVAL_MODELS` (comma-separated, one matrix leg per model — use it
+to compare models on a PR) → `EVAL_MODEL` → `DEFAULT_MODEL` in the workflow.
+The judge is separate: `judge_model` input → `EVAL_JUDGE_MODEL` →
+`DEFAULT_JUDGE_MODEL`. When you add a skill or agent, add its evals under
 `evals/skills/<name>/` or `evals/agents/<name>/` so CI covers it — see
 [evals/README.md](./evals/README.md).
 
