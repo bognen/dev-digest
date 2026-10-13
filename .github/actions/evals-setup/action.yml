@@ -1,0 +1,25 @@
+name: evals-setup
+description: Install evals deps and start the LiteLLM proxy (OpenRouter) and wait for it.
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+        cache-dependency-path: evals/pnpm-lock.yaml
+    - run: pnpm install --frozen-lockfile
+      shell: bash
+      working-directory: evals
+    - run: pnpm typecheck
+      shell: bash
+      working-directory: evals
+    - run: docker compose -f proxy/docker-compose.yml up -d
+      shell: bash
+      working-directory: evals
+    - run: pnpm proxy:wait
+      shell: bash
+      working-directory: evals

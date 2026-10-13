@@ -1,0 +1,143 @@
+# Harness evals (skills / agents / workflow) on OpenRouter via the LiteLLM proxy.
+#
+# detect         -> maps changed files to eval suites (evals/scripts/ci-detect.mjs)
+# evals-skills   -> one matrix leg per changed skill that has evals          (blocking)
+# evals-agents   -> one matrix leg per changed agent that has evals          (blocking)
+# evals-workflow -> general harness check when CLAUDE.md / any agent / engine changes
+#                   (NON-blocking: continue-on-error, tool-tier dispatch is flaky on cheap models)
+#
+# Model: change EVAL_MODEL below, set the repo variable EVAL_MODEL, or pass `model` on a manual run.
+# Needs the repo Actions secret OPENROUTER_API_KEY. Fork PRs are skipped (no secrets).
+name: evals
+
+on:
+  pull_request:
+    paths:
+      - 'evals/**'
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - '.github/workflows/evals.yml'
+  workflow_dispatch:
+    inputs:
+      model:
+        description: OpenRouter model slug (overrides the default)
+        required: false
+        type: string
+      tier:
+        description: Which tier to run manually
+        required: true
+        default: workflow
+        type: choice
+        options: [workflow, all]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EVAL_BACKEND: openrouter
+  OPENROUTER_BASE_URL: http://localhost:4000
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash-0731' }}
+  EVAL_JUDGE_MODEL: ${{ inputs.model || vars.EVAL_MODEL || 'deepseek/deepseek-v4-flash-0731' }}
+
+jobs:
+  detect:
+    name: detect changed evals
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    outputs:
+      skills: ${{ steps.detect.outputs.skills || '[]' }}
+      agents: ${{ steps.detect.outputs.agents || '[]' }}
+      run_workflow: ${{ steps.detect.outputs.run_workflow }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: detect
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          TIER: ${{ inputs.tier }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            CHANGED_FILES="$(git diff --name-only "$BASE_SHA"...HEAD)"
+          elif [ "$TIER" = "all" ]; then
+            # manual full run: pretend every artifact changed
+            CHANGED_FILES="$(git ls-files .claude/skills .claude/agents CLAUDE.md)"
+          else
+            CHANGED_FILES="CLAUDE.md"
+          fi
+          export CHANGED_FILES
+          node evals/scripts/ci-detect.mjs
+
+  evals-skills:
+    name: skill / ${{ matrix.name }}
+    needs: detect
+    if: needs.detect.outputs.skills != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        name: ${{ fromJSON(needs.detect.outputs.skills) }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/evals-setup
+      - run: pnpm vitest run skills/${{ matrix.name }}
+      - uses: ./.github/actions/evals-teardown
+        if: always()
+
+  evals-agents:
+    name: agent / ${{ matrix.name }}
+    needs: detect
+    if: needs.detect.outputs.agents != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        name: ${{ fromJSON(needs.detect.outputs.agents) }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/evals-setup
+      - run: pnpm vitest run agents/${{ matrix.name }}
+      - uses: ./.github/actions/evals-teardown
+        if: always()
+
+  evals-workflow:
+    name: workflow (non-blocking)
+    needs: detect
+    if: needs.detect.outputs.run_workflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/evals-setup
+      - run: pnpm eval:workflow
+      - uses: ./.github/actions/evals-teardown
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: evals/results/
+          if-no-files-found: ignore
