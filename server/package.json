@@ -14,7 +14,9 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "verify:l06": "vitest run test/eval test/contracts.test.ts",
+    "mutation:eval": "stryker run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.33.1",
@@ -41,6 +43,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^8.7.1",
+    "@stryker-mutator/vitest-runner": "^8.7.1",
     "@testcontainers/postgresql": "^10.16.0",
     "@types/node": "^22.10.0",
     "drizzle-kit": "^0.30.1",

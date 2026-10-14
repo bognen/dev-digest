@@ -1,4 +1,4 @@
-/* SkillEditor — 4-tab skill editor (Config / Preview / Stats / Versions), with a red
+/* SkillEditor — skill editor (Config / Preview / Stats / Context / Evals / Versions), with a red
    "injection detected" banner on top for a blocked skill. Tab state lives in ?tab= (owned by the page). */
 "use client";
 
@@ -9,6 +9,7 @@ import type { Skill } from "@devdigest/shared";
 import { InjectionBanner } from "./_components/InjectionBanner";
 import { SkillConfigTab } from "./_components/SkillConfigTab";
 import { SkillContextTab } from "./_components/SkillContextTab";
+import { SkillEvalsTab } from "./_components/SkillEvalsTab";
 import { SkillPreviewTab } from "./_components/SkillPreviewTab";
 import { SkillStatsTab } from "./_components/SkillStatsTab";
 import { SkillVersionsTab } from "./_components/SkillVersionsTab";
@@ -29,6 +30,7 @@ export function SkillEditor({ skill, tab, onTab }: { skill: Skill; tab: string; 
         {tab === "preview" && <SkillPreviewTab skill={skill} />}
         {tab === "stats" && <SkillStatsTab skillId={skill.id} />}
         {tab === "context" && <SkillContextTab skillId={skill.id} />}
+        {tab === "evals" && <SkillEvalsTab skill={skill} />}
         {tab === "versions" && <SkillVersionsTab skillId={skill.id} />}
       </div>
     </div>

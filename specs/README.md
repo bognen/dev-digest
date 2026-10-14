@@ -24,3 +24,4 @@ Development Plans live in [`docs/plans/`](../docs/plans/) as `<same-stem>-plan.m
 - [07-blast-radius.md](./07-blast-radius.md)
 - [2026-10-10-project-context.md](./2026-10-10-project-context.md) · SPEC-01 · draft
 - [2026-10-10-onboarding-tour.md](./2026-10-10-onboarding-tour.md) · SPEC-02 · draft
+- [eval-pipeline.md](./eval-pipeline.md) · SPEC-06 · approved

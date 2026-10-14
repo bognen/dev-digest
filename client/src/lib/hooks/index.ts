@@ -14,3 +14,4 @@ export * from "./brief";
 export * from "./smart-diff";
 export * from "./project-context";
 export * from "./onboarding-tour";
+export * from "./eval";

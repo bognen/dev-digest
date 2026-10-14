@@ -136,3 +136,34 @@ describe('reviewPullRequest (engine)', () => {
     expect(seen.every((s) => s === 'sess-abc')).toBe(true);
   });
 });
+
+describe('reviewPullRequest temperature (SPEC-06 AC-65)', () => {
+  const fixture = { verdict: 'comment', summary: 'ok', score: 100, findings: [] };
+
+  /** Wraps the mock LLM and records every structured request it receives. */
+  function capturing() {
+    const inner = new MockLLMProvider('openai', { structured: fixture });
+    const requests: Record<string, unknown>[] = [];
+    const llm = Object.assign(Object.create(Object.getPrototypeOf(inner)), inner) as LLMProvider;
+    llm.completeStructured = async <T,>(req: Parameters<LLMProvider['completeStructured']>[0]) => {
+      requests.push({ ...req });
+      return inner.completeStructured(req) as Promise<StructuredResult<T>>;
+    };
+    return { llm, requests };
+  }
+
+  it('omits temperature from the request when not given (unchanged request)', async () => {
+    const { llm, requests } = capturing();
+    const diff = await new MockGitClient().diff();
+    await reviewPullRequest({ systemPrompt: 's', model: 'm', diff, llm });
+    expect(requests).toHaveLength(1);
+    expect('temperature' in requests[0]!).toBe(false);
+  });
+
+  it('forwards an explicit temperature to the structured call', async () => {
+    const { llm, requests } = capturing();
+    const diff = await new MockGitClient().diff();
+    await reviewPullRequest({ systemPrompt: 's', model: 'm', diff, llm, temperature: 0 });
+    expect(requests[0]!.temperature).toBe(0);
+  });
+});

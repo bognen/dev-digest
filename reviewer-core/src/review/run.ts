@@ -95,6 +95,12 @@ export interface ReviewInput {
    * review group into one session in the OpenRouter dashboard.
    */
   sessionId?: string;
+  /**
+   * Sampling temperature for every chunk call. Undefined → the field is not sent
+   * and the provider default applies (request byte-identical to before). Eval
+   * runs pin it to 0 so runs of different agent versions stay comparable.
+   */
+  temperature?: number;
   /** Progress sink. */
   onEvent?: (e: ReviewEvent) => void;
   /**
@@ -193,6 +199,7 @@ export async function reviewPullRequest(input: ReviewInput): Promise<ReviewOutco
       messages: a.messages,
       maxRetries,
       ...(input.sessionId ? { sessionId: input.sessionId } : {}),
+      ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
     });
     tokensIn += res.tokensIn;
     tokensOut += res.tokensOut;

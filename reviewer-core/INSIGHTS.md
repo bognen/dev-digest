@@ -16,6 +16,9 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-13 — `ReviewInput.temperature` is opt-in; `buildLineIndex` is exported for eval case validation
+Eval runs (SPEC-06) pass `temperature: 0`; when absent the structured request has no `temperature` key at all, so normal reviews are byte-identical (`test/run.test.ts`). `buildLineIndex` is exported so the server validates eval expectations against exactly the line set the grounding gate uses — an expectation that passes validation can always be matched.
+
 ### 2026-10-12 — renderProjectContext groups documents by type with fixed ### headings
 The `## Project context` block is now `### Specs`, `### Docs`, `### Insights`, `### Other` groups (fixed order, empty groups omitted) of per-document untrusted blocks; the group is the document's FIRST path segment (exact match, so `docs.md` or `specs-old/x.md` is `Other`) and documents keep their priority order inside a group. Titles are constants, never built from paths or content, so a document cannot forge a heading outside its `<untrusted>` block. Prompt, server token totals and the skill 'Serializes as' preview all use this one renderer, so they stay byte-identical; tests that count `###` lines must skip lines inside `<untrusted>` blocks.
 

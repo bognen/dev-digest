@@ -11,6 +11,12 @@ vi.mock("../../../../../../../lib/hooks/reviews", () => ({
 
 import { FindingsPanel } from "./FindingsPanel";
 
+// FindingCard renders the eval-case button (SPEC-06); stub its data hooks so no QueryClient is needed.
+vi.mock("@/lib/hooks/eval", () => ({
+  useEvalCaseSources: () => ({ data: [] }),
+  useCreateCaseFromFinding: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 afterEach(() => {
   cleanup();
   mutate.mockClear();

@@ -238,6 +238,14 @@ export function Gallery() {
             h={160}
           />
         </div>
+        <div style={s.w360}>
+          <LineChart
+            series={[{ name: "recall", color: "var(--accent)", data: [0.7, 0.74, 0.8] }]}
+            h={120}
+            ariaLabel="Recall trend with tooltip"
+            tooltip={(i) => `v${i + 1} · recall ${[70, 74, 80][i]}%`}
+          />
+        </div>
         <Donut
           segments={[
             { label: "openai", value: 4.2, color: "var(--accent)" },

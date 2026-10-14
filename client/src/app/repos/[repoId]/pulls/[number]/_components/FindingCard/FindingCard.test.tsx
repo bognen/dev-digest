@@ -5,6 +5,12 @@ import type { FindingRecord } from "@devdigest/shared";
 import messages from "../../../../../../../../messages/en/prReview.json";
 import { FindingCard } from "./FindingCard";
 
+// FindingCard renders the eval-case button (SPEC-06); stub its data hooks so no QueryClient is needed.
+vi.mock("@/lib/hooks/eval", () => ({
+  useEvalCaseSources: () => ({ data: [] }),
+  useCreateCaseFromFinding: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
 afterEach(cleanup);
 
 const FINDING: FindingRecord = {
