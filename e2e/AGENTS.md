@@ -34,7 +34,8 @@ Running log of non-obvious decisions and hard-won lessons, including a hard
 warning about the dev Postgres volume: [INSIGHTS.md](./INSIGHTS.md).
 The `engineering-insights` skill keeps this updated proactively — Claude appends
 entries as issues are found and during end-of-session wrap-ups, so treat it as
-current guidance, not a write-only log.
+current guidance, not a write-only log. Add entries only by invoking that skill, never by editing
+this file directly.
 
 ## Do not touch
 - **Never `docker compose down -v` against the dev stack** — it deletes the

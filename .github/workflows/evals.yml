@@ -1,0 +1,190 @@
+# Harness evals (skills / agents / workflow) on OpenRouter via the LiteLLM proxy.
+#
+# detect         -> maps changed files to eval suites (evals/scripts/ci-detect.mjs)
+#                   and resolves the list of task models to run
+# evals-skills   -> one matrix leg per (model x changed skill that has evals)   (blocking)
+# evals-agents   -> one matrix leg per (model x changed agent that has evals)   (blocking)
+# evals-workflow -> one leg per model, when CLAUDE.md / AGENTS.md / any agent / engine changes
+#                   (NON-blocking: continue-on-error, tool-tier dispatch is flaky on cheap models)
+#
+# Task model(s), first match wins:
+#   1. manual run input `models`   (comma-separated, e.g. "deepseek/deepseek-v4-flash-0731,anthropic/claude-haiku-4.5")
+#   2. repo variable EVAL_MODELS   (same format; use it to compare models on a PR without merging)
+#   3. repo variable EVAL_MODEL    (single model)
+#   4. DEFAULT_MODEL below
+# Judge model (scores the content tier), first match wins:
+#   manual input `judge_model` -> repo variable EVAL_JUDGE_MODEL -> DEFAULT_JUDGE_MODEL below.
+# Default: DeepSeek V4 Flash for both task and judge. `:nitro` makes OpenRouter route to the
+# highest-throughput provider; default routing favours the cheapest one, which was ~10x slower
+# (34 vs 290 tok/s) and pushed long skill reports past the test timeout.
+#
+# Needs the repo Actions secret OPENROUTER_API_KEY. Fork PRs are skipped (no secrets).
+name: evals
+
+on:
+  pull_request:
+    paths:
+      - 'evals/**'
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+      - '.github/workflows/evals.yml'
+  workflow_dispatch:
+    inputs:
+      models:
+        description: Task model slug(s), comma-separated — one run per model
+        required: false
+        type: string
+      judge_model:
+        description: Judge model slug (overrides the default judge)
+        required: false
+        type: string
+      tier:
+        description: Which tier to run manually
+        required: true
+        default: workflow
+        type: choice
+        options: [workflow, all]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DEFAULT_MODEL: deepseek/deepseek-v4-flash-0731:nitro
+  DEFAULT_JUDGE_MODEL: deepseek/deepseek-v4-flash-0731:nitro
+  EVAL_BACKEND: openrouter
+  OPENROUTER_BASE_URL: http://localhost:4000
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+jobs:
+  detect:
+    name: detect changed evals
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    outputs:
+      skills: ${{ steps.detect.outputs.skills || '[]' }}
+      agents: ${{ steps.detect.outputs.agents || '[]' }}
+      run_workflow: ${{ steps.detect.outputs.run_workflow }}
+      models: ${{ steps.models.outputs.models }}
+      judge: ${{ steps.models.outputs.judge }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: detect
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          TIER: ${{ inputs.tier }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            CHANGED_FILES="$(git diff --name-only "$BASE_SHA"...HEAD)"
+          elif [ "$TIER" = "all" ]; then
+            # manual full run: pretend every artifact changed
+            CHANGED_FILES="$(git ls-files .claude/skills .claude/agents CLAUDE.md)"
+          else
+            CHANGED_FILES="CLAUDE.md"
+          fi
+          export CHANGED_FILES
+          node evals/scripts/ci-detect.mjs
+      - id: models
+        env:
+          RAW: ${{ inputs.models || vars.EVAL_MODELS || vars.EVAL_MODEL || env.DEFAULT_MODEL }}
+          JUDGE: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL || env.DEFAULT_JUDGE_MODEL }}
+        run: |
+          MODELS="$(node -e 'const l=process.env.RAW.split(/[\s,]+/).filter(Boolean);console.log(JSON.stringify([...new Set(l)]))')"
+          echo "models=$MODELS" >> "$GITHUB_OUTPUT"
+          echo "judge=$JUDGE" >> "$GITHUB_OUTPUT"
+          echo "task models : $MODELS" >&2
+          echo "judge model : $JUDGE" >&2
+
+  evals-skills:
+    name: skill / ${{ matrix.name }} / ${{ matrix.model }}
+    needs: detect
+    if: needs.detect.outputs.skills != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        name: ${{ fromJSON(needs.detect.outputs.skills) }}
+        model: ${{ fromJSON(needs.detect.outputs.models) }}
+    env:
+      EVAL_MODEL: ${{ matrix.model }}
+      EVAL_JUDGE_MODEL: ${{ needs.detect.outputs.judge }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/evals-setup
+      - run: pnpm vitest run skills/${{ matrix.name }}
+      - uses: ./.github/actions/evals-teardown
+        if: always()
+
+  evals-agents:
+    name: agent / ${{ matrix.name }} / ${{ matrix.model }}
+    needs: detect
+    if: needs.detect.outputs.agents != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        name: ${{ fromJSON(needs.detect.outputs.agents) }}
+        model: ${{ fromJSON(needs.detect.outputs.models) }}
+    env:
+      EVAL_MODEL: ${{ matrix.model }}
+      EVAL_JUDGE_MODEL: ${{ needs.detect.outputs.judge }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/evals-setup
+      - run: pnpm vitest run agents/${{ matrix.name }}
+      - uses: ./.github/actions/evals-teardown
+        if: always()
+
+  evals-workflow:
+    name: workflow / ${{ matrix.model }} (non-blocking)
+    needs: detect
+    if: needs.detect.outputs.run_workflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        model: ${{ fromJSON(needs.detect.outputs.models) }}
+    env:
+      EVAL_MODEL: ${{ matrix.model }}
+      EVAL_JUDGE_MODEL: ${{ needs.detect.outputs.judge }}
+    defaults:
+      run:
+        working-directory: evals
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/evals-setup
+      - run: pnpm eval:workflow
+      - uses: ./.github/actions/evals-teardown
+        if: always()
+      - id: artifact
+        if: always()
+        run: echo "name=eval-results-$(printf %s "$EVAL_MODEL" | tr -c 'A-Za-z0-9._-' '_')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: evals/results/
+          if-no-files-found: ignore

@@ -1,0 +1,1138 @@
+{
+  "skill_name": "onion-architecture",
+  "format": {
+    "planted": "Each planted violation has one or more locations {file, lines:[from,to]} (paths relative to the fixture root) and keywords (regex, case-insensitive). A reported violation counts as a HIT for it when its file matches a location and either its line range overlaps that location (+/-1) or its text matches the keywords.",
+    "decoys": "Allowed patterns that look like violations. A reported violation that overlaps a decoy (and is not a hit for a planted violation) is a FALSE POSITIVE.",
+    "clean_files": "Whole files with no layering problem. A reported violation in one of these (not a hit, not a known_defect) is a FALSE POSITIVE.",
+    "known_defects": "Real non-layering bugs present in the fixture. Reporting them is neutral (not a hit, not a false positive).",
+    "scanner_visible": "True when scripts/scan-layers.mjs flags the violation without reading the code."
+  },
+  "fixtures": {
+    "notes": {
+      "eval_id": 1,
+      "root": "evals/fixtures/notes/server/src",
+      "planted": [
+        {
+          "id": "notes-1",
+          "rule": "routes-no-persistence / only-repository-touches-db",
+          "scanner_visible": true,
+          "description": "GET /notes handler imports drizzle-orm and db/schema and queries app.container.db directly.",
+          "locations": [
+            {
+              "file": "modules/notes/routes.ts",
+              "lines": [
+                3,
+                23
+              ]
+            }
+          ],
+          "keywords": "drizzle|database|persistence|db\\.select|queries"
+        },
+        {
+          "id": "notes-2",
+          "rule": "inner-no-container",
+          "scanner_visible": true,
+          "description": "NotesService takes the whole Container and builds its own NotesRepository.",
+          "locations": [
+            {
+              "file": "modules/notes/service.ts",
+              "lines": [
+                1,
+                10
+              ]
+            },
+            {
+              "file": "modules/notes/routes.ts",
+              "lines": [
+                14,
+                14
+              ]
+            }
+          ],
+          "keywords": "container"
+        },
+        {
+          "id": "notes-3",
+          "rule": "adapters-no-modules",
+          "scanner_visible": true,
+          "description": "Slack adapter imports NOTE_URL_PREFIX from modules/notes/constants.",
+          "locations": [
+            {
+              "file": "adapters/slack/index.ts",
+              "lines": [
+                3,
+                3
+              ]
+            }
+          ],
+          "keywords": "modules/|constants|NOTE_URL_PREFIX"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/notes/service.ts",
+          "lines": [
+            3,
+            3
+          ],
+          "what": "service imports its own module's concrete repository (documented compromise)"
+        },
+        {
+          "file": "modules/notes/service.ts",
+          "lines": [
+            2,
+            2
+          ],
+          "what": "AppError family import"
+        },
+        {
+          "file": "adapters/slack/mock.ts",
+          "what": "colocated mock instead of adapters/mocks.ts (convention, not a layering rule)"
+        }
+      ],
+      "clean_files": [
+        "modules/notes/repository.ts",
+        "modules/notes/helpers.ts",
+        "modules/notes/types.ts",
+        "modules/notes/constants.ts",
+        "adapters/slack/mock.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": [
+        {
+          "file": "modules/notes/routes.ts",
+          "lines": [
+            24,
+            29
+          ],
+          "what": "inline DTO omits url"
+        },
+        {
+          "file": "modules/notes/service.ts",
+          "lines": [
+            19,
+            23
+          ],
+          "what": "Slack failure after insert fails the request"
+        }
+      ]
+    },
+    "tags": {
+      "eval_id": 2,
+      "root": "evals/fixtures/tags/server/src",
+      "planted": [
+        {
+          "id": "tags-1",
+          "rule": "inner-no-outer / only-repository-touches-db",
+          "scanner_visible": true,
+          "description": "Pure helper imports db/schema and types toTagDto with $inferSelect.",
+          "locations": [
+            {
+              "file": "modules/tags/helpers.ts",
+              "lines": [
+                1,
+                3
+              ]
+            }
+          ],
+          "keywords": "schema|inferSelect|\\bdb\\b"
+        },
+        {
+          "id": "tags-2",
+          "rule": "inner-no-outer",
+          "scanner_visible": true,
+          "description": "Service imports and instantiates the concrete OctokitClient adapter.",
+          "locations": [
+            {
+              "file": "modules/tags/service.ts",
+              "lines": [
+                3,
+                3
+              ]
+            },
+            {
+              "file": "modules/tags/service.ts",
+              "lines": [
+                25,
+                25
+              ]
+            }
+          ],
+          "keywords": "Octokit|adapter"
+        },
+        {
+          "id": "tags-3",
+          "rule": "checklist item 7 (validate once at the boundary)",
+          "scanner_visible": true,
+          "description": "POST /repos/:repoId/tags validates the body with safeParse inside the handler.",
+          "locations": [
+            {
+              "file": "modules/tags/routes.ts",
+              "lines": [
+                23,
+                27
+              ]
+            }
+          ],
+          "keywords": "safeParse|validat"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/tags/routes.ts",
+          "lines": [
+            11,
+            15
+          ],
+          "what": "route building the service from app.container"
+        }
+      ],
+      "clean_files": [
+        "modules/tags/repository.ts",
+        "modules/tags/types.ts",
+        "adapters/github/octokit.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": [
+        {
+          "file": "modules/tags/repository.ts",
+          "lines": [
+            22,
+            22
+          ],
+          "what": "upsert conflict target is the random primary key"
+        },
+        {
+          "file": "modules/tags/repository.ts",
+          "lines": [
+            27,
+            32
+          ],
+          "what": "bumpUsage never called"
+        },
+        {
+          "file": "modules/tags/routes.ts",
+          "lines": [
+            20,
+            20
+          ],
+          "what": "inconsistent response shapes"
+        },
+        {
+          "file": "modules/tags/routes.ts",
+          "lines": [
+            28,
+            28
+          ],
+          "what": "inconsistent response shapes"
+        },
+        {
+          "file": "modules/tags/routes.ts",
+          "lines": [
+            34,
+            34
+          ],
+          "what": "inconsistent response shapes"
+        },
+        {
+          "file": "modules/tags/service.ts",
+          "lines": [
+            30,
+            32
+          ],
+          "what": "no transaction on import"
+        }
+      ]
+    },
+    "invoices": {
+      "eval_id": 3,
+      "root": "evals/fixtures/invoices/server/src",
+      "planted": [
+        {
+          "id": "invoices-1",
+          "rule": "inner-no-outer (HTTP concept in a service)",
+          "scanner_visible": true,
+          "description": "Service imports FastifyReply, takes reply and sets Cache-Control.",
+          "locations": [
+            {
+              "file": "modules/invoices/service.ts",
+              "lines": [
+                1,
+                1
+              ]
+            },
+            {
+              "file": "modules/invoices/service.ts",
+              "lines": [
+                15,
+                19
+              ]
+            },
+            {
+              "file": "modules/invoices/routes.ts",
+              "lines": [
+                18,
+                18
+              ]
+            }
+          ],
+          "keywords": "fastify|reply|header|HTTP"
+        },
+        {
+          "id": "invoices-2",
+          "rule": "no-cross-module",
+          "scanner_visible": true,
+          "description": "Invoices service imports customers/repository.js.",
+          "locations": [
+            {
+              "file": "modules/invoices/service.ts",
+              "lines": [
+                3,
+                3
+              ]
+            }
+          ],
+          "keywords": "customers|cross-module"
+        },
+        {
+          "id": "invoices-3",
+          "rule": "checklist item 3 (ORM row type leaks)",
+          "scanner_visible": true,
+          "description": "Repository returns typeof t.invoices.$inferSelect.",
+          "locations": [
+            {
+              "file": "modules/invoices/repository.ts",
+              "lines": [
+                8,
+                8
+              ]
+            },
+            {
+              "file": "modules/invoices/repository.ts",
+              "lines": [
+                16,
+                16
+              ]
+            }
+          ],
+          "keywords": "inferSelect|row type|ORM"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/invoices/routes.ts",
+          "lines": [
+            10,
+            14
+          ],
+          "what": "route building the service from app.container"
+        },
+        {
+          "file": "modules/invoices/service.ts",
+          "lines": [
+            2,
+            2
+          ],
+          "what": "AppError family import"
+        },
+        {
+          "file": "modules/invoices/service.ts",
+          "lines": [
+            4,
+            4
+          ],
+          "what": "service imports its own concrete repository"
+        }
+      ],
+      "clean_files": [
+        "modules/invoices/status.ts",
+        "modules/invoices/routes.ts",
+        "modules/customers/repository.ts",
+        "modules/customers/index.ts",
+        "modules/customers/types.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": [
+        {
+          "file": "modules/invoices/repository.ts",
+          "lines": [
+            23,
+            23
+          ],
+          "what": "setStatus takes string"
+        },
+        {
+          "file": "modules/invoices/routes.ts",
+          "lines": [
+            7,
+            7
+          ],
+          "what": "status enum duplicated"
+        },
+        {
+          "file": "modules/invoices/service.ts",
+          "lines": [
+            29,
+            36
+          ],
+          "what": "non-atomic status change"
+        },
+        {
+          "file": "db/schema.ts",
+          "lines": [
+            10,
+            17
+          ],
+          "what": "no foreign key"
+        }
+      ]
+    },
+    "shipments": {
+      "eval_id": 4,
+      "root": "evals/fixtures/shipments/server/src",
+      "planted": [
+        {
+          "id": "shipments-1",
+          "rule": "only-repository-touches-db",
+          "scanner_visible": true,
+          "description": "listByCarrier imports drizzle-orm and db/schema and queries the database in the service.",
+          "locations": [
+            {
+              "file": "modules/shipments/service.ts",
+              "lines": [
+                1,
+                4
+              ]
+            },
+            {
+              "file": "modules/shipments/service.ts",
+              "lines": [
+                12,
+                13
+              ]
+            },
+            {
+              "file": "modules/shipments/service.ts",
+              "lines": [
+                26,
+                31
+              ]
+            },
+            {
+              "file": "modules/shipments/routes.ts",
+              "lines": [
+                12,
+                12
+              ]
+            }
+          ],
+          "keywords": "drizzle|database|query|listByCarrier"
+        },
+        {
+          "id": "shipments-2",
+          "rule": "routes never call an adapter or port directly",
+          "scanner_visible": true,
+          "description": "GET /shipments/:id/events calls app.container.carrier().track in the handler.",
+          "locations": [
+            {
+              "file": "modules/shipments/routes.ts",
+              "lines": [
+                30,
+                35
+              ]
+            }
+          ],
+          "keywords": "carrier|adapter|events"
+        },
+        {
+          "id": "shipments-3",
+          "rule": "inner-no-outer",
+          "scanner_visible": true,
+          "description": "Pure helper imports CARRIER_BASE_URL from adapters/carrier.",
+          "locations": [
+            {
+              "file": "modules/shipments/helpers.ts",
+              "lines": [
+                1,
+                6
+              ]
+            }
+          ],
+          "keywords": "CARRIER_BASE_URL|adapter"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/shipments/service.ts",
+          "lines": [
+            2,
+            2
+          ],
+          "what": "@devdigest/shared CarrierCode (shared kernel)"
+        },
+        {
+          "file": "modules/shipments/service.ts",
+          "lines": [
+            5,
+            5
+          ],
+          "what": "AppError family import"
+        },
+        {
+          "file": "modules/shipments/service.ts",
+          "lines": [
+            7,
+            7
+          ],
+          "what": "service imports its own concrete repository"
+        },
+        {
+          "file": "modules/shipments/service.ts",
+          "lines": [
+            36,
+            40
+          ],
+          "what": "ExternalServiceError wrapping"
+        },
+        {
+          "file": "modules/shipments/routes.ts",
+          "lines": [
+            10,
+            14
+          ],
+          "what": "route building the service from app.container"
+        }
+      ],
+      "clean_files": [
+        "modules/shipments/repository.ts",
+        "modules/shipments/types.ts",
+        "adapters/carrier/index.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": [
+        {
+          "file": "modules/shipments/repository.ts",
+          "lines": [
+            13,
+            13
+          ],
+          "what": "unchecked cast"
+        },
+        {
+          "file": "modules/shipments/service.ts",
+          "lines": [
+            37,
+            39
+          ],
+          "what": "catch discards cause"
+        }
+      ]
+    },
+    "billing": {
+      "eval_id": 5,
+      "root": "evals/fixtures/billing/server/src",
+      "planted": [
+        {
+          "id": "billing-1",
+          "rule": "checklist item 2 (validate, one service call, return)",
+          "scanner_visible": true,
+          "description": "POST charge handler sums charges, decides settlement, applies discount, retries, calls several service methods.",
+          "locations": [
+            {
+              "file": "modules/billing/routes.ts",
+              "lines": [
+                26,
+                46
+              ]
+            }
+          ],
+          "keywords": "business logic|handler|retry|aggregat|one service call"
+        },
+        {
+          "id": "billing-2",
+          "rule": "adapters-no-modules",
+          "scanner_visible": true,
+          "description": "Stripe adapter imports from modules/billing/types.",
+          "locations": [
+            {
+              "file": "adapters/stripe/index.ts",
+              "lines": [
+                2,
+                3
+              ]
+            }
+          ],
+          "keywords": "modules/"
+        },
+        {
+          "id": "billing-3",
+          "rule": "no-cross-module",
+          "scanner_visible": true,
+          "description": "Billing service imports ledger/helpers.js.",
+          "locations": [
+            {
+              "file": "modules/billing/service.ts",
+              "lines": [
+                3,
+                3
+              ]
+            }
+          ],
+          "keywords": "ledger"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/billing/service.ts",
+          "lines": [
+            4,
+            4
+          ],
+          "what": "service imports its own concrete repository"
+        },
+        {
+          "file": "modules/billing/service.ts",
+          "lines": [
+            2,
+            2
+          ],
+          "what": "AppError family import"
+        },
+        {
+          "file": "modules/billing/routes.ts",
+          "lines": [
+            15,
+            19
+          ],
+          "what": "route building the service from app.container"
+        }
+      ],
+      "clean_files": [
+        "modules/billing/repository.ts",
+        "modules/billing/types.ts",
+        "modules/ledger/index.ts",
+        "modules/ledger/types.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": [
+        {
+          "file": "modules/billing/routes.ts",
+          "lines": [
+            5,
+            5
+          ],
+          "what": "route imports discountedAmount (part of double discount)"
+        },
+        {
+          "file": "modules/billing/routes.ts",
+          "lines": [
+            40,
+            40
+          ],
+          "what": "discount applied twice"
+        },
+        {
+          "file": "modules/billing/service.ts",
+          "lines": [
+            27,
+            27
+          ],
+          "what": "discount applied twice"
+        }
+      ]
+    },
+    "orders": {
+      "eval_id": 6,
+      "root": "evals/fixtures/orders/server/src",
+      "planted": [
+        {
+          "id": "orders-1",
+          "rule": "checklist item 3 (row type re-exported by a repository)",
+          "scanner_visible": false,
+          "description": "repository.ts exports OrderRow = typeof t.orders.$inferSelect and returns it from getRow; the service imports and uses it.",
+          "locations": [
+            {
+              "file": "modules/orders/repository.ts",
+              "lines": [
+                6,
+                6
+              ]
+            },
+            {
+              "file": "modules/orders/repository.ts",
+              "lines": [
+                29,
+                29
+              ]
+            },
+            {
+              "file": "modules/orders/service.ts",
+              "lines": [
+                5,
+                5
+              ]
+            },
+            {
+              "file": "modules/orders/service.ts",
+              "lines": [
+                47,
+                47
+              ]
+            }
+          ],
+          "keywords": "OrderRow|row type|inferSelect|ORM"
+        },
+        {
+          "id": "orders-2",
+          "rule": "checklist item 8 (snake_case DTO fields in service signatures)",
+          "scanner_visible": false,
+          "description": "OrdersService.place takes { customer_id, line_items: [{ unit_cents }] } contract-shaped input.",
+          "locations": [
+            {
+              "file": "modules/orders/service.ts",
+              "lines": [
+                26,
+                40
+              ]
+            }
+          ],
+          "keywords": "snake|DTO|customer_id|line_items|contract"
+        },
+        {
+          "id": "orders-3",
+          "rule": "inner-no-outer",
+          "scanner_visible": true,
+          "description": "pipeline/fulfil.ts imports and instantiates the concrete HttpWarehouse adapter.",
+          "locations": [
+            {
+              "file": "modules/orders/pipeline/fulfil.ts",
+              "lines": [
+                1,
+                6
+              ]
+            }
+          ],
+          "keywords": "adapter|warehouse|HttpWarehouse"
+        },
+        {
+          "id": "orders-4",
+          "rule": "no-cross-module",
+          "scanner_visible": true,
+          "description": "Orders service imports inventory/service.js, a private file of another module.",
+          "locations": [
+            {
+              "file": "modules/orders/service.ts",
+              "lines": [
+                3,
+                3
+              ]
+            },
+            {
+              "file": "modules/orders/service.ts",
+              "lines": [
+                14,
+                14
+              ]
+            }
+          ],
+          "keywords": "inventory|cross-module"
+        },
+        {
+          "id": "orders-5",
+          "rule": "config read from process.env in an inner ring",
+          "scanner_visible": true,
+          "description": "helpers.ts reads process.env.ORDER_TAX_RATE.",
+          "locations": [
+            {
+              "file": "modules/orders/helpers.ts",
+              "lines": [
+                3,
+                3
+              ]
+            }
+          ],
+          "keywords": "process\\.env|env|config"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/orders/service.ts",
+          "lines": [
+            2,
+            2
+          ],
+          "what": "AppError family import"
+        },
+        {
+          "file": "modules/orders/service.ts",
+          "lines": [
+            4,
+            4
+          ],
+          "what": "type-only import through inventory/index.ts (public surface)"
+        },
+        {
+          "file": "modules/orders/routes.ts",
+          "lines": [
+            9,
+            25
+          ],
+          "what": "route building the service from app.container"
+        },
+        {
+          "file": "modules/orders/constants.ts",
+          "what": "strings that mention drizzle-orm and fastify"
+        }
+      ],
+      "clean_files": [
+        "modules/_shared/context.ts",
+        "modules/orders/index.ts",
+        "modules/orders/types.ts",
+        "modules/orders/status.ts",
+        "modules/orders/constants.ts",
+        "modules/orders/run-executor.ts",
+        "modules/orders/pipeline/notify.ts",
+        "modules/inventory/index.ts",
+        "modules/inventory/types.ts",
+        "modules/inventory/helpers.ts",
+        "modules/inventory/repository.ts",
+        "modules/inventory/service.ts",
+        "adapters/warehouse/index.ts",
+        "adapters/mocks.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": []
+    },
+    "projects": {
+      "eval_id": 7,
+      "root": "evals/fixtures/projects/server/src",
+      "planted": [
+        {
+          "id": "projects-1",
+          "rule": "inner-no-outer + no-circular",
+          "scanner_visible": true,
+          "description": "helpers.ts (ring 1) imports PROJECT_PAGE_LIMIT from service.ts (ring 3), and service.ts imports helpers.ts: a cycle.",
+          "locations": [
+            {
+              "file": "modules/projects/helpers.ts",
+              "lines": [
+                1,
+                6
+              ]
+            },
+            {
+              "file": "modules/projects/service.ts",
+              "lines": [
+                5,
+                5
+              ]
+            },
+            {
+              "file": "modules/projects/service.ts",
+              "lines": [
+                9,
+                9
+              ]
+            }
+          ],
+          "keywords": "cycle|circular|ring 3|PROJECT_PAGE_LIMIT"
+        },
+        {
+          "id": "projects-2",
+          "rule": "platform-not-inward",
+          "scanner_visible": true,
+          "description": "platform/jobs.ts imports modules/projects/repository.",
+          "locations": [
+            {
+              "file": "platform/jobs.ts",
+              "lines": [
+                3,
+                3
+              ]
+            },
+            {
+              "file": "platform/jobs.ts",
+              "lines": [
+                9,
+                12
+              ]
+            }
+          ],
+          "keywords": "platform|modules/"
+        },
+        {
+          "id": "projects-3",
+          "rule": "inner-no-outer (service holds the Db handle; use a TransactionRunner port)",
+          "scanner_visible": true,
+          "description": "ProjectsService imports Db from db/client and opens db.transaction itself.",
+          "locations": [
+            {
+              "file": "modules/projects/service.ts",
+              "lines": [
+                1,
+                1
+              ]
+            },
+            {
+              "file": "modules/projects/service.ts",
+              "lines": [
+                14,
+                14
+              ]
+            },
+            {
+              "file": "modules/projects/service.ts",
+              "lines": [
+                41,
+                44
+              ]
+            },
+            {
+              "file": "modules/projects/routes.ts",
+              "lines": [
+                14,
+                14
+              ]
+            }
+          ],
+          "keywords": "Db\\b|transaction|TransactionRunner|db/client"
+        },
+        {
+          "id": "projects-4",
+          "rule": "checklist item 2 (business logic in a route without forbidden imports)",
+          "scanner_visible": false,
+          "description": "GET /projects/:id/progress computes counts, percentage and health inline in the handler.",
+          "locations": [
+            {
+              "file": "modules/projects/routes.ts",
+              "lines": [
+                24,
+                33
+              ]
+            }
+          ],
+          "keywords": "progress|business logic|aggregat|health|percent"
+        },
+        {
+          "id": "projects-5",
+          "rule": "no-cross-module (hidden behind a dynamic import)",
+          "scanner_visible": true,
+          "description": "sync/service.ts does await import('../projects/service.js').",
+          "locations": [
+            {
+              "file": "modules/sync/service.ts",
+              "lines": [
+                17,
+                17
+              ]
+            }
+          ],
+          "keywords": "dynamic|import\\(|projects/service|cross-module"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/projects/service.ts",
+          "lines": [
+            2,
+            4
+          ],
+          "what": "platform logger/errors and own concrete repository imports"
+        },
+        {
+          "file": "modules/sync/service.ts",
+          "lines": [
+            1,
+            1
+          ],
+          "what": "type-only import through projects/index.ts (public surface)"
+        },
+        {
+          "file": "modules/sync/routes.ts",
+          "what": "route wiring a cross-module lookup through the Container"
+        },
+        {
+          "file": "modules/projects/routes.ts",
+          "lines": [
+            10,
+            16
+          ],
+          "what": "route building the service from app.container"
+        },
+        {
+          "file": "modules/projects/constants.ts",
+          "what": "string that mentions fastify"
+        }
+      ],
+      "clean_files": [
+        "modules/_shared/context.ts",
+        "modules/projects/index.ts",
+        "modules/projects/types.ts",
+        "modules/projects/constants.ts",
+        "modules/projects/status.ts",
+        "modules/projects/repository.ts",
+        "modules/sync/index.ts",
+        "modules/sync/types.ts",
+        "modules/sync/routes.ts",
+        "platform/logger.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": []
+    },
+    "catalog": {
+      "eval_id": 8,
+      "root": "evals/fixtures/catalog/server/src",
+      "planted": [
+        {
+          "id": "catalog-1",
+          "rule": "adapters-no-modules",
+          "scanner_visible": true,
+          "description": "adapters/search imports slugify from modules/catalog/helpers.",
+          "locations": [
+            {
+              "file": "adapters/search/index.ts",
+              "lines": [
+                3,
+                3
+              ]
+            },
+            {
+              "file": "adapters/search/index.ts",
+              "lines": [
+                11,
+                11
+              ]
+            }
+          ],
+          "keywords": "modules/|helpers|slugify"
+        },
+        {
+          "id": "catalog-2",
+          "rule": "inner-no-outer (concrete adapter reached through an adapters barrel)",
+          "scanner_visible": true,
+          "description": "CatalogService imports ElasticSearchIndex from adapters/index.js and instantiates it.",
+          "locations": [
+            {
+              "file": "modules/catalog/service.ts",
+              "lines": [
+                2,
+                2
+              ]
+            },
+            {
+              "file": "modules/catalog/service.ts",
+              "lines": [
+                16,
+                23
+              ]
+            }
+          ],
+          "keywords": "adapter|ElasticSearch|barrel"
+        },
+        {
+          "id": "catalog-3",
+          "rule": "checklist item 7 (validation inside a handler, no safeParse)",
+          "scanner_visible": false,
+          "description": "GET /catalog/:id validates the id by hand with a regex test instead of schema.params.",
+          "locations": [
+            {
+              "file": "modules/catalog/routes.ts",
+              "lines": [
+                32,
+                37
+              ]
+            }
+          ],
+          "keywords": "validat|manual|schema|UUID|params"
+        },
+        {
+          "id": "catalog-4",
+          "rule": "contracts-zod (response envelope parsed in a service)",
+          "scanner_visible": false,
+          "description": "CatalogService.page imports CatalogListResponse from @devdigest/shared and parses the response envelope in the service.",
+          "locations": [
+            {
+              "file": "modules/catalog/service.ts",
+              "lines": [
+                1,
+                1
+              ]
+            },
+            {
+              "file": "modules/catalog/service.ts",
+              "lines": [
+                31,
+                34
+              ]
+            }
+          ],
+          "keywords": "envelope|CatalogListResponse|response|DTO|contract"
+        },
+        {
+          "id": "catalog-5",
+          "rule": "config read from process.env in an inner ring",
+          "scanner_visible": true,
+          "description": "constants.ts reads process.env.CATALOG_PAGE_SIZE.",
+          "locations": [
+            {
+              "file": "modules/catalog/constants.ts",
+              "lines": [
+                1,
+                1
+              ]
+            }
+          ],
+          "keywords": "process\\.env|env|config"
+        }
+      ],
+      "decoys": [
+        {
+          "file": "modules/catalog/service.ts",
+          "lines": [
+            3,
+            5
+          ],
+          "what": "platform errors/logger and type-only import via pricing/index.ts"
+        },
+        {
+          "file": "modules/catalog/service.ts",
+          "lines": [
+            7,
+            7
+          ],
+          "what": "service imports its own concrete repository"
+        },
+        {
+          "file": "modules/catalog/routes.ts",
+          "lines": [
+            11,
+            19
+          ],
+          "what": "route building the service from app.container"
+        },
+        {
+          "file": "modules/catalog/routes.ts",
+          "lines": [
+            3,
+            3
+          ],
+          "what": "ValidationError import (AppError family)"
+        }
+      ],
+      "clean_files": [
+        "adapters/index.ts",
+        "adapters/mocks.ts",
+        "modules/_shared/context.ts",
+        "modules/pricing/index.ts",
+        "modules/pricing/types.ts",
+        "modules/catalog/index.ts",
+        "modules/catalog/types.ts",
+        "modules/catalog/helpers.ts",
+        "modules/catalog/repository.ts",
+        "vendor/shared/adapters.ts",
+        "db/schema.ts"
+      ],
+      "known_defects": []
+    }
+  }
+}

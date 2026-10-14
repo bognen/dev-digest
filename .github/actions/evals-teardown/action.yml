@@ -1,0 +1,11 @@
+name: evals-teardown
+description: Dump proxy logs on failure and stop the LiteLLM proxy.
+runs:
+  using: composite
+  steps:
+    - run: docker compose -f proxy/docker-compose.yml logs --tail 100 || true
+      shell: bash
+      working-directory: evals
+    - run: docker compose -f proxy/docker-compose.yml down
+      shell: bash
+      working-directory: evals

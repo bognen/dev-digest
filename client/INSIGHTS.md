@@ -16,6 +16,9 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-13 — Eval UI lives in `src/components/evals/`; the kit `LineChart` gained an optional `tooltip(index)` prop
+The agent Evals tab, the skill Evals tab and `/evals/agents/[id]` all render the shared `EvalsPanel` (cases, KPIs, trend, history, Compare), so it sits in `src/components/evals/`; pure helpers are in `src/lib/eval-format.ts`. `LineChart` had no hover content — `tooltip`/`ariaLabel` were added deliberately (with a Showcase entry). Recharts measures 0×0 in jsdom, so tooltip tests mock `LineChart` and call `tooltip(i)` directly (`MetricTrendChart.test.tsx`).
+
 ### 2026-10-11 — PR Brief navigation: focus request in page state, claim-once per nonce, untrusted brief paths
 `page.tsx` owns a `focusRequest` ({path, line, nonce}, nonce in a ref so it stays monotonic) set by the brief's `onFocusFile`, switches to the Files tab, and DROPS the request in a `[tab]` effect when the tab is not 'diff' (AC-11: returning to Files must not re-scroll). `DiffTab` keeps the `claim(nonce)` set in a ref (it stays mounted; a late smart-diff load remounts every FileCard, so a per-card guard would scroll twice), `RoleGroup` must open both the group and the per-file override because a controlled FileCard never opens itself, and `FileCard` scrolls via element refs (never selectors built from paths). Brief paths are untrusted model output: match them against `pr.files` with exact `Set.has` (`resolveBriefTarget`) and only offer the external GitHub link when `isSafeRepoPath` passes, because `githubBlobUrl` passes `..` through (`encodeURIComponent('..') === '..'`) and a browser normalises it out of the repo. Timestamp pickers must skip NaN as well as null (`ts > NaN` is always false, so a bad first element blocks every later one).
 
@@ -324,6 +327,12 @@ Browsers and Node have them, jsdom (vitest env) doesn't, so `extractSkillFile` (
 Seen while writing `extract.ts`: an escape written into a regex/string landed as a real NUL in the file. Grep for it after generating text-processing code: `grep -rlP '\x00' src`.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-13 — Tests that render FindingCard must mock `@/lib/hooks/eval`
+FindingCard renders `EvalCaseButton` (SPEC-06), which uses TanStack Query hooks; without a QueryClient every test rendering FindingCard, FindingsPanel, DiffTab or ReviewRunAccordion throws. Add `vi.mock("@/lib/hooks/eval", () => ({ useEvalCaseSources: () => ({ data: [] }), useCreateCaseFromFinding: () => ({ mutate: vi.fn(), isPending: false }) }))`. Keep hints in `title`, not `aria-label`: an aria-label ending "…Accept or dismiss the finding first" matched `getByRole("button", { name: /accept/i })` in the FindingsPanel tests.
+
+### 2026-10-13 — Testing Library placeholder queries never match a multi-line placeholder
+The default normalizer collapses whitespace in the query, so `getByPlaceholderText` cannot find a textarea whose placeholder contains newlines (the eval case editor's Diff box). Select it structurally (`document.querySelector("textarea")`) or give it an accessible label.
 
 ### 2026-10-10 — Multi-file bash heredocs fail silently
 A bash call creating several files with `cat <<'EOF'` (apostrophes, nested `python` heredocs, `$'\r'`) failed with `unexpected EOF while looking for matching` and created nothing. Use the Write tool for new files and byte-level Python for CRLF-preserving edits.

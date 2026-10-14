@@ -23,6 +23,8 @@ modules or a monorepo tool.
 [server/src/modules/repo-intel/AGENTS.md](./server/src/modules/repo-intel/AGENTS.md).
 Reviewer agent prompt library:
 [docs/agent-prompts/AGENTS.md](./docs/agent-prompts/AGENTS.md).
+Harness evals (skills/agents/workflow, run per-PR by `.github/workflows/evals.yml`):
+[evals/README.md](./evals/README.md).
 
 ## Commands
 `./scripts/dev.sh` — starts Postgres (Docker), installs deps, migrates + seeds,
@@ -36,8 +38,34 @@ Only Postgres runs in Docker; API and web run on the host.
 - Shared Zod contracts (`@devdigest/shared`) are **vendored separately** into both
   `server/src/vendor/shared` and `client/src/vendor/shared` (no symlink/workspace)
   — a change to one must be manually mirrored to the other.
+- **Launch a project subagent by name:** set the Agent tool's `subagent_type`
+  to the agent's name (e.g. `architecture-reviewer`). An Agent call without
+  `subagent_type` runs the generic agent, not the one you named in the prompt.
+  The reviewer agents are read-only — don't add `isolation: "worktree"`.
+- **Recording a lesson / gotcha / dead end → invoke the `engineering-insights`
+  skill.** Never open or edit a module's `INSIGHTS.md` by hand to add an entry —
+  the skill owns placement, format and dedup.
 - Each package has its own test suite + CI workflow, gated by path filters — see
   [TESTING.md](./TESTING.md) before adding cross-package logic.
+
+## Harness evals (CI)
+`evals/` holds evals for the Claude Code harness itself — skills, subagents and
+this file. `.github/workflows/evals.yml` runs them on every PR that touches
+`.claude/**`, `CLAUDE.md`, `AGENTS.md` or `evals/**`:
+- `.claude/skills/<name>/**` → `skill / <name>` (blocking, only if
+  `evals/skills/<name>/` has `*.eval.ts`).
+- `.claude/agents/<name>.md` → `agent / <name>` (blocking, same rule).
+- `CLAUDE.md` / root `AGENTS.md` / any agent / `evals/src/**` → the workflow
+  tier (non-blocking: cheap models dispatch subagents unreliably).
+- A changed skill/agent with no evals is reported as `SKIP`, never a failure.
+Runs on OpenRouter through the LiteLLM proxy in `evals/proxy/`; needs the
+`OPENROUTER_API_KEY` Actions secret. Task model(s): manual-run `models` input →
+repo variable `EVAL_MODELS` (comma-separated, one matrix leg per model — use it
+to compare models on a PR) → `EVAL_MODEL` → `DEFAULT_MODEL` in the workflow.
+The judge is separate: `judge_model` input → `EVAL_JUDGE_MODEL` →
+`DEFAULT_JUDGE_MODEL`. When you add a skill or agent, add its evals under
+`evals/skills/<name>/` or `evals/agents/<name>/` so CI covers it — see
+[evals/README.md](./evals/README.md).
 
 ## Do not touch
 - `server/clones/**` — git-ignored runtime data (cloned repos under review).

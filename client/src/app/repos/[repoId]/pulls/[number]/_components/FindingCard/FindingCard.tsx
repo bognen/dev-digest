@@ -1,7 +1,7 @@
 /* FindingCard — ported from findings.jsx (createElement → TSX).
    Severity icon+label, category, file:line, confidence, markdown rationale +
-   suggestion, accept/dismiss actions. Accept/dismiss reflect persisted
-   timestamps. */
+   suggestion, accept/dismiss actions and "Turn into eval case". Accept/dismiss
+   reflect persisted timestamps. */
 "use client";
 
 import React from "react";
@@ -22,6 +22,7 @@ import { SEV_COLOR, SEV_COLOR_FALLBACK } from "./constants";
 import { lineLabel } from "./helpers";
 import { githubBlobUrl } from "@/lib/github-urls";
 import { s } from "./styles";
+import { EvalCaseButton } from "./_components/EvalCaseButton";
 
 export function FindingCard({
   f,
@@ -109,6 +110,7 @@ export function FindingCard({
             >
               {t("finding.dismiss")}
             </Button>
+            <EvalCaseButton f={f} />
           </div>
         </div>
       )}

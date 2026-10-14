@@ -27,11 +27,19 @@ consumed by `server/` via a tsconfig path alias, never published or built to JS.
 - **`build` is a type-check only** — this package intentionally never emits JS;
   `server/` consumes its TypeScript source directly via a path alias.
 
+## Architecture contracts (rule identifiers)
+Named so reviewers can cite them (`architecture-reviewer` quotes these ids in findings).
+- `reviewer-core-zero-io` — no `node:fs`, `node:child_process`, HTTP, DB or GitHub
+  imports/calls anywhere in `src/`; the only side effect is the injected `LLMProvider`.
+- `reviewer-core-ground-findings-gate` — every finding list leaves the engine through
+  `groundFindings()`; no path may return ungrounded findings (see `src/grounding.ts`).
+
 ## Gotchas
 Running log of non-obvious decisions and hard-won lessons: [INSIGHTS.md](./INSIGHTS.md).
 The `engineering-insights` skill keeps this updated proactively — Claude appends
 entries as issues are found and during end-of-session wrap-ups, so treat it as
-current guidance, not a write-only log.
+current guidance, not a write-only log. Add entries only by invoking that skill, never by editing
+this file directly.
 
 ## Links
 [README](./README.md) · [docs/](./docs/) · [specs/](./specs/) · [INSIGHTS.md](./INSIGHTS.md) ·

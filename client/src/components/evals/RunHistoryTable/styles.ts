@@ -1,0 +1,72 @@
+import type React from "react";
+
+const sectionTitle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  fontSize: 12,
+  fontWeight: 600,
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+};
+
+export const s = {
+  head: { display: "flex", alignItems: "center", gap: 12, marginBottom: 10 } as React.CSSProperties,
+  title: sectionTitle,
+  selected: { fontSize: 12.5, color: "var(--text-secondary)" } as React.CSSProperties,
+  spacer: { flex: 1 } as React.CSSProperties,
+  empty: { padding: "20px 0", fontSize: 13, color: "var(--text-muted)" } as React.CSSProperties,
+  tableWrap: {
+    border: "1px solid var(--border)",
+    borderRadius: 9,
+    overflowX: "auto",
+    background: "var(--bg-elevated)",
+  } as React.CSSProperties,
+  table: { width: "100%", borderCollapse: "collapse", fontSize: 13 } as React.CSSProperties,
+  th: {
+    textAlign: "left",
+    padding: "10px 12px",
+    fontSize: 11.5,
+    fontWeight: 600,
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+    color: "var(--text-muted)",
+    borderBottom: "1px solid var(--border)",
+    whiteSpace: "nowrap",
+  } as React.CSSProperties,
+  tr: (selected: boolean): React.CSSProperties => ({
+    background: selected ? "var(--bg-hover)" : undefined,
+    borderBottom: "1px solid var(--border)",
+  }),
+  td: { padding: "10px 12px", verticalAlign: "middle" } as React.CSSProperties,
+  mono: { padding: "10px 12px", fontFamily: "var(--font-mono)", whiteSpace: "nowrap" } as React.CSSProperties,
+  version: { padding: "10px 12px", fontFamily: "var(--font-mono)", color: "var(--accent-text)" } as React.CSSProperties,
+  pass: { padding: "10px 12px", fontWeight: 700, whiteSpace: "nowrap" } as React.CSSProperties,
+  partial: { fontWeight: 400, color: "var(--warn)" } as React.CSSProperties,
+  status: { padding: "10px 12px", color: "var(--text-muted)" } as React.CSSProperties,
+  srOnly: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    overflow: "hidden",
+    clip: "rect(0 0 0 0)",
+    whiteSpace: "nowrap",
+  } as React.CSSProperties,
+  barCell: { display: "inline-flex", alignItems: "center", gap: 8 } as React.CSSProperties,
+  barTrack: {
+    width: 90,
+    height: 6,
+    borderRadius: 3,
+    background: "var(--bg-hover)",
+    overflow: "hidden",
+    display: "inline-block",
+  } as React.CSSProperties,
+  barFill: (color: string, v: number): React.CSSProperties => ({
+    display: "block",
+    width: `${Math.max(0, Math.min(1, v)) * 100}%`,
+    height: "100%",
+    background: color,
+  }),
+  barText: { fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", minWidth: 34 } as React.CSSProperties,
+};

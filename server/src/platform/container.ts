@@ -43,6 +43,9 @@ import { loadPromptTemplate } from './prompts.js';
 import { ProjectContextRepository } from '../modules/project-context/repository.js';
 import { ProjectContextService } from '../modules/project-context/service.js';
 import { checkoutReader } from '../modules/project-context/checkout.js';
+import { EvalRepository } from '../modules/eval/repository.js';
+import { EvalService } from '../modules/eval/service.js';
+import { parseUnifiedDiff } from '../adapters/git/diff-parser.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
 import { type UrlFetcher, HttpUrlFetcher } from '../adapters/url-fetcher/index.js';
@@ -102,6 +105,7 @@ export class Container {
   private _briefService?: BriefService;
   private _projectContextService?: ProjectContextService;
   private _onboardingService?: OnboardingService;
+  private _evalService?: EvalService;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -202,6 +206,38 @@ export class Container {
       tokenizer: this.tokenizer,
       estimateCost: (model, tokensIn, tokensOut) => this.priceBook.estimate(model, tokensIn, tokensOut),
       loadSystemTemplate: () => loadPromptTemplate('onboarding.system.md'),
+      logger: console,
+    }));
+  }
+
+  /**
+   * Eval pipeline (SPEC-06). Process-wide singleton: the in-flight run guard
+   * (second concurrent run for one agent => 409) needs exactly one instance.
+   */
+  get evalService(): EvalService {
+    return (this._evalService ??= new EvalService({
+      repo: new EvalRepository(this.db),
+      agents: this.agentsRepo,
+      skills: this.skillsRepo,
+      reviews: this.reviewRepo,
+      llm: (id) => this.llm(id),
+      // Same source order as reviews/diff-loader (git diff, else persisted
+      // pr_files patches); composed here to avoid a container <-> module cycle.
+      loadPrDiff: async (pull, repo) => {
+        try {
+          const diff = await this.git.diff({ owner: repo.owner, name: repo.name }, pull.base, pull.headSha);
+          if (diff.files.length > 0) return diff.raw;
+        } catch {
+          /* fall through to pr_files */
+        }
+        const files = await this.reviewRepo.getPrFiles(pull.id);
+        return files
+          .filter((f) => f.patch)
+          .map((f) => [`diff --git a/${f.path} b/${f.path}`, `--- a/${f.path}`, `+++ b/${f.path}`, f.patch].join('\n'))
+          .join('\n');
+      },
+      readFileAtRef: (ref, sha, path) => this.git.readFileAtRef(ref, sha, path),
+      parseDiff: parseUnifiedDiff,
       logger: console,
     }));
   }

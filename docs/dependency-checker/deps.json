@@ -1,0 +1,4326 @@
+{
+  "generatedAt": "2026-10-12T23:05:12.150Z",
+  "root": "C:\\Projects\\Agentic AI\\dev-digest",
+  "options": {
+    "audit": true,
+    "outdated": true
+  },
+  "packages": [
+    {
+      "folder": "client",
+      "name": "@devdigest/web",
+      "manager": "pnpm",
+      "lockfile": "pnpm-lock.yaml",
+      "installed": true,
+      "crossPackageImports": [],
+      "counts": {
+        "runtime": 15,
+        "dev": 12,
+        "peer": 0,
+        "optional": 0
+      },
+      "uniquePackagesInstalled": 446,
+      "totalInstalledBytes": 587297207,
+      "auditStatus": "ok",
+      "outdatedStatus": "ok",
+      "deps": [
+        {
+          "name": "@dnd-kit/core",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^6.3.1",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "6.3.1",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 1066148,
+          "files": 141,
+          "transitiveCount": 3,
+          "totalBytes": 1265851,
+          "usage": {
+            "src": 3,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 3,
+            "sample": {
+              "src": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.tsx",
+                "src/app/skills/[id]/_components/SkillEditor/_components/SkillContextTab/SkillContextTab.tsx"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.tsx",
+                "src/app/skills/[id]/_components/SkillEditor/_components/SkillContextTab/SkillContextTab.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "@dnd-kit/sortable",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^10.0.0",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "10.0.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 234022,
+          "files": 40,
+          "transitiveCount": 2,
+          "totalBytes": 412836,
+          "usage": {
+            "src": 9,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 9,
+            "sample": {
+              "src": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/helpers.ts",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/SortableDocRow.tsx"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/helpers.ts",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/SortableDocRow.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "@dnd-kit/utilities",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.2.2",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "3.2.2",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 88455,
+          "files": 44,
+          "transitiveCount": 1,
+          "totalBytes": 178814,
+          "usage": {
+            "src": 3,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 3,
+            "sample": {
+              "src": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/SortableDocRow.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SortableSkillRow.tsx",
+                "src/app/skills/[id]/_components/SkillEditor/_components/SkillContextTab/SortableDocRow.tsx"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/SortableDocRow.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SortableSkillRow.tsx",
+                "src/app/skills/[id]/_components/SkillEditor/_components/SkillContextTab/SortableDocRow.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "@tanstack/react-query",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^5.62.8",
+          "rangeKind": "caret",
+          "category": "ui",
+          "resolved": "5.101.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 858893,
+          "files": 329,
+          "transitiveCount": 1,
+          "totalBytes": 3172366,
+          "usage": {
+            "src": 15,
+            "test": 10,
+            "config": 0,
+            "typeOnly": 2,
+            "strRef": 25,
+            "sample": {
+              "test": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.test.tsx",
+                "src/app/repos/[repoId]/conventions/_test/harness.tsx"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.test.tsx",
+                "src/app/repos/[repoId]/conventions/_test/harness.tsx"
+              ],
+              "src": [
+                "src/app/repos/[repoId]/pulls/[number]/page.tsx",
+                "src/lib/hooks/agents.ts",
+                "src/lib/hooks/blast-radius.ts"
+              ],
+              "typeOnly": [
+                "src/app/repos/[repoId]/pulls/[number]/_components/FindingsTab/FindingsTab.tsx",
+                "src/lib/hooks/project-context.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "5.101.0",
+            "latest": "5.104.2",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "jszip",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.10.2",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "3.10.2",
+          "license": "(MIT OR GPL-3.0-or-later)",
+          "installScript": false,
+          "ownBytes": 693061,
+          "files": 53,
+          "transitiveCount": 12,
+          "totalBytes": 1720274,
+          "usage": {
+            "src": 1,
+            "test": 2,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 3,
+            "sample": {
+              "test": [
+                "src/app/skills/_components/AddSkillModal/AddSkillModal.test.tsx",
+                "src/app/skills/_components/AddSkillModal/_components/FromFileTab/extract.test.ts"
+              ],
+              "strRef": [
+                "src/app/skills/_components/AddSkillModal/AddSkillModal.test.tsx",
+                "src/app/skills/_components/AddSkillModal/_components/FromFileTab/extract.test.ts",
+                "src/app/skills/_components/AddSkillModal/_components/FromFileTab/extract.ts"
+              ],
+              "src": [
+                "src/app/skills/_components/AddSkillModal/_components/FromFileTab/extract.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "lucide-react",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^0.469.0",
+          "rangeKind": "caret",
+          "category": "ui",
+          "resolved": "0.469.0",
+          "license": "ISC",
+          "installScript": false,
+          "ownBytes": 28595555,
+          "files": 3521,
+          "transitiveCount": 0,
+          "totalBytes": 28595555,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/vendor/ui/icons.tsx"
+              ],
+              "strRef": [
+                "src/vendor/ui/icons.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "0.469.0",
+            "latest": "1.55.0",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "mermaid",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^11.15.0",
+          "rangeKind": "caret",
+          "category": "ui",
+          "resolved": "11.15.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 76342428,
+          "files": 888,
+          "transitiveCount": 110,
+          "totalBytes": 120758396,
+          "usage": {
+            "src": 1,
+            "test": 1,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 3,
+            "sample": {
+              "strRef": [
+                "src/app/repos/[repoId]/onboarding/_components/OnboardingTourView/_components/ArchitectureSection/ArchitectureSection.test.tsx",
+                "src/components/mermaid-diagram/MermaidDiagram.tsx",
+                "src/components/mermaid-diagram/repairedDiagram.test.ts"
+              ],
+              "src": [
+                "src/components/mermaid-diagram/MermaidDiagram.tsx"
+              ],
+              "test": [
+                "src/components/mermaid-diagram/repairedDiagram.test.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [
+            {
+              "severity": "low",
+              "title": "Mermaid configuration APIs allow prototype pollution",
+              "url": "https://github.com/advisories/GHSA-c4c3-pg64-4m4v"
+            },
+            {
+              "severity": "moderate",
+              "title": "Mermaid allows CSS injection applying to sibling elements of the diagram",
+              "url": "https://github.com/advisories/GHSA-6x64-9x62-f2gx"
+            },
+            {
+              "severity": "moderate",
+              "title": "Mermaid Architecture diagrams are vulnerable to prototype pollution",
+              "url": "https://github.com/advisories/GHSA-3rrr-jr9j-h3q3"
+            },
+            {
+              "severity": "moderate",
+              "title": "Mermaid XY Charts are vulnerable to an infinite loop DoS",
+              "url": "https://github.com/advisories/GHSA-2v8p-3f2j-5mp7"
+            },
+            {
+              "severity": "moderate",
+              "title": "Mermaid radar diagrams are vulnerable to DoS",
+              "url": "https://github.com/advisories/GHSA-rhh3-jpg6-66xh"
+            }
+          ],
+          "outdated": {
+            "current": "11.15.0",
+            "latest": "12.1.0",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "next",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^15.1.3",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "15.5.19",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 139468164,
+          "files": 7270,
+          "transitiveCount": 16,
+          "totalBytes": 312584920,
+          "usage": {
+            "src": 28,
+            "test": 0,
+            "config": 1,
+            "typeOnly": 1,
+            "strRef": 1,
+            "sample": {
+              "config": [
+                "next.config.mjs"
+              ],
+              "strRef": [
+                "next.config.mjs"
+              ],
+              "src": [
+                "src/app/agents/[id]/page.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.tsx",
+                "src/app/agents/_components/AgentsListView/AgentsListView.tsx"
+              ],
+              "typeOnly": [
+                "src/app/layout.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "high",
+              "title": "Next.js: Denial of Service in App Router using Server Actions",
+              "url": "https://github.com/advisories/GHSA-m99w-x7hq-7vfj"
+            },
+            {
+              "severity": "high",
+              "title": "Next.js: Server-Side Request Forgery in Server Actions on custom servers",
+              "url": "https://github.com/advisories/GHSA-89xv-2m56-2m9x"
+            },
+            {
+              "severity": "moderate",
+              "title": "Next.js: Cache confusion of response bodies for requests with bodies",
+              "url": "https://github.com/advisories/GHSA-68g3-v927-f742"
+            },
+            {
+              "severity": "moderate",
+              "title": "Next.js: Cache confusion of response bodies for requests with bodies containing invalid UTF-8 byte sequences",
+              "url": "https://github.com/advisories/GHSA-4633-3j49-mh5q"
+            },
+            {
+              "severity": "moderate",
+              "title": "Next.js: Unbounded Server Action payload in Edge runtime",
+              "url": "https://github.com/advisories/GHSA-4c39-4ccg-62r3"
+            },
+            {
+              "severity": "high",
+              "title": "Next.js: Server-Side Request Forgery in rewrites via attacker-controlled destination hostname",
+              "url": "https://github.com/advisories/GHSA-p9j2-gv94-2wf4"
+            },
+            {
+              "severity": "moderate",
+              "title": "Next.js: Denial of Service in the Image Optimization API using SVGs",
+              "url": "https://github.com/advisories/GHSA-q8wf-6r8g-63ch"
+            },
+            {
+              "severity": "moderate",
+              "title": "Next.js: Unauthenticated disclosure of internal Server Function endpoints",
+              "url": "https://github.com/advisories/GHSA-955p-x3mx-jcvp"
+            },
+            {
+              "severity": "critical",
+              "title": "Next.js: Unauthenticated Remote Code Execution on windows-hosted servers",
+              "url": "https://github.com/advisories/GHSA-p293-qw3h-jr36"
+            },
+            {
+              "severity": "critical",
+              "title": "Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used",
+              "url": "https://github.com/advisories/GHSA-2xp9-vwfh-vxw4"
+            },
+            {
+              "severity": "moderate",
+              "title": "Next.js has cache poisoning of SSG and ISR pages in self-hosted applications",
+              "url": "https://github.com/advisories/GHSA-4jqv-mc3x-m676"
+            },
+            {
+              "severity": "moderate",
+              "title": "Next.js has cache poisoning in SSG/ISR rendering that leads to cross-user content substitution and persistent denial of service",
+              "url": "https://github.com/advisories/GHSA-mcj8-r9mp-w47p"
+            }
+          ],
+          "outdated": {
+            "current": "15.5.19",
+            "latest": "16.4.0",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "next-intl",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.26.0",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "3.26.5",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 364196,
+          "files": 316,
+          "transitiveCount": 11,
+          "totalBytes": 2463300,
+          "usage": {
+            "src": 107,
+            "test": 42,
+            "config": 1,
+            "typeOnly": 1,
+            "strRef": 147,
+            "sample": {
+              "config": [
+                "next.config.mjs"
+              ],
+              "src": [
+                "src/app/agents/[id]/page.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ConfigTab/ConfigTab.tsx"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/page.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.tsx"
+              ],
+              "test": [
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.test.tsx"
+              ],
+              "typeOnly": [
+                "src/i18n/request.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "moderate",
+              "title": "next-intl has an open redirect vulnerability",
+              "url": "https://github.com/advisories/GHSA-8f24-v5vv-gm5j"
+            },
+            {
+              "severity": "moderate",
+              "title": "next-intl has prototype pollution with `experimental.messages.precompile` via attacker-controlled translation catalog keys",
+              "url": "https://github.com/advisories/GHSA-4c35-wcg5-mm9h"
+            }
+          ],
+          "outdated": {
+            "current": "3.26.5",
+            "latest": "4.14.9",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "react",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^19.0.0",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "19.2.7",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 171604,
+          "files": 27,
+          "transitiveCount": 0,
+          "totalBytes": 171604,
+          "usage": {
+            "src": 162,
+            "test": 10,
+            "config": 0,
+            "typeOnly": 74,
+            "strRef": 171,
+            "sample": {
+              "src": [
+                "src/app/agents/[id]/page.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ConfigTab/ConfigTab.tsx"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/page.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ConfigTab/ConfigTab.tsx"
+              ],
+              "typeOnly": [
+                "src/app/agents/[id]/_components/AgentEditor/styles.ts",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ConfigTab/styles.ts",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/styles.ts"
+              ],
+              "test": [
+                "src/app/repos/[repoId]/conventions/_test/harness.tsx",
+                "src/app/repos/[repoId]/pulls/[number]/page.test.tsx",
+                "src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/_components/IntentCard/IntentCard.test.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "19.2.7",
+            "latest": "19.3.0",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "react-dom",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^19.0.0",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "19.2.7",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 7319413,
+          "files": 43,
+          "transitiveCount": 1,
+          "totalBytes": 7402078,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/vendor/ui/kit/Popover.tsx"
+              ],
+              "strRef": [
+                "src/vendor/ui/kit/Popover.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "19.2.7",
+            "latest": "19.3.0",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "react-markdown",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^9.0.3",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "9.1.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 51913,
+          "files": 9,
+          "transitiveCount": 81,
+          "totalBytes": 2781459,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/vendor/ui/primitives/Markdown.tsx"
+              ],
+              "strRef": [
+                "src/vendor/ui/primitives/Markdown.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "9.1.0",
+            "latest": "10.1.0",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "recharts",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^2.15.0",
+          "rangeKind": "caret",
+          "category": "ui",
+          "resolved": "2.15.4",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 4650058,
+          "files": 291,
+          "transitiveCount": 40,
+          "totalBytes": 10972683,
+          "usage": {
+            "src": 2,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 2,
+            "sample": {
+              "src": [
+                "src/vendor/ui/charts/Donut.tsx",
+                "src/vendor/ui/charts/LineChart.tsx"
+              ],
+              "strRef": [
+                "src/vendor/ui/charts/Donut.tsx",
+                "src/vendor/ui/charts/LineChart.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "2.15.4",
+            "latest": "3.10.1",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "remark-gfm",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^4.0.0",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "4.0.1",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 21993,
+          "files": 8,
+          "transitiveCount": 67,
+          "totalBytes": 2382770,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/vendor/ui/primitives/Markdown.tsx"
+              ],
+              "strRef": [
+                "src/vendor/ui/primitives/Markdown.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "zod",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.24.1",
+          "rangeKind": "caret",
+          "category": "validation",
+          "resolved": "3.25.76",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 3594196,
+          "files": 596,
+          "transitiveCount": 0,
+          "totalBytes": 3594196,
+          "usage": {
+            "src": 14,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 14,
+            "sample": {
+              "src": [
+                "src/vendor/shared/adapters.ts",
+                "src/vendor/shared/contracts/brief.ts",
+                "src/vendor/shared/contracts/conventions.ts"
+              ],
+              "strRef": [
+                "src/vendor/shared/adapters.ts",
+                "src/vendor/shared/contracts/brief.ts",
+                "src/vendor/shared/contracts/conventions.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "3.25.76",
+            "latest": "4.6.6",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@tailwindcss/postcss",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.0.0",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "4.3.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 99688,
+          "files": 7,
+          "transitiveCount": 22,
+          "totalBytes": 17757533,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "strRef": [
+                "postcss.config.mjs"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.3.0",
+            "latest": "4.3.3",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@testing-library/jest-dom",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^6.6.3",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "6.9.1",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 300900,
+          "files": 39,
+          "transitiveCount": 9,
+          "totalBytes": 1044992,
+          "usage": {
+            "src": 0,
+            "test": 1,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {
+              "test": [
+                "src/test/setup.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "6.9.1",
+            "latest": "7.0.1",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@testing-library/react",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^16.1.0",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "16.3.2",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 336758,
+          "files": 25,
+          "transitiveCount": 1,
+          "totalBytes": 584425,
+          "usage": {
+            "src": 0,
+            "test": 60,
+            "config": 0,
+            "typeOnly": 3,
+            "strRef": 60,
+            "sample": {
+              "test": [
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.test.tsx"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/SkillsTab.test.tsx"
+              ],
+              "typeOnly": [
+                "src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/OverviewTab.layout.test.tsx",
+                "src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/OverviewTab.test.tsx",
+                "src/app/repos/[repoId]/pulls/[number]/_components/OverviewTab/_components/LatestReviewBanner/LatestReviewBanner.test.tsx"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "16.3.2",
+            "latest": "16.3.3",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@types/node",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^22.10.0",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "22.19.19",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2427022,
+          "files": 73,
+          "transitiveCount": 1,
+          "totalBytes": 2510702,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "22.19.19",
+            "latest": "26.6.5",
+            "majorsBehind": 4,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@types/react",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^19.0.2",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "19.2.16",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 407675,
+          "files": 16,
+          "transitiveCount": 1,
+          "totalBytes": 1661124,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "19.2.16",
+            "latest": "19.3.0",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@types/react-dom",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^19.0.2",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "19.2.3",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 30063,
+          "files": 17,
+          "transitiveCount": 0,
+          "totalBytes": 30063,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "19.2.3",
+            "latest": "19.3.0",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.3.4",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "4.7.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 60271,
+          "files": 8,
+          "transitiveCount": 48,
+          "totalBytes": 12493807,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "config": [
+                "vitest.config.ts"
+              ],
+              "strRef": [
+                "vitest.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.7.0",
+            "latest": "6.1.2",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "jsdom",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^25.0.1",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "25.0.1",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 3111179,
+          "files": 480,
+          "transitiveCount": 59,
+          "totalBytes": 13852190,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "strRef": [
+                "vitest.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "25.0.1",
+            "latest": "30.1.2",
+            "majorsBehind": 5,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "postcss",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^8.4.49",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "8.5.15",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 205618,
+          "files": 55,
+          "transitiveCount": 3,
+          "totalBytes": 385028,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "moderate",
+              "title": "PostCSS has XSS via Unescaped </style> in its CSS Stringify Output",
+              "url": "https://github.com/advisories/GHSA-qx2v-qp2m-jg93"
+            },
+            {
+              "severity": "high",
+              "title": "PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments",
+              "url": "https://github.com/advisories/GHSA-6g55-p6wh-862q"
+            },
+            {
+              "severity": "moderate",
+              "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+              "url": "https://github.com/advisories/GHSA-fxqj-rqcc-2cmp"
+            },
+            {
+              "severity": "high",
+              "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+              "url": "https://github.com/advisories/GHSA-r28c-9q8g-f849"
+            }
+          ],
+          "outdated": {
+            "current": "8.5.15",
+            "latest": "8.5.29",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "tailwindcss",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.0.0",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "4.3.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 754919,
+          "files": 34,
+          "transitiveCount": 0,
+          "totalBytes": 754919,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.3.0",
+            "latest": "4.3.3",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "typescript",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^5.7.2",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "5.9.3",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 23625066,
+          "files": 132,
+          "transitiveCount": 0,
+          "totalBytes": 23625066,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "5.9.3",
+            "latest": "7.0.2",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "vitest",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^2.1.8",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "2.1.9",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 1640576,
+          "files": 105,
+          "transitiveCount": 43,
+          "totalBytes": 25410369,
+          "usage": {
+            "src": 0,
+            "test": 77,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 77,
+            "sample": {
+              "test": [
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/helpers.test.ts"
+              ],
+              "strRef": [
+                "src/app/agents/[id]/_components/AgentEditor/AgentEditor.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/ContextTab/ContextTab.test.tsx",
+                "src/app/agents/[id]/_components/AgentEditor/_components/SkillsTab/helpers.test.ts"
+              ],
+              "config": [
+                "vitest.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "critical",
+              "title": "When Vitest UI server is listening, arbitrary file can be read and executed",
+              "url": "https://github.com/advisories/GHSA-5xrq-8626-4rwp"
+            },
+            {
+              "severity": "moderate",
+              "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+              "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9"
+            }
+          ],
+          "outdated": {
+            "current": "2.1.9",
+            "latest": "5.0.3",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        }
+      ]
+    },
+    {
+      "folder": "e2e",
+      "name": "@devdigest/e2e",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "installed": true,
+      "crossPackageImports": [],
+      "counts": {
+        "runtime": 0,
+        "dev": 5,
+        "peer": 0,
+        "optional": 0
+      },
+      "uniquePackagesInstalled": 13,
+      "totalInstalledBytes": 38488843,
+      "auditStatus": "ok",
+      "outdatedStatus": "ok",
+      "deps": [
+        {
+          "name": "@types/cross-spawn",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^6.0.6",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "6.0.6",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 4847,
+          "files": 4,
+          "transitiveCount": 2,
+          "totalBytes": 2515753,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "@types/node",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^22.10.0",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "22.19.21",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2427226,
+          "files": 73,
+          "transitiveCount": 1,
+          "totalBytes": 2510906,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "22.19.21",
+            "latest": "26.6.5",
+            "majorsBehind": 4,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "cross-spawn",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^7.0.6",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "7.0.6",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 16094,
+          "files": 9,
+          "transitiveCount": 5,
+          "totalBytes": 46962,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "run.ts"
+              ],
+              "strRef": [
+                "run.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "tsx",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.19.2",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "4.22.4",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 518418,
+          "files": 50,
+          "transitiveCount": 2,
+          "totalBytes": 12301062,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.22.4",
+            "latest": "4.23.15",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "typescript",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^5.7.2",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "5.9.3",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 23625066,
+          "files": 132,
+          "transitiveCount": 0,
+          "totalBytes": 23625066,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "5.9.3",
+            "latest": "7.0.2",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        }
+      ]
+    },
+    {
+      "folder": "evals",
+      "name": "@devdigest/evals",
+      "manager": "pnpm",
+      "lockfile": "pnpm-lock.yaml",
+      "installed": true,
+      "crossPackageImports": [],
+      "counts": {
+        "runtime": 2,
+        "dev": 5,
+        "peer": 0,
+        "optional": 0
+      },
+      "uniquePackagesInstalled": 98,
+      "totalInstalledBytes": 316103601,
+      "auditStatus": "ok",
+      "outdatedStatus": "ok",
+      "deps": [
+        {
+          "name": "@anthropic-ai/claude-agent-sdk",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^0.3.198",
+          "rangeKind": "caret",
+          "category": "ai/llm",
+          "resolved": "0.3.198",
+          "license": "SEE LICENSE IN README.md",
+          "installScript": false,
+          "ownBytes": 3691518,
+          "files": 15,
+          "transitiveCount": 1,
+          "totalBytes": 242984158,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/runtime/run-claude.ts"
+              ],
+              "strRef": [
+                "src/runtime/run-claude.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "0.3.198",
+            "latest": "0.3.296",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "openai",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^4.77.0",
+          "rangeKind": "caret",
+          "category": "ai/llm",
+          "resolved": "4.104.0",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 4222385,
+          "files": 1194,
+          "transitiveCount": 38,
+          "totalBytes": 10896235,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/runtime/run-openrouter.ts"
+              ],
+              "strRef": [
+                "src/runtime/run-openrouter.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.104.0",
+            "latest": "7.32.0",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@types/node",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^22.0.0",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "22.20.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2437976,
+          "files": 74,
+          "transitiveCount": 1,
+          "totalBytes": 2521656,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "22.20.0",
+            "latest": "26.6.5",
+            "majorsBehind": 4,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "gray-matter",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.0.3",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "4.0.3",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 38621,
+          "files": 14,
+          "transitiveCount": 9,
+          "totalBytes": 831648,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/skill-quality.ts"
+              ],
+              "strRef": [
+                "src/skill-quality.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "tsx",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.19.0",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "4.22.4",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 518418,
+          "files": 50,
+          "transitiveCount": 2,
+          "totalBytes": 12336416,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.22.4",
+            "latest": "4.23.15",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "typescript",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^5.6.0",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "5.9.3",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 23625066,
+          "files": 132,
+          "transitiveCount": 0,
+          "totalBytes": 23625066,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "5.9.3",
+            "latest": "7.0.2",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "vitest",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^2.1.0",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "2.1.9",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 1640576,
+          "files": 105,
+          "transitiveCount": 43,
+          "totalBytes": 25436799,
+          "usage": {
+            "src": 3,
+            "test": 1,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 5,
+            "sample": {
+              "src": [
+                "src/dsl/case.ts",
+                "src/dsl/describe.ts",
+                "src/records/record.ts"
+              ],
+              "strRef": [
+                "src/dsl/case.ts",
+                "src/dsl/describe.ts",
+                "src/records/record.ts"
+              ],
+              "test": [
+                "src/records/stats.test.ts"
+              ],
+              "config": [
+                "vitest.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "critical",
+              "title": "When Vitest UI server is listening, arbitrary file can be read and executed",
+              "url": "https://github.com/advisories/GHSA-5xrq-8626-4rwp"
+            },
+            {
+              "severity": "moderate",
+              "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+              "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9"
+            }
+          ],
+          "outdated": {
+            "current": "2.1.9",
+            "latest": "5.0.3",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        }
+      ]
+    },
+    {
+      "folder": "mcp-server",
+      "name": "@devdigest/mcp-server",
+      "manager": "pnpm",
+      "lockfile": "pnpm-lock.yaml",
+      "installed": true,
+      "crossPackageImports": [],
+      "counts": {
+        "runtime": 2,
+        "dev": 5,
+        "peer": 0,
+        "optional": 0
+      },
+      "uniquePackagesInstalled": 69,
+      "totalInstalledBytes": 74530333,
+      "auditStatus": "ok",
+      "outdatedStatus": "ok",
+      "deps": [
+        {
+          "name": "@modelcontextprotocol/server",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "2.3.0",
+          "rangeKind": "exact",
+          "category": "ai/llm",
+          "resolved": "2.3.0",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 6486782,
+          "files": 85,
+          "transitiveCount": 2,
+          "totalBytes": 13943961,
+          "usage": {
+            "src": 2,
+            "test": 2,
+            "config": 0,
+            "typeOnly": 1,
+            "strRef": 3,
+            "sample": {
+              "src": [
+                "src/index.ts",
+                "src/server.ts"
+              ],
+              "strRef": [
+                "src/server.ts",
+                "test/server-contract.test.ts",
+                "test/wiring.test.ts"
+              ],
+              "typeOnly": [
+                "src/tools/index.ts"
+              ],
+              "test": [
+                "test/server-contract.test.ts",
+                "test/wiring.test.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "2.3.0",
+            "latest": "2.3.1",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "zod",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "4.6.5",
+          "rangeKind": "exact",
+          "category": "validation",
+          "resolved": "4.6.5",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 6140311,
+          "files": 840,
+          "transitiveCount": 0,
+          "totalBytes": 6140311,
+          "usage": {
+            "src": 8,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 1,
+            "strRef": 8,
+            "sample": {
+              "src": [
+                "src/api-schemas.ts",
+                "src/config.ts",
+                "src/tools/get-blast-radius.ts"
+              ],
+              "strRef": [
+                "src/api-schemas.ts",
+                "src/config.ts",
+                "src/tools/get-blast-radius.ts"
+              ],
+              "typeOnly": [
+                "src/tools/index.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.6.5",
+            "latest": "4.6.6",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@modelcontextprotocol/client",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "2.3.0",
+          "rangeKind": "exact",
+          "category": "ai/llm",
+          "resolved": "2.3.0",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 6900097,
+          "files": 85,
+          "transitiveCount": 12,
+          "totalBytes": 14903966,
+          "usage": {
+            "src": 0,
+            "test": 2,
+            "config": 2,
+            "typeOnly": 0,
+            "strRef": 3,
+            "sample": {
+              "config": [
+                "scripts/smoke.ts"
+              ],
+              "strRef": [
+                "scripts/smoke.ts",
+                "test/server-contract.test.ts",
+                "test/wiring.test.ts"
+              ],
+              "test": [
+                "test/server-contract.test.ts",
+                "test/wiring.test.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "2.3.0",
+            "latest": "2.3.1",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@types/node",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "22.20.5",
+          "rangeKind": "exact",
+          "category": "types",
+          "resolved": "22.20.5",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2438360,
+          "files": 74,
+          "transitiveCount": 1,
+          "totalBytes": 2522040,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "22.20.5",
+            "latest": "26.6.5",
+            "majorsBehind": 4,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "tsx",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "4.23.15",
+          "rangeKind": "exact",
+          "category": "build/tooling",
+          "resolved": "4.23.15",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 396881,
+          "files": 30,
+          "transitiveCount": 2,
+          "totalBytes": 12239351,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "strRef": [
+                "scripts/smoke.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "typescript",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "5.9.3",
+          "rangeKind": "exact",
+          "category": "build/tooling",
+          "resolved": "5.9.3",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 23625066,
+          "files": 132,
+          "transitiveCount": 0,
+          "totalBytes": 23625066,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "5.9.3",
+            "latest": "7.0.2",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "vitest",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "3.2.7",
+          "rangeKind": "exact",
+          "category": "test",
+          "resolved": "3.2.7",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 1381329,
+          "files": 106,
+          "transitiveCount": 50,
+          "totalBytes": 26595598,
+          "usage": {
+            "src": 0,
+            "test": 14,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 14,
+            "sample": {
+              "test": [
+                "test/config.test.ts",
+                "test/errors.test.ts",
+                "test/format.test.ts"
+              ],
+              "strRef": [
+                "test/config.test.ts",
+                "test/errors.test.ts",
+                "test/format.test.ts"
+              ],
+              "config": [
+                "vitest.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "moderate",
+              "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+              "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9"
+            }
+          ],
+          "outdated": {
+            "current": "3.2.7",
+            "latest": "5.0.3",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        }
+      ]
+    },
+    {
+      "folder": "reviewer-core",
+      "name": "@devdigest/reviewer-core",
+      "manager": "npm",
+      "lockfile": "package-lock.json",
+      "installed": true,
+      "crossPackageImports": [],
+      "counts": {
+        "runtime": 2,
+        "dev": 4,
+        "peer": 0,
+        "optional": 0
+      },
+      "uniquePackagesInstalled": 87,
+      "totalInstalledBytes": 75807078,
+      "auditStatus": "ok",
+      "outdatedStatus": "ok",
+      "deps": [
+        {
+          "name": "openai",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^4.77.0",
+          "rangeKind": "caret",
+          "category": "ai/llm",
+          "resolved": "4.104.0",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 4222385,
+          "files": 1194,
+          "transitiveCount": 38,
+          "totalBytes": 10882753,
+          "usage": {
+            "src": 2,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 2,
+            "sample": {
+              "src": [
+                "src/llm/openrouter.ts",
+                "src/llm/structured.ts"
+              ],
+              "strRef": [
+                "src/llm/openrouter.ts",
+                "test/run.test.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.104.0",
+            "latest": "7.32.0",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "zod",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.24.1",
+          "rangeKind": "caret",
+          "category": "validation",
+          "resolved": "3.25.76",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 3594196,
+          "files": 596,
+          "transitiveCount": 0,
+          "totalBytes": 3594196,
+          "usage": {
+            "src": 1,
+            "test": 1,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 2,
+            "sample": {
+              "src": [
+                "src/llm/structured.ts"
+              ],
+              "strRef": [
+                "src/llm/structured.ts",
+                "test/openrouter-structured.test.ts"
+              ],
+              "test": [
+                "test/openrouter-structured.test.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "3.25.76",
+            "latest": "4.6.7",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@types/node",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^22.10.0",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "22.19.20",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2427184,
+          "files": 73,
+          "transitiveCount": 1,
+          "totalBytes": 2510864,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "22.19.20",
+            "latest": "26.6.5",
+            "majorsBehind": 4,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "tsx",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.19.2",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "4.22.4",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 518418,
+          "files": 50,
+          "transitiveCount": 2,
+          "totalBytes": 12301062,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.22.4",
+            "latest": "4.23.15",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "typescript",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^5.7.2",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "5.9.3",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 23625066,
+          "files": 132,
+          "transitiveCount": 0,
+          "totalBytes": 23625066,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "5.9.3",
+            "latest": "7.0.2",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "vitest",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^2.1.8",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "2.1.9",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 1640576,
+          "files": 105,
+          "transitiveCount": 43,
+          "totalBytes": 25410722,
+          "usage": {
+            "src": 0,
+            "test": 5,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 5,
+            "sample": {
+              "test": [
+                "test/openrouter-structured.test.ts",
+                "test/project-context.test.ts",
+                "test/prompt.test.ts"
+              ],
+              "strRef": [
+                "test/openrouter-structured.test.ts",
+                "test/project-context.test.ts",
+                "test/prompt.test.ts"
+              ],
+              "config": [
+                "vitest.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "critical",
+              "title": "When Vitest UI server is listening, arbitrary file can be read and executed",
+              "url": "https://github.com/advisories/GHSA-5xrq-8626-4rwp"
+            }
+          ],
+          "outdated": {
+            "current": "2.1.9",
+            "latest": "5.0.4",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        }
+      ]
+    },
+    {
+      "folder": "server",
+      "name": "@devdigest/api",
+      "manager": "pnpm",
+      "lockfile": "pnpm-lock.yaml",
+      "installed": true,
+      "crossPackageImports": [],
+      "counts": {
+        "runtime": 22,
+        "dev": 8,
+        "peer": 0,
+        "optional": 0
+      },
+      "uniquePackagesInstalled": 423,
+      "totalInstalledBytes": 213109074,
+      "auditStatus": "ok",
+      "outdatedStatus": "ok",
+      "deps": [
+        {
+          "name": "@anthropic-ai/sdk",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^0.33.1",
+          "rangeKind": "caret",
+          "category": "ai/llm",
+          "resolved": "0.33.1",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 1069738,
+          "files": 299,
+          "transitiveCount": 38,
+          "totalBytes": 7729944,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/adapters/llm/anthropic.ts"
+              ],
+              "strRef": [
+                "src/adapters/llm/anthropic.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "0.33.1",
+            "latest": "0.133.0",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@ast-grep/napi",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "0.43.0",
+          "rangeKind": "exact",
+          "category": "build/tooling",
+          "resolved": "0.43.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 360659,
+          "files": 18,
+          "transitiveCount": 1,
+          "totalBytes": 7528350,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/adapters/astgrep/index.ts"
+              ],
+              "strRef": [
+                "src/adapters/astgrep/index.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "0.43.0",
+            "latest": "0.50.0",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@fastify/autoload",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^6.0.3",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "6.3.1",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 174807,
+          "files": 291,
+          "transitiveCount": 0,
+          "totalBytes": 174807,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "6.3.1",
+            "latest": "6.5.1",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@fastify/cors",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^10.0.2",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "10.1.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 115221,
+          "files": 20,
+          "transitiveCount": 3,
+          "totalBytes": 580992,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/app.ts"
+              ],
+              "strRef": [
+                "src/app.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "10.1.0",
+            "latest": "11.3.1",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@fastify/helmet",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^13.0.2",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "13.0.2",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 69464,
+          "files": 14,
+          "transitiveCount": 2,
+          "totalBytes": 215768,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/app.ts"
+              ],
+              "strRef": [
+                "src/app.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "13.0.2",
+            "latest": "13.1.2",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@fastify/rate-limit",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^11.0.0",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "11.0.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 207361,
+          "files": 30,
+          "transitiveCount": 3,
+          "totalBytes": 308746,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/app.ts"
+              ],
+              "strRef": [
+                "src/app.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "11.0.0",
+            "latest": "11.2.1",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@vscode/ripgrep",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^1.15.9",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "1.18.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 4377,
+          "files": 5,
+          "transitiveCount": 1,
+          "totalBytes": 5435825,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/adapters/codeindex/ripgrep.ts"
+              ],
+              "strRef": [
+                "src/adapters/codeindex/ripgrep.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "dependency-cruiser",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^17.4.3",
+          "rangeKind": "caret",
+          "category": "lint/format",
+          "resolved": "17.4.3",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 985829,
+          "files": 241,
+          "transitiveCount": 42,
+          "totalBytes": 4465991,
+          "usage": {
+            "src": 2,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 2,
+            "sample": {
+              "src": [
+                ".dependency-cruiser.cjs",
+                "src/adapters/depgraph/index.ts"
+              ],
+              "strRef": [
+                ".dependency-cruiser.cjs",
+                "src/adapters/depgraph/index.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "17.4.3",
+            "latest": "18.6.0",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "dotenv",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^16.4.7",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "16.6.1",
+          "license": "BSD-2-Clause",
+          "installScript": false,
+          "ownBytes": 76591,
+          "files": 12,
+          "transitiveCount": 0,
+          "totalBytes": 76591,
+          "usage": {
+            "src": 3,
+            "test": 0,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {
+              "config": [
+                "drizzle.config.ts"
+              ],
+              "src": [
+                "src/db/migrate.ts",
+                "src/db/seed.ts",
+                "src/platform/config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "16.6.1",
+            "latest": "18.0.7",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "drizzle-orm",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^0.38.3",
+          "rangeKind": "caret",
+          "category": "database",
+          "resolved": "0.38.4",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 8170149,
+          "files": 2246,
+          "transitiveCount": 0,
+          "totalBytes": 8170149,
+          "usage": {
+            "src": 42,
+            "test": 14,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 38,
+            "sample": {
+              "config": [
+                "scripts/scan-skills.ts"
+              ],
+              "strRef": [
+                "scripts/scan-skills.ts",
+                "src/adapters/auth/local.ts",
+                "src/app.ts"
+              ],
+              "src": [
+                "src/adapters/auth/local.ts",
+                "src/app.ts",
+                "src/db/client.ts"
+              ],
+              "test": [
+                "test/agents-versions.it.test.ts",
+                "test/brief.it.test.ts",
+                "test/conventions.it.test.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "high",
+              "title": "Drizzle ORM has SQL injection via improperly escaped SQL identifiers",
+              "url": "https://github.com/advisories/GHSA-gpj5-g38j-94v9"
+            }
+          ],
+          "outdated": {
+            "current": "0.38.4",
+            "latest": "0.45.4",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "fastify",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^5.2.0",
+          "rangeKind": "caret",
+          "category": "framework",
+          "resolved": "5.8.5",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2777550,
+          "files": 355,
+          "transitiveCount": 47,
+          "totalBytes": 7254268,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 17,
+            "strRef": 2,
+            "sample": {
+              "src": [
+                "src/app.ts"
+              ],
+              "strRef": [
+                "src/app.ts",
+                "src/modules/repo-intel/pipeline/facts.ts"
+              ],
+              "typeOnly": [
+                "src/modules/agents/routes.ts",
+                "src/modules/blast/routes.ts",
+                "src/modules/brief/routes.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [
+            {
+              "severity": "moderate",
+              "title": "fastify vulnerable to schema validation bypass via root primitive coercion mismatch",
+              "url": "https://github.com/advisories/GHSA-w2qp-rph6-63g4"
+            },
+            {
+              "severity": "moderate",
+              "title": "fastify vulnerable to X-Forwarded-* spoofing under trustProxy hop-count",
+              "url": "https://github.com/advisories/GHSA-3m5p-2c4r-xxw2"
+            },
+            {
+              "severity": "moderate",
+              "title": "fastify vulnerable to Denial of Service via unhandled exception on HTTP/2 trailer responses",
+              "url": "https://github.com/advisories/GHSA-4mh8-r7rc-xpvc"
+            },
+            {
+              "severity": "high",
+              "title": "fastify vulnerable to request body replacement via an async validation result collision",
+              "url": "https://github.com/advisories/GHSA-667r-xxjv-c9mm"
+            },
+            {
+              "severity": "high",
+              "title": "fastify vulnerable to authentication bypass via malformed URLs reaching encapsulated not-found handlers",
+              "url": "https://github.com/advisories/GHSA-p68q-wchp-6fh7"
+            },
+            {
+              "severity": "high",
+              "title": "fastify vulnerable to request validation bypass via skipped boolean false schemas",
+              "url": "https://github.com/advisories/GHSA-hwr6-493r-vm6h"
+            },
+            {
+              "severity": "high",
+              "title": "fastify vulnerable to header validation bypass via incomplete schema case normalization",
+              "url": "https://github.com/advisories/GHSA-9q9j-q6p8-xq58"
+            }
+          ],
+          "outdated": {
+            "current": "5.8.5",
+            "latest": "5.12.5",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "fastify-sse-v2",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^4.2.1",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "4.2.2",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 21581,
+          "files": 19,
+          "transitiveCount": 15,
+          "totalBytes": 402880,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/app.ts"
+              ],
+              "strRef": [
+                "src/app.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "fastify-type-provider-zod",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^4.0.2",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "4.0.2",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 25204,
+          "files": 13,
+          "transitiveCount": 2,
+          "totalBytes": 281340,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 13,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/app.ts"
+              ],
+              "strRef": [
+                "src/app.ts"
+              ],
+              "typeOnly": [
+                "src/modules/agents/routes.ts",
+                "src/modules/blast/routes.ts",
+                "src/modules/brief/routes.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.0.2",
+            "latest": "7.0.0",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "graphology",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^0.26.0",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "0.26.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2729833,
+          "files": 30,
+          "transitiveCount": 1,
+          "totalBytes": 2812611,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/modules/repo-intel/pipeline/rank.ts"
+              ],
+              "strRef": [
+                "src/modules/repo-intel/pipeline/rank.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "graphology-metrics",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^2.4.0",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "2.4.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 126437,
+          "files": 63,
+          "transitiveCount": 7,
+          "totalBytes": 773736,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/modules/repo-intel/pipeline/rank.ts"
+              ],
+              "strRef": [
+                "src/modules/repo-intel/pipeline/rank.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "2.4.0",
+            "latest": "2.4.2",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "js-tiktoken",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^1.0.21",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "1.0.21",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 22432828,
+          "files": 32,
+          "transitiveCount": 1,
+          "totalBytes": 22442452,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/adapters/tokenizer/index.ts"
+              ],
+              "strRef": [
+                "src/adapters/tokenizer/index.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "octokit",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^4.0.3",
+          "rangeKind": "caret",
+          "category": "git/vcs",
+          "resolved": "4.1.4",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 51165,
+          "files": 13,
+          "transitiveCount": 32,
+          "totalBytes": 11094617,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/adapters/github/octokit.ts"
+              ],
+              "strRef": [
+                "src/adapters/github/octokit.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.1.4",
+            "latest": "5.0.5",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "openai",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^4.77.0",
+          "rangeKind": "caret",
+          "category": "ai/llm",
+          "resolved": "4.104.0",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 4222385,
+          "files": 1194,
+          "transitiveCount": 38,
+          "totalBytes": 10882591,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 28,
+            "sample": {
+              "src": [
+                "src/adapters/llm/openai.ts"
+              ],
+              "strRef": [
+                "src/adapters/llm/openai.ts",
+                "src/adapters/mocks.ts",
+                "src/db/schema/agents.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.104.0",
+            "latest": "7.32.0",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "p-queue",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^8.0.1",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "8.1.1",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 41044,
+          "files": 13,
+          "transitiveCount": 2,
+          "totalBytes": 129015,
+          "usage": {
+            "src": 2,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 2,
+            "sample": {
+              "src": [
+                "src/modules/repo-intel/pipeline/full.ts",
+                "src/platform/jobs.ts"
+              ],
+              "strRef": [
+                "src/modules/repo-intel/pipeline/full.ts",
+                "src/platform/jobs.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "8.1.1",
+            "latest": "9.3.5",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "postgres",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.4.5",
+          "rangeKind": "caret",
+          "category": "database",
+          "resolved": "3.4.9",
+          "license": "Unlicense",
+          "installScript": false,
+          "ownBytes": 299744,
+          "files": 37,
+          "transitiveCount": 0,
+          "totalBytes": 299744,
+          "usage": {
+            "src": 2,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 2,
+            "sample": {
+              "src": [
+                "src/db/client.ts",
+                "src/db/migrate.ts"
+              ],
+              "strRef": [
+                "src/db/client.ts",
+                "src/db/migrate.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": null
+        },
+        {
+          "name": "simple-git",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.27.0",
+          "rangeKind": "caret",
+          "category": "git/vcs",
+          "resolved": "3.36.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 951189,
+          "files": 111,
+          "transitiveCount": 6,
+          "totalBytes": 1130646,
+          "usage": {
+            "src": 1,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "src": [
+                "src/adapters/git/simple-git.ts"
+              ],
+              "strRef": [
+                "src/adapters/git/simple-git.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [
+            {
+              "severity": "critical",
+              "title": "simple-git unsafe-operation guard does not block trailer command configuration",
+              "url": "https://github.com/advisories/GHSA-x6jw-m9v5-85vh"
+            },
+            {
+              "severity": "high",
+              "title": "simple-git allows command execution through unblocked Git configuration includes",
+              "url": "https://github.com/advisories/GHSA-g4wm-2vf7-vfgr"
+            },
+            {
+              "severity": "high",
+              "title": "simple-git: unsafe-operations plugin bypass via git long-option abbreviation (--receive-p/--exe) -> command execution (residual of CVE-2026-28291)",
+              "url": "https://github.com/advisories/GHSA-858h-whjf-mvg5"
+            }
+          ],
+          "outdated": {
+            "current": "3.36.0",
+            "latest": "4.0.2",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "zod",
+          "kind": "runtime",
+          "section": "dependencies",
+          "range": "^3.24.1",
+          "rangeKind": "caret",
+          "category": "validation",
+          "resolved": "3.25.76",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 3594196,
+          "files": 596,
+          "transitiveCount": 0,
+          "totalBytes": 3594196,
+          "usage": {
+            "src": 24,
+            "test": 1,
+            "config": 0,
+            "typeOnly": 1,
+            "strRef": 26,
+            "sample": {
+              "typeOnly": [
+                "src/adapters/mocks.ts"
+              ],
+              "src": [
+                "src/app.ts",
+                "src/modules/agents/routes.ts",
+                "src/modules/brief/routes.ts"
+              ],
+              "strRef": [
+                "src/app.ts",
+                "src/modules/agents/routes.ts",
+                "src/modules/brief/routes.ts"
+              ],
+              "test": [
+                "test/prompt-structured.test.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "3.25.76",
+            "latest": "4.6.6",
+            "majorsBehind": 1,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@testcontainers/postgresql",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^10.16.0",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "10.28.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 18249,
+          "files": 9,
+          "transitiveCount": 157,
+          "totalBytes": 37956614,
+          "usage": {
+            "src": 0,
+            "test": 1,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "test": [
+                "test/helpers/pg.ts"
+              ],
+              "strRef": [
+                "test/helpers/pg.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "10.28.0",
+            "latest": "12.2.0",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "@types/node",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^22.10.0",
+          "rangeKind": "caret",
+          "category": "types",
+          "resolved": "22.19.19",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 2427022,
+          "files": 73,
+          "transitiveCount": 1,
+          "totalBytes": 2510702,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "22.19.19",
+            "latest": "26.6.5",
+            "majorsBehind": 4,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "drizzle-kit",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^0.30.1",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "0.30.6",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 7752070,
+          "files": 15,
+          "transitiveCount": 22,
+          "totalBytes": 30235684,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "config": [
+                "drizzle.config.ts"
+              ],
+              "strRef": [
+                "drizzle.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "0.30.6",
+            "latest": "0.31.11",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "pino-pretty",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^13.0.0",
+          "rangeKind": "caret",
+          "category": "other",
+          "resolved": "13.1.3",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 245712,
+          "files": 77,
+          "transitiveCount": 18,
+          "totalBytes": 807306,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "strRef": [
+                "src/app.ts"
+              ]
+            }
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "13.1.3",
+            "latest": "13.2.0",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "testcontainers",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^10.16.0",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "10.28.0",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 387796,
+          "files": 264,
+          "transitiveCount": 156,
+          "totalBytes": 37938365,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": false,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "10.28.0",
+            "latest": "12.2.0",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "tsx",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^4.19.2",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "4.22.4",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 518418,
+          "files": 50,
+          "transitiveCount": 2,
+          "totalBytes": 12301062,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 0,
+            "sample": {}
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "4.22.4",
+            "latest": "4.23.15",
+            "majorsBehind": 0,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "typescript",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^5.7.2",
+          "rangeKind": "caret",
+          "category": "build/tooling",
+          "resolved": "5.9.3",
+          "license": "Apache-2.0",
+          "installScript": false,
+          "ownBytes": 23625066,
+          "files": 132,
+          "transitiveCount": 0,
+          "totalBytes": 23625066,
+          "usage": {
+            "src": 0,
+            "test": 0,
+            "config": 0,
+            "typeOnly": 0,
+            "strRef": 1,
+            "sample": {
+              "strRef": [
+                "src/modules/repo-intel/pipeline/facts.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [],
+          "outdated": {
+            "current": "5.9.3",
+            "latest": "7.0.2",
+            "majorsBehind": 2,
+            "deprecated": false
+          }
+        },
+        {
+          "name": "vitest",
+          "kind": "dev",
+          "section": "devDependencies",
+          "range": "^2.1.8",
+          "rangeKind": "caret",
+          "category": "test",
+          "resolved": "2.1.9",
+          "license": "MIT",
+          "installScript": false,
+          "ownBytes": 1640576,
+          "files": 105,
+          "transitiveCount": 43,
+          "totalBytes": 25410369,
+          "usage": {
+            "src": 0,
+            "test": 56,
+            "config": 1,
+            "typeOnly": 0,
+            "strRef": 57,
+            "sample": {
+              "test": [
+                "src/modules/blast/helpers.test.ts",
+                "src/modules/blast/service.test.ts",
+                "test/adapters.test.ts"
+              ],
+              "strRef": [
+                "src/modules/blast/helpers.test.ts",
+                "src/modules/blast/service.test.ts",
+                "src/modules/repo-intel/pipeline/facts.ts"
+              ],
+              "config": [
+                "vitest.config.ts"
+              ]
+            }
+          },
+          "referencedByTooling": true,
+          "vulnerabilities": [
+            {
+              "severity": "critical",
+              "title": "When Vitest UI server is listening, arbitrary file can be read and executed",
+              "url": "https://github.com/advisories/GHSA-5xrq-8626-4rwp"
+            },
+            {
+              "severity": "moderate",
+              "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+              "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9"
+            }
+          ],
+          "outdated": {
+            "current": "2.1.9",
+            "latest": "5.0.3",
+            "majorsBehind": 3,
+            "deprecated": false
+          }
+        }
+      ]
+    }
+  ],
+  "internalEdges": [],
+  "drift": [
+    {
+      "name": "@types/node",
+      "packages": [
+        {
+          "pkg": "client",
+          "range": "^22.10.0",
+          "resolved": "22.19.19",
+          "kind": "dev"
+        },
+        {
+          "pkg": "e2e",
+          "range": "^22.10.0",
+          "resolved": "22.19.21",
+          "kind": "dev"
+        },
+        {
+          "pkg": "evals",
+          "range": "^22.0.0",
+          "resolved": "22.20.0",
+          "kind": "dev"
+        },
+        {
+          "pkg": "mcp-server",
+          "range": "22.20.5",
+          "resolved": "22.20.5",
+          "kind": "dev"
+        },
+        {
+          "pkg": "reviewer-core",
+          "range": "^22.10.0",
+          "resolved": "22.19.20",
+          "kind": "dev"
+        },
+        {
+          "pkg": "server",
+          "range": "^22.10.0",
+          "resolved": "22.19.19",
+          "kind": "dev"
+        }
+      ],
+      "rangeDrift": true,
+      "resolvedDrift": true
+    },
+    {
+      "name": "tsx",
+      "packages": [
+        {
+          "pkg": "e2e",
+          "range": "^4.19.2",
+          "resolved": "4.22.4",
+          "kind": "dev"
+        },
+        {
+          "pkg": "evals",
+          "range": "^4.19.0",
+          "resolved": "4.22.4",
+          "kind": "dev"
+        },
+        {
+          "pkg": "mcp-server",
+          "range": "4.23.15",
+          "resolved": "4.23.15",
+          "kind": "dev"
+        },
+        {
+          "pkg": "reviewer-core",
+          "range": "^4.19.2",
+          "resolved": "4.22.4",
+          "kind": "dev"
+        },
+        {
+          "pkg": "server",
+          "range": "^4.19.2",
+          "resolved": "4.22.4",
+          "kind": "dev"
+        }
+      ],
+      "rangeDrift": true,
+      "resolvedDrift": true
+    },
+    {
+      "name": "vitest",
+      "packages": [
+        {
+          "pkg": "client",
+          "range": "^2.1.8",
+          "resolved": "2.1.9",
+          "kind": "dev"
+        },
+        {
+          "pkg": "evals",
+          "range": "^2.1.0",
+          "resolved": "2.1.9",
+          "kind": "dev"
+        },
+        {
+          "pkg": "mcp-server",
+          "range": "3.2.7",
+          "resolved": "3.2.7",
+          "kind": "dev"
+        },
+        {
+          "pkg": "reviewer-core",
+          "range": "^2.1.8",
+          "resolved": "2.1.9",
+          "kind": "dev"
+        },
+        {
+          "pkg": "server",
+          "range": "^2.1.8",
+          "resolved": "2.1.9",
+          "kind": "dev"
+        }
+      ],
+      "rangeDrift": true,
+      "resolvedDrift": true
+    },
+    {
+      "name": "zod",
+      "packages": [
+        {
+          "pkg": "client",
+          "range": "^3.24.1",
+          "resolved": "3.25.76",
+          "kind": "runtime"
+        },
+        {
+          "pkg": "mcp-server",
+          "range": "4.6.5",
+          "resolved": "4.6.5",
+          "kind": "runtime"
+        },
+        {
+          "pkg": "reviewer-core",
+          "range": "^3.24.1",
+          "resolved": "3.25.76",
+          "kind": "runtime"
+        },
+        {
+          "pkg": "server",
+          "range": "^3.24.1",
+          "resolved": "3.25.76",
+          "kind": "runtime"
+        }
+      ],
+      "rangeDrift": true,
+      "resolvedDrift": true
+    },
+    {
+      "name": "openai",
+      "packages": [
+        {
+          "pkg": "evals",
+          "range": "^4.77.0",
+          "resolved": "4.104.0",
+          "kind": "runtime"
+        },
+        {
+          "pkg": "reviewer-core",
+          "range": "^4.77.0",
+          "resolved": "4.104.0",
+          "kind": "runtime"
+        },
+        {
+          "pkg": "server",
+          "range": "^4.77.0",
+          "resolved": "4.104.0",
+          "kind": "runtime"
+        }
+      ],
+      "rangeDrift": false,
+      "resolvedDrift": false
+    },
+    {
+      "name": "typescript",
+      "packages": [
+        {
+          "pkg": "client",
+          "range": "^5.7.2",
+          "resolved": "5.9.3",
+          "kind": "dev"
+        },
+        {
+          "pkg": "e2e",
+          "range": "^5.7.2",
+          "resolved": "5.9.3",
+          "kind": "dev"
+        },
+        {
+          "pkg": "evals",
+          "range": "^5.6.0",
+          "resolved": "5.9.3",
+          "kind": "dev"
+        },
+        {
+          "pkg": "mcp-server",
+          "range": "5.9.3",
+          "resolved": "5.9.3",
+          "kind": "dev"
+        },
+        {
+          "pkg": "reviewer-core",
+          "range": "^5.7.2",
+          "resolved": "5.9.3",
+          "kind": "dev"
+        },
+        {
+          "pkg": "server",
+          "range": "^5.7.2",
+          "resolved": "5.9.3",
+          "kind": "dev"
+        }
+      ],
+      "rangeDrift": true,
+      "resolvedDrift": false
+    }
+  ],
+  "findings": [
+    {
+      "sev": "P0",
+      "rule": "vulnerability",
+      "package": "client",
+      "dep": "next",
+      "detail": "12 advisories (worst critical). critical: Next.js: Unauthenticated Remote Code Execution on windows-hosted servers (https://github.com/advisories/GHSA-p293-qw3h-jr36); critical: Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used (https://github.com/advisories/GHSA-2xp9-vwfh-vxw4); high: Next.js: Denial of Service in App Router using Server Actions (https://github.com/advisories/GHSA-m99w-x7hq-7vfj); +9 more",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 312584920,
+      "id": "P0-01"
+    },
+    {
+      "sev": "P0",
+      "rule": "vulnerability",
+      "package": "server",
+      "dep": "drizzle-orm",
+      "detail": "1 advisories (worst high). high: Drizzle ORM has SQL injection via improperly escaped SQL identifiers (https://github.com/advisories/GHSA-gpj5-g38j-94v9)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 8170149,
+      "id": "P0-02"
+    },
+    {
+      "sev": "P0",
+      "rule": "vulnerability",
+      "package": "server",
+      "dep": "fastify",
+      "detail": "7 advisories (worst high). high: fastify vulnerable to request body replacement via an async validation result collision (https://github.com/advisories/GHSA-667r-xxjv-c9mm); high: fastify vulnerable to authentication bypass via malformed URLs reaching encapsulated not-found handlers (https://github.com/advisories/GHSA-p68q-wchp-6fh7); high: fastify vulnerable to request validation bypass via skipped boolean false schemas (https://github.com/advisories/GHSA-hwr6-493r-vm6h); +4 more",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 7254268,
+      "id": "P0-03"
+    },
+    {
+      "sev": "P0",
+      "rule": "vulnerability",
+      "package": "server",
+      "dep": "simple-git",
+      "detail": "3 advisories (worst critical). critical: simple-git unsafe-operation guard does not block trailer command configuration (https://github.com/advisories/GHSA-x6jw-m9v5-85vh); high: simple-git allows command execution through unblocked Git configuration includes (https://github.com/advisories/GHSA-g4wm-2vf7-vfgr); high: simple-git: unsafe-operations plugin bypass via git long-option abbreviation (--receive-p/--exe) -> command execution (residual of CVE-2026-28291) (https://github.com/advisories/GHSA-858h-whjf-mvg5)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 1130646,
+      "id": "P0-04"
+    },
+    {
+      "sev": "P1",
+      "rule": "vulnerability",
+      "package": "client",
+      "dep": "mermaid",
+      "detail": "5 advisories (worst moderate). moderate: Mermaid allows CSS injection applying to sibling elements of the diagram (https://github.com/advisories/GHSA-6x64-9x62-f2gx); moderate: Mermaid Architecture diagrams are vulnerable to prototype pollution (https://github.com/advisories/GHSA-3rrr-jr9j-h3q3); moderate: Mermaid XY Charts are vulnerable to an infinite loop DoS (https://github.com/advisories/GHSA-2v8p-3f2j-5mp7); +2 more",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 120758396,
+      "id": "P1-05"
+    },
+    {
+      "sev": "P1",
+      "rule": "vulnerability",
+      "package": "client",
+      "dep": "next-intl",
+      "detail": "2 advisories (worst moderate). moderate: next-intl has an open redirect vulnerability (https://github.com/advisories/GHSA-8f24-v5vv-gm5j); moderate: next-intl has prototype pollution with `experimental.messages.precompile` via attacker-controlled translation catalog keys (https://github.com/advisories/GHSA-4c35-wcg5-mm9h)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 2463300,
+      "id": "P1-06"
+    },
+    {
+      "sev": "P1",
+      "rule": "unused-runtime",
+      "package": "server",
+      "dep": "@fastify/autoload",
+      "detail": "Runtime dependency with no import, script or config reference found.",
+      "action": "Verify (dynamic/string-based loading?) then remove.",
+      "weight": 174807,
+      "id": "P1-07"
+    },
+    {
+      "sev": "P1",
+      "rule": "dev-dep-in-src",
+      "package": "e2e",
+      "dep": "cross-spawn",
+      "detail": "devDependency imported by production source (run.ts).",
+      "action": "Move to dependencies, or stop importing it from production code.",
+      "weight": 0,
+      "id": "P1-08"
+    },
+    {
+      "sev": "P1",
+      "rule": "dev-dep-in-src",
+      "package": "evals",
+      "dep": "gray-matter",
+      "detail": "devDependency imported by production source (src/skill-quality.ts).",
+      "action": "Move to dependencies, or stop importing it from production code.",
+      "weight": 0,
+      "id": "P1-09"
+    },
+    {
+      "sev": "P1",
+      "rule": "dev-dep-in-src",
+      "package": "evals",
+      "dep": "vitest",
+      "detail": "devDependency imported by production source (src/dsl/case.ts, src/dsl/describe.ts, src/records/record.ts).",
+      "action": "Move to dependencies, or stop importing it from production code.",
+      "weight": 0,
+      "id": "P1-10"
+    },
+    {
+      "sev": "P2",
+      "rule": "unused-dev",
+      "package": "server",
+      "dep": "testcontainers",
+      "detail": "devDependency with no import, script or config reference found.",
+      "action": "Verify then remove.",
+      "weight": 37938365,
+      "id": "P2-11"
+    },
+    {
+      "sev": "P2",
+      "rule": "vulnerability",
+      "package": "evals",
+      "dep": "vitest",
+      "detail": "2 advisories (worst critical, dev-only). critical: When Vitest UI server is listening, arbitrary file can be read and executed (https://github.com/advisories/GHSA-5xrq-8626-4rwp); moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (https://github.com/advisories/GHSA-82fw-gwwq-j7x9)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 25436799,
+      "id": "P2-12"
+    },
+    {
+      "sev": "P2",
+      "rule": "vulnerability",
+      "package": "reviewer-core",
+      "dep": "vitest",
+      "detail": "1 advisories (worst critical, dev-only). critical: When Vitest UI server is listening, arbitrary file can be read and executed (https://github.com/advisories/GHSA-5xrq-8626-4rwp)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 25410722,
+      "id": "P2-13"
+    },
+    {
+      "sev": "P2",
+      "rule": "vulnerability",
+      "package": "client",
+      "dep": "vitest",
+      "detail": "2 advisories (worst critical, dev-only). critical: When Vitest UI server is listening, arbitrary file can be read and executed (https://github.com/advisories/GHSA-5xrq-8626-4rwp); moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (https://github.com/advisories/GHSA-82fw-gwwq-j7x9)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 25410369,
+      "id": "P2-14"
+    },
+    {
+      "sev": "P2",
+      "rule": "vulnerability",
+      "package": "server",
+      "dep": "vitest",
+      "detail": "2 advisories (worst critical, dev-only). critical: When Vitest UI server is listening, arbitrary file can be read and executed (https://github.com/advisories/GHSA-5xrq-8626-4rwp); moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (https://github.com/advisories/GHSA-82fw-gwwq-j7x9)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 25410369,
+      "id": "P2-15"
+    },
+    {
+      "sev": "P2",
+      "rule": "vulnerability",
+      "package": "client",
+      "dep": "postcss",
+      "detail": "4 advisories (worst high, dev-only). high: PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments (https://github.com/advisories/GHSA-6g55-p6wh-862q); high: PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure (https://github.com/advisories/GHSA-r28c-9q8g-f849); moderate: PostCSS has XSS via Unescaped </style> in its CSS Stringify Output (https://github.com/advisories/GHSA-qx2v-qp2m-jg93); +1 more",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 385028,
+      "id": "P2-16"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "@types/node",
+      "detail": "22.19.19 → 26.6.5 (4 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-17"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "@vitejs/plugin-react",
+      "detail": "4.7.0 → 6.1.2 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-18"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "jsdom",
+      "detail": "25.0.1 → 30.1.2 (5 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-19"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "typescript",
+      "detail": "5.9.3 → 7.0.2 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-20"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "vitest",
+      "detail": "2.1.9 → 5.0.3 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-21"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "e2e",
+      "dep": "@types/node",
+      "detail": "22.19.21 → 26.6.5 (4 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-22"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "e2e",
+      "dep": "typescript",
+      "detail": "5.9.3 → 7.0.2 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-23"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "evals",
+      "dep": "openai",
+      "detail": "4.104.0 → 7.32.0 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-24"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "evals",
+      "dep": "@types/node",
+      "detail": "22.20.0 → 26.6.5 (4 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-25"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "evals",
+      "dep": "typescript",
+      "detail": "5.9.3 → 7.0.2 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-26"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "evals",
+      "dep": "vitest",
+      "detail": "2.1.9 → 5.0.3 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-27"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "mcp-server",
+      "dep": "@types/node",
+      "detail": "22.20.5 → 26.6.5 (4 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-28"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "mcp-server",
+      "dep": "typescript",
+      "detail": "5.9.3 → 7.0.2 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-29"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "mcp-server",
+      "dep": "vitest",
+      "detail": "3.2.7 → 5.0.3 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-30"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "reviewer-core",
+      "dep": "openai",
+      "detail": "4.104.0 → 7.32.0 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-31"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "reviewer-core",
+      "dep": "@types/node",
+      "detail": "22.19.20 → 26.6.5 (4 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-32"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "reviewer-core",
+      "dep": "typescript",
+      "detail": "5.9.3 → 7.0.2 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-33"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "reviewer-core",
+      "dep": "vitest",
+      "detail": "2.1.9 → 5.0.4 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-34"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "dotenv",
+      "detail": "16.6.1 → 18.0.7 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-35"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "fastify-type-provider-zod",
+      "detail": "4.0.2 → 7.0.0 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-36"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "openai",
+      "detail": "4.104.0 → 7.32.0 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-37"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "@testcontainers/postgresql",
+      "detail": "10.28.0 → 12.2.0 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-38"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "@types/node",
+      "detail": "22.19.19 → 26.6.5 (4 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-39"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "testcontainers",
+      "detail": "10.28.0 → 12.2.0 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-40"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "typescript",
+      "detail": "5.9.3 → 7.0.2 (2 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-41"
+    },
+    {
+      "sev": "P2",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "vitest",
+      "detail": "2.1.9 → 5.0.3 (3 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "P2-42"
+    },
+    {
+      "sev": "P2",
+      "rule": "version-drift",
+      "package": "client, e2e, evals, mcp-server, reviewer-core, server",
+      "dep": "@types/node",
+      "detail": "client: ^22.10.0 (→22.19.19); e2e: ^22.10.0 (→22.19.21); evals: ^22.0.0 (→22.20.0); mcp-server: 22.20.5 (→22.20.5); reviewer-core: ^22.10.0 (→22.19.20); server: ^22.10.0 (→22.19.19)",
+      "action": "Align on one version across packages.",
+      "weight": 0,
+      "id": "P2-43"
+    },
+    {
+      "sev": "P2",
+      "rule": "version-drift",
+      "package": "e2e, evals, mcp-server, reviewer-core, server",
+      "dep": "tsx",
+      "detail": "e2e: ^4.19.2 (→4.22.4); evals: ^4.19.0 (→4.22.4); mcp-server: 4.23.15 (→4.23.15); reviewer-core: ^4.19.2 (→4.22.4); server: ^4.19.2 (→4.22.4)",
+      "action": "Align on one version across packages.",
+      "weight": 0,
+      "id": "P2-44"
+    },
+    {
+      "sev": "P2",
+      "rule": "version-drift",
+      "package": "client, evals, mcp-server, reviewer-core, server",
+      "dep": "vitest",
+      "detail": "client: ^2.1.8 (→2.1.9); evals: ^2.1.0 (→2.1.9); mcp-server: 3.2.7 (→3.2.7); reviewer-core: ^2.1.8 (→2.1.9); server: ^2.1.8 (→2.1.9)",
+      "action": "Align on one version across packages.",
+      "weight": 0,
+      "id": "P2-45"
+    },
+    {
+      "sev": "P2",
+      "rule": "version-drift",
+      "package": "client, mcp-server, reviewer-core, server",
+      "dep": "zod",
+      "detail": "client: ^3.24.1 (→3.25.76); mcp-server: 4.6.5 (→4.6.5); reviewer-core: ^3.24.1 (→3.25.76); server: ^3.24.1 (→3.25.76)",
+      "action": "Align on one version across packages.",
+      "weight": 0,
+      "id": "P2-46"
+    },
+    {
+      "sev": "Info",
+      "rule": "heavy-dependency",
+      "package": "client",
+      "dep": "next",
+      "detail": "Installed size 133.0 MB own / 298.1 MB with 16 transitive packages (install size, not bundle size).",
+      "action": "Confirm it is needed in this package; for client code check real bundle impact (lazy import, narrower sub-package, lighter alternative).",
+      "weight": 312584920,
+      "id": "Info-47"
+    },
+    {
+      "sev": "Info",
+      "rule": "heavy-dependency",
+      "package": "evals",
+      "dep": "@anthropic-ai/claude-agent-sdk",
+      "detail": "Installed size 3.5 MB own / 231.7 MB with 1 transitive packages (install size, not bundle size).",
+      "action": "Confirm it is needed in this package; for client code check real bundle impact (lazy import, narrower sub-package, lighter alternative).",
+      "weight": 242984158,
+      "id": "Info-48"
+    },
+    {
+      "sev": "Info",
+      "rule": "heavy-dependency",
+      "package": "client",
+      "dep": "mermaid",
+      "detail": "Installed size 72.8 MB own / 115.2 MB with 110 transitive packages (install size, not bundle size).",
+      "action": "Confirm it is needed in this package; for client code check real bundle impact (lazy import, narrower sub-package, lighter alternative).",
+      "weight": 120758396,
+      "id": "Info-49"
+    },
+    {
+      "sev": "Info",
+      "rule": "heavy-dependency",
+      "package": "client",
+      "dep": "lucide-react",
+      "detail": "Installed size 27.3 MB own / 27.3 MB with 0 transitive packages (install size, not bundle size).",
+      "action": "Confirm it is needed in this package; for client code check real bundle impact (lazy import, narrower sub-package, lighter alternative).",
+      "weight": 28595555,
+      "id": "Info-50"
+    },
+    {
+      "sev": "Info",
+      "rule": "vulnerability",
+      "package": "mcp-server",
+      "dep": "vitest",
+      "detail": "1 advisories (worst moderate, dev-only). moderate: Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock (https://github.com/advisories/GHSA-82fw-gwwq-j7x9)",
+      "action": "Upgrade to a patched version (see advisories); if none exists, replace or isolate the dependency.",
+      "weight": 26595598,
+      "id": "Info-51"
+    },
+    {
+      "sev": "Info",
+      "rule": "heavy-dependency",
+      "package": "server",
+      "dep": "js-tiktoken",
+      "detail": "Installed size 21.4 MB own / 21.4 MB with 1 transitive packages (install size, not bundle size).",
+      "action": "Confirm it is needed in this package; for client code check real bundle impact (lazy import, narrower sub-package, lighter alternative).",
+      "weight": 22442452,
+      "id": "Info-52"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "lucide-react",
+      "detail": "0.469.0 → 1.55.0 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-53"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "mermaid",
+      "detail": "11.15.0 → 12.1.0 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-54"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "next",
+      "detail": "15.5.19 → 16.4.0 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-55"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "next-intl",
+      "detail": "3.26.5 → 4.14.9 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-56"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "react-markdown",
+      "detail": "9.1.0 → 10.1.0 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-57"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "recharts",
+      "detail": "2.15.4 → 3.10.1 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-58"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "zod",
+      "detail": "3.25.76 → 4.6.6 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-59"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "client",
+      "dep": "@testing-library/jest-dom",
+      "detail": "6.9.1 → 7.0.1 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-60"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "reviewer-core",
+      "dep": "zod",
+      "detail": "3.25.76 → 4.6.7 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-61"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "@fastify/cors",
+      "detail": "10.1.0 → 11.3.1 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-62"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "dependency-cruiser",
+      "detail": "17.4.3 → 18.6.0 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-63"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "octokit",
+      "detail": "4.1.4 → 5.0.5 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-64"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "p-queue",
+      "detail": "8.1.1 → 9.3.5 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-65"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "simple-git",
+      "detail": "3.36.0 → 4.0.2 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-66"
+    },
+    {
+      "sev": "Info",
+      "rule": "outdated-major",
+      "package": "server",
+      "dep": "zod",
+      "detail": "3.25.76 → 4.6.6 (1 major behind).",
+      "action": "Plan an upgrade; read the changelog for breaking changes.",
+      "weight": 0,
+      "id": "Info-67"
+    },
+    {
+      "sev": "Info",
+      "rule": "range-drift",
+      "package": "client, e2e, evals, mcp-server, reviewer-core, server",
+      "dep": "typescript",
+      "detail": "client: ^5.7.2; e2e: ^5.7.2; evals: ^5.6.0; mcp-server: 5.9.3; reviewer-core: ^5.7.2; server: ^5.7.2",
+      "action": "Use the same range everywhere.",
+      "weight": 0,
+      "id": "Info-68"
+    }
+  ],
+  "notes": []
+}

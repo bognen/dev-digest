@@ -1,4 +1,5 @@
-/* LineChart — multi-series line chart on Recharts. */
+/* LineChart — multi-series line chart on Recharts. Optional `tooltip` renders
+   custom hover content for the hovered point index (e.g. run version + cost). */
 import React from "react";
 import {
   LineChart as RLineChart,
@@ -7,6 +8,7 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
+  Tooltip,
 } from "recharts";
 
 export interface ChartSeries {
@@ -21,12 +23,17 @@ export function LineChart({
   h = 200,
   yMin = 0.6,
   yMax = 1.0,
+  tooltip,
+  ariaLabel,
 }: {
   series: ChartSeries[];
   w?: number;
   h?: number;
   yMin?: number;
   yMax?: number;
+  /** Hover content for the point at `index`; omit for no tooltip. */
+  tooltip?: (index: number) => React.ReactNode;
+  ariaLabel?: string;
 }) {
   const n = series[0]?.data.length ?? 0;
   const rows = Array.from({ length: n }, (_, i) => {
@@ -37,7 +44,7 @@ export function LineChart({
     return row;
   });
   return (
-    <div style={{ width: "100%", maxWidth: w, height: h }}>
+    <div style={{ width: "100%", maxWidth: w, height: h }} role={ariaLabel ? "img" : undefined} aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height="100%">
         <RLineChart data={rows} margin={{ top: 14, right: 14, bottom: 8, left: -10 }}>
           <CartesianGrid stroke="var(--border)" vertical={false} />
@@ -50,6 +57,27 @@ export function LineChart({
             tickLine={false}
             width={38}
           />
+          {tooltip && (
+            <Tooltip
+              cursor={{ stroke: "var(--border-strong)" }}
+              content={({ active, label }) =>
+                active && typeof label === "number" ? (
+                  <div
+                    style={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--border-strong)",
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      fontSize: 12,
+                      boxShadow: "var(--shadow-modal)",
+                    }}
+                  >
+                    {tooltip(label)}
+                  </div>
+                ) : null
+              }
+            />
+          )}
           {series.map((s) => (
             <Line
               key={s.name}
@@ -57,7 +85,7 @@ export function LineChart({
               dataKey={s.name}
               stroke={s.color}
               strokeWidth={2}
-              dot={false}
+              dot={tooltip ? { r: 2.5 } : false}
               isAnimationActive={false}
             />
           ))}

@@ -1,0 +1,43 @@
+name: evals-setup
+description: Install evals deps and start the LiteLLM proxy (OpenRouter) and wait for it.
+# Every failure prints a ::error:: annotation so the cause shows on the run summary
+# (annotations are readable without opening the raw log).
+runs:
+  using: composite
+  steps:
+    - name: Check OpenRouter secret
+      shell: bash
+      run: |
+        if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+          echo "::error title=evals setup::OPENROUTER_API_KEY is empty — add it under Settings → Secrets and variables → Actions → Secrets"
+          exit 1
+        fi
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+        cache-dependency-path: evals/pnpm-lock.yaml
+    - name: Install
+      shell: bash
+      working-directory: evals
+      run: pnpm install --frozen-lockfile || { echo "::error title=evals setup::pnpm install failed"; exit 1; }
+    - name: Typecheck
+      shell: bash
+      working-directory: evals
+      run: pnpm typecheck || { echo "::error title=evals setup::evals typecheck failed"; exit 1; }
+    - name: Start LiteLLM proxy
+      shell: bash
+      working-directory: evals
+      run: docker compose -f proxy/docker-compose.yml up -d || { echo "::error title=evals setup::docker compose up failed"; exit 1; }
+    - name: Wait for proxy
+      shell: bash
+      working-directory: evals
+      run: |
+        if ! pnpm proxy:wait; then
+          echo "::error title=evals setup::LiteLLM proxy did not become healthy (see container logs above)"
+          docker compose -f proxy/docker-compose.yml logs --tail 60 || true
+          exit 1
+        fi

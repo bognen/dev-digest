@@ -16,6 +16,12 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-13 — Feature modules declare structural port types instead of importing `db/rows`; compose cross-module helpers in the container
+`pnpm arch:check` flags `modules/<x>/types.ts → src/db/rows.ts` (only-repository-touches-db) and `service.ts → db/rows` (inner-no-outer); importing `reviews/diff-loader.ts` into `platform/container.ts` creates a cycle because diff-loader imports the `Container` type. The eval module (SPEC-06) declares `AgentLike`/`FindingLike`/`PullLike` in `modules/eval/types.ts` and composes the "git diff, else pr_files patches" fallback inline in `container.evalService` rather than importing `loadDiff`.
+
+### 2026-10-13 — Eval history survives case deletion: `eval_runs.case_id` is `ON DELETE SET NULL` plus name/expectation snapshots
+A suite run (`eval_suite_runs`) owns its per-case rows (`eval_runs.suite_run_id`, cascade), but deleting a case only nulls `case_id`; `case_name` and `expected_snapshot` keep the result readable and comparable (`server/src/db/schema/eval.ts`, migration 0021). Compare/flip logic keys results by `case_id ?? name:<case_name>`.
+
 ### 2026-10-12 — pr_brief: head_sha lives inside the JSON column, not its own column
 `pr_brief` keeps only `pr_id` + `json` (plus spend/staleness columns); the state key `head_sha` is written by `BriefRepository.upsertBrief` as `json.head_sha` and split back out in `getBrief` (`BriefRow.headSha` is unchanged for the service). A row without it reads as `''`, which never equals a PR head, so it is treated as an earlier state instead of crashing. Migration 0019 is a `--custom` SQL backfill (`jsonb_set(json,'{head_sha}',to_jsonb(head_sha))`) that MUST stay ordered before 0020, which drops the column and `pr_brief_head_sha_idx`: generate the custom file first, then change the schema and run `drizzle-kit generate`. Integration tests that insert `t.prBrief` rows directly must put `head_sha` in the JSON.
 
@@ -172,6 +178,9 @@ contracts between client and server with no compiler error until runtime.
 
 ## Tool & Library Notes
 
+### 2026-10-13 — vitest `mergeConfig` concatenates `test.include`; Stryker's sandbox only contains `server/`
+A narrowed config built with `mergeConfig(base, { test: { include: [...] } })` still runs every base glob — write it standalone (`server/vitest.mutation.config.ts`). Stryker copies only the package into `.stryker-tmp/`, so a test reading `../client/...` (the vendored-contract parity check) fails the initial dry run — point mutation runs at self-contained tests (`pnpm mutation:eval` → `test/eval-scoring.test.ts`).
+
 ### 2026-10-11 — Correction: optional request body needs `z.preprocess((v) => v ?? {}, schema)`, not `.default({})`
 Fastify passes `null` (not `undefined`) as the body of a POST with no payload and no content-type, and zod `.default()` only fires on `undefined`, so the entry below saying `.default({})` works is wrong: an absent body returned 422 (found by `test/brief.it.test.ts`, fixed in `brief/routes.ts`). Test absent-body paths with `app.inject` and no payload; a throwaway `safeParse(undefined)` check does not reproduce it.
 
@@ -219,6 +228,9 @@ directly instead. If you add or rename a script, check
 whoever has the skip-worktree bit set.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-13 — An empty POST body reaches Fastify's Zod schema as `null`, so `Body.optional()` returns 422
+`app.inject({ method: 'POST', url })` without a payload (and the client's body-less `api.post`) hands the schema `null`, not `undefined`; `StartEvalRunBody.optional()` failed with "Expected object, received null". Use `.nullish()` for optional bodies (`server/src/modules/eval/routes.ts`: `/eval/cases/:id/run`, `/skills/:id/eval-runs`).
 
 ### 2026-10-11 — Editing CRLF files on Windows (brief module, vendored contracts)
 With `core.autocrlf` the working tree is CRLF while HEAD blobs are LF; `Edit`/`Write` can flip endings. Edit via a node/python script that normalizes to LF, applies unique exact-match replacements, and writes back with explicit CRLF endings; then `fs.copyFileSync` the server `vendor/shared/contracts/brief.ts` over the client copy. Verify with `file <path>` — a `grep -c` for a carriage return returned 0 on CRLF files in this Git Bash.
