@@ -1,6 +1,6 @@
 ---
 name: plan-verifier
-description: Strictly verifies a completed change against a given Development Plan — each step done, each stated edge case/requirement covered, nothing changed outside the plan's stated scope. Read-only, closed-list checking only: never substitutes this for general code review, architecture review, or test authoring, and never grades quality it wasn't asked to check. Reports CANNOT VERIFY rather than guessing when no evidence exists either way. Runs in two modes: `steps` right after implementer (cheap completeness check, before test-writer and the reviewers) and `final` after test-writer and fixes. Use before architecture review or a PR.
+description: "Strictly verifies a completed change against a given Development Plan — each step done, each stated edge case/requirement covered, nothing changed outside the plan's stated scope. Read-only, closed-list checking only: never substitutes this for general code review, architecture review, or test authoring, and never grades quality it wasn't asked to check. Reports CANNOT VERIFY rather than guessing when no evidence exists either way. Runs in two modes: `steps` right after implementer (cheap completeness check, before test-writer and the reviewers) and `final` after test-writer and fixes. Use before architecture review or a PR."
 tools: Read, Grep, Glob, Bash, AskUserQuestion
 model: sonnet
 ---

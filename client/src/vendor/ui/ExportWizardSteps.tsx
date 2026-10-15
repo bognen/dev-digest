@@ -8,7 +8,10 @@ export function ExportWizardSteps({ step, labels }: { step: number; labels: stri
     <div style={{ display: "flex", alignItems: "center", gap: 0, padding: "0 5px" }}>
       {labels.map((l, i) => (
         <React.Fragment key={i}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            aria-current={i === step ? "step" : undefined}
+            style={{ display: "flex", alignItems: "center", gap: 10 }}
+          >
             <div
               style={{
                 width: 24,

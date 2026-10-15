@@ -1,16 +1,24 @@
 import type { Finding } from '@devdigest/shared';
-import { CiResultArtifact } from '@devdigest/shared';
+import { CiResultArtifact, CI_WORKFLOW_VERSION } from '@devdigest/shared';
 import { RunnerError } from './errors.js';
-
-/** Runner version string embedded in every artifact (informational only). */
-export const RUNNER_VERSION = '1';
 
 export interface BuildResultArtifactInput {
   findings: Finding[];
   costUsd: number | null;
   durationMs: number;
   agent: string;
+  agentSlug: string;
   prNumber: number;
+  repositoryId: number;
+  repository: string;
+  headSha: string;
+  workflowRunId: number;
+  workflowRunAttempt: number;
+  /** The deterministic GitHub review event (never the model's verdict). */
+  verdict: 'APPROVE' | 'COMMENT' | 'REQUEST_CHANGES';
+  blockers: number;
+  partial: boolean;
+  skippedFiles: string[];
 }
 
 function severityCounts(findings: Finding[]): { critical: number; warning: number; suggestion: number } {
@@ -24,28 +32,36 @@ function severityCounts(findings: Finding[]): { critical: number; warning: numbe
 }
 
 /**
- * Build + validate the `devdigest-result.json` artifact (AC-26). Validated
- * against the SAME `CiResultArtifact` Zod contract the studio's ingest path
- * (T6) will `safeParse` on the way back in, so a malformed artifact fails
+ * Build + validate the `devdigest-result.json` artifact (AC-41): exactly the
+ * strict `CiResultArtifact` allowlist — no secrets, no free text. Validated with
+ * the SAME schema the studio's ingest path uses, so a malformed artifact fails
  * loudly here rather than silently on ingest.
  */
 export function buildResultArtifact(input: BuildResultArtifactInput): CiResultArtifact {
   const counts = severityCounts(input.findings);
   const candidate = {
+    repository_id: input.repositoryId,
+    repository: input.repository,
+    pr_number: input.prNumber,
+    head_sha: input.headSha,
+    workflow_run_id: input.workflowRunId,
+    workflow_run_attempt: input.workflowRunAttempt,
+    agent: input.agent,
+    agent_slug: input.agentSlug,
+    version: String(CI_WORKFLOW_VERSION),
+    verdict: input.verdict,
     findings_count: input.findings.length,
     critical: counts.critical,
     warning: counts.warning,
     suggestion: counts.suggestion,
+    blockers: input.blockers,
     cost_usd: input.costUsd,
-    duration_ms: input.durationMs,
-    agent: input.agent,
-    version: RUNNER_VERSION,
-    pr_number: input.prNumber,
+    duration_ms: Math.round(input.durationMs),
+    partial: input.partial,
+    skipped_files: input.skippedFiles,
   };
   const result = CiResultArtifact.safeParse(candidate);
   if (!result.success) {
-    // Should be unreachable — every field above is shaped to the schema. If
-    // this ever fires it's a genuine internal bug, not a user/config error.
     throw new RunnerError(
       `Internal error: built result artifact failed CiResultArtifact validation: ${result.error.message}`,
     );

@@ -250,7 +250,11 @@ export class SkillsRepository implements SkillsStore {
       .from(t.agentSkills)
       .innerJoin(
         t.agentRuns,
-        and(eq(t.agentRuns.agentId, t.agentSkills.agentId), eq(t.agentRuns.status, 'done')),
+        and(
+          eq(t.agentRuns.agentId, t.agentSkills.agentId),
+          eq(t.agentRuns.status, 'done'),
+          eq(t.agentRuns.source, 'local'),
+        ),
       )
       .leftJoin(
         t.agentRunSkills,

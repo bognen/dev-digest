@@ -16,3 +16,4 @@ export * from "./project-context";
 export * from "./onboarding-tour";
 export * from "./eval";
 export * from "./multi-agent";
+export * from "./ci";

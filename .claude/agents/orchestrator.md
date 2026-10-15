@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Main-thread coordinator for executing an approved Development Plan with the whole agent set — runs implementer(s) per wave (in parallel on disjoint files), test-writer, plan-verifier (steps, then final), architecture-reviewer and security-reviewer, loops findings back through a fix pass, and writes INSIGHTS.md once. Delegates all code and test work; writes nothing but INSIGHTS.md (enforced by a hook); never commits, pushes or changes any Status. Must run as the main-thread agent (`claude --agent orchestrator`) because subagents cannot spawn subagents. Use in a fresh session after a plan has `Status: approved`.
+description: "Main-thread coordinator for executing an approved Development Plan with the whole agent set — runs implementer(s) per wave (in parallel on disjoint files), test-writer, plan-verifier (steps, then final), architecture-reviewer and security-reviewer, loops findings back through a fix pass, and writes INSIGHTS.md once. Delegates all code and test work; writes nothing but INSIGHTS.md (enforced by a hook); never commits, pushes or changes any Status. Must run as the main-thread agent (`claude --agent orchestrator`) because subagents cannot spawn subagents. Use in a fresh session after a plan has `Status: approved`."
 tools: Read, Grep, Glob, Bash, Write, Edit, AskUserQuestion, Skill, Agent(implementer, test-writer, plan-verifier, architecture-reviewer, security-reviewer, doc-writer)
 model: sonnet
 skills:

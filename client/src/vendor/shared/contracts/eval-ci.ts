@@ -400,27 +400,82 @@ export const ComposeReviewPreview = z.object({
 export type ComposeReviewPreview = z.infer<typeof ComposeReviewPreview>;
 
 // ===========================================================================
-// Export-to-CI + CI Runs
+// Export-to-CI + CI Runs (SPEC-07)
 // ===========================================================================
 
 export const CiTarget = z.enum(['gha', 'circle', 'jenkins', 'cli']);
 export type CiTarget = z.infer<typeof CiTarget>;
 
-/** One generated file in the CI bundle (path + editable contents). */
-export const CiFile = z.object({
-  path: z.string(),
-  contents: z.string(),
-  editable: z.boolean().default(true),
-});
-export type CiFile = z.infer<typeof CiFile>;
+/** Workflow template version written into every generated workflow + artifact. */
+export const CI_WORKFLOW_VERSION = 1;
+/** Max size of the result artifact JSON accepted at ingest (1 MiB). */
+export const CI_RESULT_MAX_BYTES = 1_048_576;
+/** Prefix of the per-agent result artifact name (`devdigest-result-<slug>`). */
+export const CI_ARTIFACT_PREFIX = 'devdigest-result-';
+/** Shown when the agent-runner bundle is missing (Preview / Install error). */
+export const CI_RUNNER_BUILD_COMMAND = 'cd agent-runner && pnpm build';
+
+/** Per-agent slug: lowercase alphanumerics separated by single hyphens. */
+export const CiSlug = z
+  .string()
+  .max(60)
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+export type CiSlug = z.infer<typeof CiSlug>;
+
+// ---- Path conventions (single source of truth for studio, runner and tests) ----
+
+/** `.devdigest/agents/<slug>/` (trailing slash). */
+export const ciAgentDir = (slug: string): string => `.devdigest/agents/${slug}/`;
+export const ciManifestPath = (slug: string): string => `${ciAgentDir(slug)}manifest.yaml`;
+export const ciSkillPath = (slug: string, skillSlug: string): string =>
+  `${ciAgentDir(slug)}skills/${skillSlug}.md`;
+export const ciRunnerPath = (slug: string): string => `${ciAgentDir(slug)}runner/index.js`;
+export const ciMemoryPath = (slug: string): string => `${ciAgentDir(slug)}memory.jsonl`;
+export const ciWorkflowPath = (slug: string): string =>
+  `.github/workflows/devdigest-review-${slug}.yml`;
+export const ciArtifactName = (slug: string): string => `${CI_ARTIFACT_PREFIX}${slug}`;
+export const ciInstallBranch = (slug: string): string => `devdigest/ci-${slug}`;
+export const ciRemovalBranch = (slug: string): string => `devdigest/ci-${slug}-remove`;
+/** The job `name`, which is the GitHub check name. */
+export const ciCheckName = (slug: string): string => `devdigest-review-${slug}`;
+
+export const CiPostAs = z.enum(['github_review', 'pr_comment', 'none']);
+export type CiPostAs = z.infer<typeof CiPostAs>;
+
+export const CiTrigger = z.enum(['opened', 'synchronize', 'reopened']);
+export type CiTrigger = z.infer<typeof CiTrigger>;
+
+export const CiInstallationStatus = z.enum(['active', 'removal_pending', 'removed']);
+export type CiInstallationStatus = z.infer<typeof CiInstallationStatus>;
+
+/** `no_findings` = accepted run with zero findings (design status badge). */
+export const CiRunStatus = z.enum([
+  'succeeded',
+  'failed',
+  'no_findings',
+  'skipped',
+  'result_expired',
+  'rejected',
+]);
+export type CiRunStatus = z.infer<typeof CiRunStatus>;
+
+export const CiRejectReason = z.enum([
+  'too_large',
+  'schema',
+  'repository_mismatch',
+  'sha_mismatch',
+  'agent_inactive',
+  'workflow_modified',
+]);
+export type CiRejectReason = z.infer<typeof CiRejectReason>;
 
 /**
  * AgentManifest — the agent contract shared by the studio and the CI runner.
  *
- * The studio (`CiService.agentYaml`) WRITES this shape to
- * `.devdigest/agents/<slug>.yaml`; the agent-runner READS it. Keeping one Zod
- * schema for both ends guarantees the formats never drift. `skills` are slugs
- * resolved to `.devdigest/skills/<slug>.md`.
+ * The studio WRITES this shape to `.devdigest/agents/<slug>/manifest.yaml`; the
+ * agent-runner READS it. Keeping one Zod schema for both ends guarantees the
+ * formats never drift. `skills` are slugs resolved to
+ * `.devdigest/agents/<slug>/skills/<skill-slug>.md`.
  */
 export const AgentManifest = z.object({
   name: z.string().min(1),
@@ -438,77 +493,195 @@ export const AgentManifest = z.object({
   // CI gate policy (see CiFailOn) — when the posted review should BLOCK
   // (REQUEST_CHANGES + fail the check) vs just comment. Default: block on critical.
   ci_fail_on: CiFailOn.default('critical'),
+  // Studio agent identity — lets a re-export adopt a folder the same agent
+  // created earlier (e.g. via zip). Optional so older manifests still validate.
+  studio_agent_id: z.string().uuid().optional(),
 });
 export type AgentManifest = z.infer<typeof AgentManifest>;
 /** Caller-facing input type — `.default()` fields stay optional. */
 export type AgentManifestInput = z.input<typeof AgentManifest>;
 
-/** Request body for `POST /agents/:id/export-ci`. */
-export const CiExportInput = z.object({
-  repo: z.string().min(1), // "owner/name"
-  target: CiTarget.default('gha'),
-  /** "open_pr" opens a PR with the files; "files" just returns/persists them. */
-  action: z.enum(['open_pr', 'files']).default('open_pr'),
-  post_as: z.enum(['github_review', 'pr_comment', 'none']).default('github_review'),
-  triggers: z.array(z.string()).default(['opened', 'synchronize', 'reopened']),
-  base: z.string().default('main'),
+/** Body of preview / install / zip: which repo and how the workflow behaves. */
+export const CiPreviewInput = z.object({
+  repo_id: z.string().uuid(),
+  triggers: z
+    .array(CiTrigger)
+    .min(1)
+    .refine((t) => new Set(t).size === t.length, { message: 'triggers must be unique' }),
+  post_as: CiPostAs,
+  memory_export: z.boolean(),
 });
-export type CiExportInput = z.infer<typeof CiExportInput>;
-/** Caller-facing input type — `.default()` fields stay optional (web hooks). */
-export type CiExportInputBody = z.input<typeof CiExportInput>;
+export type CiPreviewInput = z.infer<typeof CiPreviewInput>;
 
-/** A persisted CI installation (mirrors `ci_installations`). */
+/** One file in the preview. `contents` is null only for the runner bundle. */
+export const CiPreviewFile = z.object({
+  path: z.string(),
+  editable: z.boolean(),
+  contents: z.string().nullable(),
+  size_bytes: z.number().int(),
+  sha256: z.string(),
+});
+export type CiPreviewFile = z.infer<typeof CiPreviewFile>;
+
+export const CiPreview = z.object({
+  repo_full_name: z.string(),
+  default_branch: z.string(),
+  slug: z.string(),
+  workflow_path: z.string(),
+  check_name: z.string(),
+  workflow_version: z.number().int(),
+  files: z.array(CiPreviewFile),
+});
+export type CiPreview = z.infer<typeof CiPreview>;
+
+/** Names-only status of the Actions secrets the workflow needs. */
+export const CiSecretsStatus = z.object({
+  openrouter_api_key: z.enum(['set', 'not_set', 'required']),
+  github_token: z.literal('provided'),
+});
+export type CiSecretsStatus = z.infer<typeof CiSecretsStatus>;
+
+/** Body of install-by-PR: the preview input plus the (possibly edited) workflow. */
+export const CiInstallInput = CiPreviewInput.extend({
+  workflow_yaml: z.string().max(65_536).nullable(),
+  branch: z.string().optional(),
+});
+export type CiInstallInput = z.infer<typeof CiInstallInput>;
+
+/** Body of the zip download: the preview input plus the (possibly edited) workflow (AC-7). */
+export const CiZipInput = CiPreviewInput.extend({
+  workflow_yaml: z.string().max(65_536).nullish(),
+});
+export type CiZipInput = z.infer<typeof CiZipInput>;
+
+/** A persisted CI installation (one per agent + repo). */
 export const CiInstallation = z.object({
   id: z.string(),
   agent_id: z.string(),
+  repo_id: z.string(),
   repo: z.string(),
+  repo_github_id: z.number().int(),
   target_type: CiTarget,
+  slug: z.string(),
+  workflow_path: z.string(),
+  check_name: z.string(),
+  workflow_version: z.number().int(),
+  branch: z.string(),
+  pr_url: z.string().nullable(),
+  pr_number: z.number().int().nullable(),
+  pr_state: z.enum(['open', 'merged', 'closed']).nullable(),
+  status: CiInstallationStatus,
+  removal_pr_url: z.string().nullable(),
+  exported_ci_fail_on: CiFailOn,
   installed_at: z.string(),
+  updated_at: z.string(),
+  latest_run: z.object({ status: CiRunStatus, ran_at: z.string() }).nullable(),
 });
 export type CiInstallation = z.infer<typeof CiInstallation>;
 
-/** Response of `POST /agents/:id/export-ci`. */
-export const CiExport = z.object({
+/** Response of the install-by-PR endpoint. */
+export const CiInstallResult = z.object({
   installation: CiInstallation,
-  files: z.array(CiFile),
-  pr_url: z.string().nullable(),
+  pr_url: z.string(),
+  branch: z.string(),
+  reused_pr: z.boolean(),
 });
-export type CiExport = z.infer<typeof CiExport>;
+export type CiInstallResult = z.infer<typeof CiInstallResult>;
 
-export const CiRunStatus = z.enum(['succeeded', 'failed', 'no_findings', 'running']);
-export type CiRunStatus = z.infer<typeof CiRunStatus>;
+/** Body of "Remove from CI" (body-less POST arrives as null). */
+export const CiRemoveInput = z.object({ branch: z.string().optional() }).nullish();
+export type CiRemoveInput = z.infer<typeof CiRemoveInput>;
+
+export const CiRemoveResult = z.object({
+  installation: CiInstallation,
+  outcome: z.enum(['removal_pr_opened', 'removal_pr_reused', 'removed_directly']),
+  pr_url: z.string().nullable(),
+  /** Install PR still open when the files were never merged (removed_directly). */
+  install_pr_url: z.string().nullable(),
+});
+export type CiRemoveResult = z.infer<typeof CiRemoveResult>;
 
 /** A CI run row (mirrors `ci_runs`) — ingested from GitHub Actions artifacts. */
 export const CiRun = z.object({
   id: z.string(),
-  ci_installation_id: z.string().nullable(),
+  status: CiRunStatus,
+  reason: z.string().nullable(),
+  ran_at: z.string(),
+  repo: z.string(),
   pr_number: z.number().int().nullable(),
-  ran_at: z.string().nullable(),
-  status: z.string().nullable(),
+  head_sha: z.string().nullable(),
+  agent_id: z.string().nullable(),
+  agent_name: z.string().nullable(),
+  agent_slug: z.string().nullable(),
+  installation_status: CiInstallationStatus.nullable(),
+  verdict: z.string().nullable(),
   findings_count: z.number().int().nullable(),
+  critical: z.number().int().nullable(),
+  warning: z.number().int().nullable(),
+  suggestion: z.number().int().nullable(),
+  blockers: z.number().int().nullable(),
   cost_usd: z.number().nullable(),
-  github_url: z.string().nullable(),
-  source: z.string().nullable(),
-  agent: z.string().nullish(),
-  duration_s: z.number().nullish(),
+  duration_ms: z.number().int().nullable(),
+  partial: z.boolean(),
+  skipped_count: z.number().int(),
+  /** Link to the GitHub Actions run; only ever `https://github.com/<repo>/actions/runs/<id>`. */
+  run_url: z.string().nullable(),
+  workflow_run_id: z.number().int(),
+  run_attempt: z.number().int(),
+  version: z.string().nullable(),
 });
 export type CiRun = z.infer<typeof CiRun>;
 
-/**
- * The artifact shape uploaded by the CI action (`devdigest-result.json`).
- * Ingested back on refresh to populate `ci_runs` (L06).
- */
-export const CiResultArtifact = z.object({
-  findings_count: z.number().int(),
-  critical: z.number().int().nullish(),
-  warning: z.number().int().nullish(),
-  suggestion: z.number().int().nullish(),
-  cost_usd: z.number().nullable(),
-  duration_ms: z.number().int().nullish(),
-  agent: z.string(),
-  version: z.string().nullish(),
-  pr_number: z.number().int().nullish(),
+/** `GET /agents/:id/ci` — the agent CI tab read model. */
+export const CiAgentOverview = z.object({
+  installations: z.array(CiInstallation),
+  active_repos: z.number().int(),
+  current_workflow_version: z.number().int(),
+  runs: z.array(CiRun),
 });
+export type CiAgentOverview = z.infer<typeof CiAgentOverview>;
+
+/** `POST /ci/refresh` — outcome counts of one pull-only ingest. */
+export const CiRefreshResult = z.object({
+  accepted: z.number().int(),
+  rejected: z.number().int(),
+  failed: z.number().int(),
+  skipped: z.number().int(),
+  result_expired: z.number().int(),
+  removed: z.number().int(),
+  reactivated: z.number().int(),
+  errors: z.array(z.string()),
+});
+export type CiRefreshResult = z.infer<typeof CiRefreshResult>;
+
+/**
+ * The artifact uploaded by the CI runner (`devdigest-result.json`) — a strict
+ * allowlist. Ingested back on refresh to populate `ci_runs`.
+ */
+export const CiResultArtifact = z
+  .object({
+    repository_id: z.number().int(),
+    repository: z.string(),
+    pr_number: z.number().int(),
+    /** Format is checked at ingest (-> `sha_mismatch`), not here. */
+    head_sha: z.string(),
+    workflow_run_id: z.number().int(),
+    workflow_run_attempt: z.number().int(),
+    agent: z.string(),
+    agent_slug: z.string(),
+    version: z.string(),
+    verdict: z.enum(['APPROVE', 'COMMENT', 'REQUEST_CHANGES']),
+    findings_count: z.number().int(),
+    critical: z.number().int(),
+    warning: z.number().int(),
+    suggestion: z.number().int(),
+    blockers: z.number().int(),
+    cost_usd: z.number().nullable(),
+    duration_ms: z.number().int(),
+    partial: z.boolean(),
+    skipped_files: z.array(z.string()),
+  })
+  .strict();
 export type CiResultArtifact = z.infer<typeof CiResultArtifact>;
 
 // ===========================================================================

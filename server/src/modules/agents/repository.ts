@@ -109,6 +109,7 @@ export class AgentsRepository {
           eq(t.agentRuns.workspaceId, workspaceId),
           inArray(t.agentRuns.agentId, agentIds),
           eq(t.agentRuns.status, 'done'),
+          eq(t.agentRuns.source, 'local'),
         ),
       )
       .groupBy(t.agentRuns.agentId);

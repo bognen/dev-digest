@@ -16,6 +16,12 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-14 — Global `MutationCache.onError` toasts every failed mutation; inline error UIs duplicate it
+`src/app/providers.tsx` builds `new MutationCache({ onError: (err) => notify.error(...) })` with no per-mutation opt-out, so the Export to CI wizard's inline notices (preview/install/zip) show alongside a toast. The CI tab avoids it by surfacing "Remove from CI" errors only via the toast. A fix needs `providers.tsx` to skip `mutation.meta?.silent` and the hooks in `src/lib/hooks/ci.ts` to pass `meta: { silent: true }`.
+
+### 2026-10-14 — CI Runs auto-pull: keep the in-flight guard in a ref owned by the mounted view
+`app/ci-runs/_components/CiRunsView/useCiAutoPull.ts` triggers `/ci/refresh` on mount and every 60 s (`CI_RUNS_REFRESH_MS`, an explicit user override of SPEC-07 AC-77). `useMutation().mutate`'s per-call `onSettled` never fires after unmount, so overlap protection (StrictMode double mount, Refresh during a pull) is an `inFlight` ref, not mutation callbacks. A plain `refetchInterval` on `useCiRuns` only re-reads the DB — it doesn't pull new results from GitHub.
+
 ### 2026-10-13 — Eval UI lives in `src/components/evals/`; the kit `LineChart` gained an optional `tooltip(index)` prop
 The agent Evals tab, the skill Evals tab and `/evals/agents/[id]` all render the shared `EvalsPanel` (cases, KPIs, trend, history, Compare), so it sits in `src/components/evals/`; pure helpers are in `src/lib/eval-format.ts`. `LineChart` had no hover content — `tooltip`/`ariaLabel` were added deliberately (with a Showcase entry). Recharts measures 0×0 in jsdom, so tooltip tests mock `LineChart` and call `tooltip(i)` directly (`MetricTrendChart.test.tsx`).
 
@@ -284,6 +290,9 @@ contracts with no compiler error until a runtime mismatch shows up.
 ### 2026-10-14 — `Dropdown` pads its panel 6px; `Toggle` has no accessible name
 `@devdigest/ui` `Dropdown` always wraps `custom` content in 6px padding, so a flush designed panel (the 288px "Pick agents to run" picker in `RunReviewDropdown`) needs an inner `margin: -6` wrapper. `Toggle` renders a `role="switch"` with no label of its own — wrap it in a `<label>` with visible text (as `Disagreements.tsx` does for "Show only conflicts") or it fails role/name queries and a11y.
 
+### 2026-10-14 — next-intl `t.rich` here rejects React-element values for plain `{placeholder}` strings
+The `ci.json` copy uses `{repo}`-style args; passing JSX through `t.rich` fails the type check in this next-intl version. The wizard uses `t.raw()` plus `ExportCiWizard/renderTemplate.tsx` to splice React nodes into the template.
+
 ### 2026-10-11 � Stubbing a slot-taking component in tests: the stub must render the slot
 IntentCard now takes a `riskAreas` ReactNode slot; `page.test.tsx` stubbed it as `() => <div>intent-stub</div>`, so Risk areas vanished and an unrelated NFR-5 test failed. Stubs of components with slot props need `({ riskAreas }) => <div>stub{riskAreas}</div>`.
 
@@ -337,6 +346,12 @@ Seen while writing `extract.ts`: an escape written into a regex/string landed as
 ### 2026-10-14 — Moving a component folder silently breaks its tests' relative paths
 When `RunTraceDrawer`/`FindingCard` moved from `app/repos/[repoId]/pulls/[number]/_components/` to `components/review/`, their tests' relative `messages/en/*.json` imports and relative `vi.mock("../../…/lib/hooks/…")` paths broke (4 fewer `../` segments). A wrong `vi.mock` path doesn't error — the real module loads and the test fails or fetches for an unrelated-looking reason. After any move, grep the moved tests for `../` and prefer `@/` aliases in `vi.mock`.
 
+### 2026-10-15 — Correction: CI Runs auto-pull guard got stuck; release it from the `mutateAsync` promise
+Supersedes the 2026-10-14 "keep the in-flight guard in a ref" entry: clearing that ref in `mutate`'s per-call `onSettled` broke under StrictMode (mount → unmount → mount detaches the MutationObserver, so per-call callbacks never fire), leaving the guard `true` so every 60 s pull and the Refresh button silently no-op'd until a reload. `app/ci-runs/_components/CiRunsView/useCiAutoPull.ts` now calls `mutateAsync(...).finally(() => inFlight.current = false)`; the hook-level `onSuccess` invalidation still runs because it lives on the mutation, not the observer.
+
+### 2026-10-15 — A value import from `@devdigest/shared` breaks the Next build: "Can't resolve './contracts/findings.js'"
+Client code may only `import type` from `@devdigest/shared`: a value import (e.g. `ciAgentDir`) makes webpack bundle the vendored `src/vendor/shared/index.ts`, whose `./contracts/*.js` specifiers it cannot resolve. `pnpm typecheck` and vitest both pass, so only `next dev`/`next build` shows it. Mirror the small helper locally instead, e.g. `agentDir` in `app/agents/[id]/_components/AgentEditor/_components/CiTab/_components/ExportCiWizard/helpers.ts`.
+
 ### 2026-10-13 — Tests that render FindingCard must mock `@/lib/hooks/eval`
 FindingCard renders `EvalCaseButton` (SPEC-06), which uses TanStack Query hooks; without a QueryClient every test rendering FindingCard, FindingsPanel, DiffTab or ReviewRunAccordion throws. Add `vi.mock("@/lib/hooks/eval", () => ({ useEvalCaseSources: () => ({ data: [] }), useCreateCaseFromFinding: () => ({ mutate: vi.fn(), isPending: false }) }))`. Keep hints in `title`, not `aria-label`: an aria-label ending "…Accept or dismiss the finding first" matched `getByRole("button", { name: /accept/i })` in the FindingsPanel tests.
 
@@ -383,6 +398,9 @@ nesting would provide it for free.
 ## Session Notes
 
 ## Open Questions
+
+### 2026-10-14 — CI tab "Fail CI on" shows 3 segments but `CiFailOn` has 4 values
+The design's segmented control is Critical / Warning + / Never; the contract also has `any`. An agent set to `any` on the Config tab renders with no segment selected on the CI tab (`CiTab/_components/FailOnCard`). Decide whether to add a 4th segment (breaks the design) or map `any` onto one of the three.
 
 ---
 
