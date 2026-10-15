@@ -1,0 +1,2 @@
+# Keep Claude Code config LF on every checkout (agent frontmatter parsing is CRLF-sensitive)
+.claude/** text eol=lf
