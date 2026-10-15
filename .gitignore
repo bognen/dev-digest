@@ -30,3 +30,4 @@ evals/results/
 # Stryker mutation testing (server: pnpm mutation:eval)
 .stryker-tmp/
 server/reports/mutation/
+/to_analyze_2/

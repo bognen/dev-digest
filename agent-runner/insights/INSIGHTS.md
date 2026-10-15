@@ -11,13 +11,22 @@ See also: `insights/gotchas.md` for known quirks at project start.
 
 ## What Doesn't Work
 
+### 2026-10-14 — `import.meta.url === \`file://${process.argv[1]}\`` never matches on Windows
+The direct-run guard silently did nothing (backslashes, drive letter). `src/index.ts` now compares `pathToFileURL(realpathSync(process.argv[1])).href` with `import.meta.url`, which also fires inside the ncc bundle (`node dist/index.js` without `DEVDIGEST_AGENT_SLUG` prints one `[agent-runner] FAILED:` line and exits 1).
+
 2026-07-08 — `pnpm typecheck` in `agent-runner` fails with `Cannot find module 'zod'` / `'openai'` errors pointing at `reviewer-core/src/llm/*.ts` if `reviewer-core/node_modules` was never installed. Because this repo is NOT a monorepo (no `pnpm-workspace.yaml`, no hoisting across packages), TypeScript's `moduleResolution: "Bundler"` walks up the ancestor directories of the *importing file* — `reviewer-core/src/llm/` → `reviewer-core/` → repo root — and never reaches `agent-runner/node_modules` (a sibling, not an ancestor). Fix: `cd reviewer-core && pnpm install` once (creates gitignored `node_modules`, touches no tracked files) — this is also required for `cd server && pnpm typecheck` to pass cleanly, so it is not agent-runner-specific. ref: agent-runner/tsconfig.json:20
 
 ## Codebase Patterns
 
+### 2026-10-14 — Fork/Dependabot skip runs first; only the agent's own workflow is stripped from the diff
+`runCi` (`src/run.ts`) checks the skip (`resolveRunOrigin`: head repo ≠ base repo, or `GITHUB_TRIGGERING_ACTOR` is `dependabot[bot]`) before the `OPENROUTER_API_KEY` check and the manifest load, because those runs get no secrets; it exits 0 with a job-summary notice. `stripIgnoredFiles(raw, ciWorkflowPath(slug))` drops `.devdigest/**` and this agent's own `devdigest-review-<slug>.yml` only — other agents' `devdigest-review-*.yml` are reviewed (D-31), so a PR can't hide a malicious workflow behind the naming pattern. Don't restore the old `.github/workflows/` prefix rule.
+
 2026-07-08 — `agent-runner/tsconfig.json` intentionally mirrors `server/tsconfig.json`'s compiler options and path-alias block verbatim (aliasing `@devdigest/reviewer-core` → `../reviewer-core/src/index.ts` and `@devdigest/shared` → `../server/src/vendor/shared/index.ts`), so both consumers resolve the exact same source files. `agent-runner/vitest.config.ts` re-declares the same two aliases (vitest/vite doesn't read `tsconfig.json` paths automatically) — matches the pattern already used in `reviewer-core/vitest.config.ts`. ref: agent-runner/tsconfig.json:21
 
 ## Tool & Library Notes
+
+### 2026-10-14 — Correction: the ncc bundle is not one file and does have one top-level import
+Supersedes the 2026-07-08 "What Works" entry. `pnpm build` now emits `dist/index.js` + a lazy `dist/300.index.js` (node-domexception via openai) + `dist/package.json`, and line 1 of `index.js` is `import { createRequire } from "module"` (ncc's ESM shim, a Node builtin) — so a "zero top-level imports" grep must allow it, and the studio exports every `dist/` file. Running `pnpm` here can also create a stray `agent-runner/pnpm-workspace.yaml` (`allowBuilds: esbuild`); delete it, never commit it.
 
 2026-07-08 — `@vercel/ncc` versions jump from `0.38.4` straight to `0.43.0`/`0.44.x` on npm (no `0.39`–`0.42` releases). A `^0.38.3` semver range resolves to `0.38.4`, not the newer `0.44.x` line — pin explicitly if the newer major-minor is desired. ref: agent-runner/package.json:15
 

@@ -68,6 +68,7 @@ diff --git a/b.ts b/b.ts
 });
 
 describe('stripIgnoredFiles', () => {
+  const OWN = '.github/workflows/devdigest-review-a.yml';
   const raw = `diff --git a/src/config.ts b/src/config.ts
 --- a/src/config.ts
 +++ b/src/config.ts
@@ -80,26 +81,39 @@ diff --git a/.devdigest/runner/index.js b/.devdigest/runner/index.js
 @@ -1,1 +1,1 @@
 -old bundle
 +new bundle
-diff --git a/.github/workflows/devdigest-review.yml b/.github/workflows/devdigest-review.yml
---- a/.github/workflows/devdigest-review.yml
-+++ b/.github/workflows/devdigest-review.yml
+diff --git a/.github/workflows/devdigest-review-a.yml b/.github/workflows/devdigest-review-a.yml
+--- a/.github/workflows/devdigest-review-a.yml
++++ b/.github/workflows/devdigest-review-a.yml
 @@ -1,1 +1,2 @@
  name: DevDigest Review
 +on: pull_request
 `;
 
   it('drops the .devdigest/ runner bundle (the source of the GitHub 422)', () => {
-    const files = parseUnifiedDiff(stripIgnoredFiles(raw)).files.map((f) => f.path);
+    const files = parseUnifiedDiff(stripIgnoredFiles(raw, OWN)).files.map((f) => f.path);
     expect(files).not.toContain('.devdigest/runner/index.js');
   });
 
+  it("drops only this agent's own workflow file, not other workflows", () => {
+    const other = `diff --git a/.github/workflows/devdigest-review-b.yml b/.github/workflows/devdigest-review-b.yml
+--- a/.github/workflows/devdigest-review-b.yml
++++ b/.github/workflows/devdigest-review-b.yml
+@@ -1,1 +1,2 @@
+ name: x
++on: y
+`;
+    const files = parseUnifiedDiff(stripIgnoredFiles(raw + other, OWN)).files.map((f) => f.path);
+    expect(files).toContain('.github/workflows/devdigest-review-b.yml');
+    expect(files).not.toContain(OWN);
+  });
+
   it('drops the generated .github/workflows/ file', () => {
-    const files = parseUnifiedDiff(stripIgnoredFiles(raw)).files.map((f) => f.path);
-    expect(files).not.toContain('.github/workflows/devdigest-review.yml');
+    const files = parseUnifiedDiff(stripIgnoredFiles(raw, OWN)).files.map((f) => f.path);
+    expect(files).not.toContain('.github/workflows/devdigest-review-a.yml');
   });
 
   it('keeps the target repo files untouched', () => {
-    const diff = parseUnifiedDiff(stripIgnoredFiles(raw));
+    const diff = parseUnifiedDiff(stripIgnoredFiles(raw, OWN));
     expect(diff.files.map((f) => f.path)).toEqual(['src/config.ts']);
     expect(diff.files[0]!.additions).toBe(1);
     // the kept section's content survives verbatim
@@ -108,6 +122,6 @@ diff --git a/.github/workflows/devdigest-review.yml b/.github/workflows/devdiges
   });
 
   it('is a no-op when nothing is ignored', () => {
-    expect(stripIgnoredFiles(FIXTURE_DIFF_RAW)).toBe(FIXTURE_DIFF_RAW);
+    expect(stripIgnoredFiles(FIXTURE_DIFF_RAW, OWN)).toBe(FIXTURE_DIFF_RAW);
   });
 });

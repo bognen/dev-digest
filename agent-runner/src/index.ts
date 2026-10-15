@@ -18,9 +18,11 @@
  * real world and maps the result onto `process.exitCode`.
  */
 import path from 'node:path';
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { OpenRouterProvider } from '@devdigest/reviewer-core';
 import { runCi, type PostAs } from './run.js';
+import { redactSecrets } from './redact.js';
 
 function resolvePostAs(value: string | undefined): PostAs {
   if (value === 'github_review' || value === 'pr_comment' || value === 'none') return value;
@@ -45,12 +47,16 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number
     postAs,
     resultPath,
     readFile: readFileSync,
-    readDir: readdirSync,
     writeFile: writeFileSync,
+    appendFile: appendFileSync,
   });
 
-  if (result.artifact === null) {
-    console.error(`[agent-runner] FAILED: ${result.error}`);
+  if (result.skipped !== undefined) {
+    // Notice + job summary were already written by `runCi`; nothing else to do.
+  } else if (result.artifact === null) {
+    // One line, secrets masked (AC-40, AC-42).
+    const line = redactSecrets(result.error, env).replace(/\s+/g, ' ');
+    console.error(`[agent-runner] FAILED: ${line}`);
   } else {
     console.log(
       `[agent-runner] findings=${result.artifact.findings_count} blockers=${result.blockers} ` +
@@ -60,20 +66,29 @@ export async function main(env: NodeJS.ProcessEnv = process.env): Promise<number
   return result.exitCode;
 }
 
-// Only run when executed directly (CI), never on import (tests import `main`
-// / `runCi` directly and drive them with injected fixtures).
-const isDirectRun =
-  typeof process !== 'undefined' &&
-  process.argv[1] != null &&
-  import.meta.url === `file://${process.argv[1]}`;
+/**
+ * True when this module is the process entry point. Compares file URLs built
+ * with `pathToFileURL` (the naive `file://${argv[1]}` form never matches on
+ * Windows paths), resolving symlinks on both sides.
+ */
+function isDirectRun(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return pathToFileURL(realpathSync(entry)).href === import.meta.url;
+  } catch {
+    return false;
+  }
+}
 
-if (isDirectRun) {
+if (isDirectRun()) {
   main().then(
     (code) => {
       process.exitCode = code;
     },
     (err) => {
-      console.error('[agent-runner] fatal error:', err);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[agent-runner] fatal error: ${redactSecrets(message, process.env)}`);
       process.exitCode = 1;
     },
   );

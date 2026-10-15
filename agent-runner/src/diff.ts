@@ -1,27 +1,28 @@
 import type { UnifiedDiff, DiffHunk } from '@devdigest/shared';
 
 /**
- * Repo-relative path prefixes whose diff sections are dropped BEFORE review.
- * These are DevDigest's own exported artifacts, not the target repo's code:
+ * Whole `diff --git` sections dropped from the raw diff BEFORE review:
  *
- *  - `.devdigest/` — the checked-in agent config AND the ncc runner bundle
- *    (`.devdigest/runner/index.js`), a single minified megafile. GitHub rejects
- *    an inline comment on such a file with 422 "diff too large" and — because a
- *    review is all-or-nothing — fails the ENTIRE review. This prefix is the fix
- *    for that 422; it only ever appears in the diff of the export/update PR
- *    itself, but that PR would otherwise never post a passing review.
- *  - `.github/workflows/` — the generated GHA workflow; reviewing our own
- *    generated CI YAML is pure noise.
+ *  - everything under `.devdigest/` — DevDigest's own exported artifacts (agent
+ *    folders, memory, and the ncc runner bundle, a single minified megafile).
+ *    GitHub rejects an inline comment on such a file with 422 "diff too large"
+ *    and a review is all-or-nothing, so the whole review would fail.
+ *  - this agent's OWN generated workflow (`ownWorkflowPath`, exact match only).
+ *    Every other `.github/workflows/*` file — including other agents'
+ *    `devdigest-review-*.yml` — is ordinary repo code and IS reviewed (D-31).
  *
- * Stripping them from the RAW diff (not just the parsed file list) matters:
- * single-pass review feeds `diff.raw` straight to the model
- * (`reviewer-core/review/run.ts`), so filtering only `files` would still spend
- * tokens on — and let the model cite — the ignored paths.
+ * Stripping happens on the RAW diff (not just the parsed file list): single-pass
+ * review feeds `diff.raw` straight to the model, so filtering only `files`
+ * would still spend tokens on, and let the model cite, the ignored paths.
+ * Paths are PR-controlled, so matching is by exact prefix / exact equality only.
  */
-export const IGNORED_DIFF_PREFIXES = ['.devdigest/', '.github/workflows/'] as const;
+export const IGNORED_DIFF_PREFIX = '.devdigest/';
 
-function isIgnoredDiffPath(path: string): boolean {
-  return IGNORED_DIFF_PREFIXES.some((prefix) => path.startsWith(prefix));
+function isIgnoredDiffPath(path: string, ownWorkflowPath: string | undefined): boolean {
+  return (
+    path.startsWith(IGNORED_DIFF_PREFIX) ||
+    (ownWorkflowPath !== undefined && path === ownWorkflowPath)
+  );
 }
 
 /**
@@ -30,14 +31,17 @@ function isIgnoredDiffPath(path: string): boolean {
  * media type emits exactly one `diff --git a/<path> b/<path>` header per file,
  * so splitting on that header and reading the new-side (`b/`) path is enough to
  * decide which sections to drop.
+ *
+ * `ownWorkflowPath` is optional only so callers not yet migrated keep compiling;
+ * the CI pipeline always passes `ciWorkflowPath(slug)`.
  */
-export function stripIgnoredFiles(raw: string): string {
+export function stripIgnoredFiles(raw: string, ownWorkflowPath?: string): string {
   const kept: string[] = [];
   let skipping = false;
   for (const line of raw.split('\n')) {
     if (line.startsWith('diff --git')) {
       const match = line.match(/ b\/(.*)$/);
-      skipping = isIgnoredDiffPath(match?.[1]?.trim() ?? '');
+      skipping = isIgnoredDiffPath(match?.[1]?.trim() ?? '', ownWorkflowPath);
     }
     if (!skipping) kept.push(line);
   }
