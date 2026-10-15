@@ -6,7 +6,7 @@ describe("nav registry", () => {
 
   it("lists Conventions in the SKILLS LAB section, not in WORKSPACE", () => {
     const lab = section("SKILLS LAB").items.map((i) => i.key);
-    expect(lab).toEqual(["skills", "agents", "conventions", "eval"]);
+    expect(lab).toEqual(["skills", "agents", "conventions", "eval", "ci-runs"]);
     expect(section("WORKSPACE").items.map((i) => i.key)).not.toContain("conventions");
   });
 
@@ -42,6 +42,14 @@ describe("Eval Dashboard nav item (SPEC-06 AC-36)", () => {
     const lab = NAV.find((g) => g.section === "SKILLS LAB")!;
     const item = lab.items.find((i) => i.key === "eval")!;
     expect(item).toMatchObject({ label: "Eval Dashboard", href: "/evals" });
+  });
+});
+
+describe("CI Runs nav item (SPEC-07)", () => {
+  it("is in SKILLS LAB after Eval Dashboard and links to /ci-runs", () => {
+    const lab = NAV.find((g) => g.section === "SKILLS LAB")!;
+    expect(lab.items.map((i) => i.key).slice(-2)).toEqual(["eval", "ci-runs"]);
+    expect(lab.items.find((i) => i.key === "ci-runs")).toMatchObject({ label: "CI Runs", icon: "Workflow", href: "/ci-runs" });
   });
 });
 

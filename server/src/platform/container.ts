@@ -2,6 +2,7 @@ import type {
   AuthProvider,
   SecretsProvider,
   GitHubClient,
+  GitHubCiClient,
   GitClient,
   CodeIndex,
   Embedder,
@@ -35,7 +36,8 @@ import { RepoIntelService } from '../modules/repo-intel/service.js';
 import { BriefRepository } from '../modules/brief/repository.js';
 import { BriefService } from '../modules/brief/service.js';
 import { readSpecFile } from '../modules/brief/clone.js';
-import { stat } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { OnboardingRepository } from '../modules/onboarding/repository.js';
 import { OnboardingService } from '../modules/onboarding/service.js';
 import { readExcerpt } from '../modules/onboarding/clone.js';
@@ -45,6 +47,9 @@ import { ProjectContextService } from '../modules/project-context/service.js';
 import { checkoutReader } from '../modules/project-context/checkout.js';
 import { EvalRepository } from '../modules/eval/repository.js';
 import { EvalService } from '../modules/eval/service.js';
+import { CiRepository } from '../modules/ci/repository.js';
+import { CiService } from '../modules/ci/service.js';
+import type { CiRunnerBundle } from '../modules/ci/types.js';
 import { parseUnifiedDiff } from '../adapters/git/diff-parser.js';
 import { type DepGraph, DepCruiseGraph } from '../adapters/depgraph/index.js';
 import { type Tokenizer, TiktokenTokenizer } from '../adapters/tokenizer/index.js';
@@ -61,6 +66,10 @@ export interface ContainerOverrides {
   secrets?: SecretsProvider;
   auth?: AuthProvider;
   github?: GitHubClient;
+  /** CI-export GitHub port (SPEC-07). Defaults to the same client as `github`. */
+  githubCi?: GitHubCiClient;
+  /** Pre-read agent-runner bundle (filename -> text); `null` simulates "not built". */
+  runnerBundle?: CiRunnerBundle | null;
   git?: GitClient;
   codeIndex?: CodeIndex;
   embedder?: Embedder;
@@ -106,6 +115,7 @@ export class Container {
   private _projectContextService?: ProjectContextService;
   private _onboardingService?: OnboardingService;
   private _evalService?: EvalService;
+  private _ciService?: CiService;
 
   constructor(config: AppConfig, db: Db, private overrides: ContainerOverrides = {}) {
     this.config = config;
@@ -242,6 +252,48 @@ export class Container {
     }));
   }
 
+  /**
+   * CI export / ingest (SPEC-07). Process-wide singleton: the ingest service owns the
+   * per-workspace refresh guard and the foreign-run seen-set.
+   */
+  get ciService(): CiService {
+    return (this._ciService ??= new CiService({
+      store: new CiRepository(this.db),
+      agents: this.agentsRepo,
+      github: () => this.github(),
+      githubCi: () => this.githubCi(),
+      readRunnerBundle: () => this.readRunnerBundle(),
+      studioSecretValues: () => this.studioSecretValues(),
+      logger: console,
+      now: () => new Date(),
+    }));
+  }
+
+  /** Every file in the built runner's directory (`index.js` + lazy chunks); null if no `index.js`. */
+  private async readRunnerBundle(): Promise<CiRunnerBundle | null> {
+    if (this.overrides.runnerBundle !== undefined) return this.overrides.runnerBundle;
+    const entry = this.config.agentRunnerBundle;
+    const dir = dirname(entry);
+    let names: string[];
+    try {
+      const entries = await readdir(dir, { withFileTypes: true });
+      names = entries.filter((e) => e.isFile()).map((e) => e.name);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw err;
+    }
+    const bundle: Record<string, string> = {};
+    for (const name of names) bundle[name] = await readFile(join(dir, name), 'utf8');
+    return bundle['index.js'] == null ? null : bundle;
+  }
+
+  /** Studio secret values, for the export secret-leak scan (NFR-2). */
+  private async studioSecretValues(): Promise<string[]> {
+    const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OPENROUTER_API_KEY', 'GITHUB_TOKEN'];
+    const values = await Promise.all(keys.map((k) => this.secrets.get(k).catch(() => undefined)));
+    return values.filter((v): v is string => typeof v === 'string' && v.length > 0);
+  }
+
   get reviewRepo(): ReviewRepository {
     return (this._reviewRepo ??= new ReviewRepository(this.db));
   }
@@ -310,6 +362,16 @@ export class Container {
     if (!token) throw new ConfigError('GITHUB_TOKEN is not configured');
     this._github = new OctokitGitHubClient(token);
     return this._github;
+  }
+
+  /** GitHub Actions / repo-tree port. The same client as `github()` unless overridden. */
+  async githubCi(): Promise<GitHubCiClient> {
+    if (this.overrides.githubCi) return this.overrides.githubCi;
+    const client = await this.github();
+    if (!('getRepository' in client)) {
+      throw new ConfigError('The configured GitHub client does not support CI operations');
+    }
+    return client as GitHubClient & GitHubCiClient;
   }
 
   /** Resolve an LLM provider by id; constructs from the secret key, cached. */

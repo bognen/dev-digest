@@ -17,6 +17,10 @@ import type {
   OpenPrPayload,
   CommitFilesPayload,
   IssueMeta,
+  GitHubCiClient,
+  CiWorkflowRun,
+  CiRunArtifact,
+  CiRepositoryInfo,
   GitClient,
   CloneOptions,
   UnifiedDiff,
@@ -135,13 +139,46 @@ export interface MockGitHubOptions {
   login?: string;
   /** Existing inline review comments returned by listReviewComments. */
   comments?: PrReviewComment[];
+  /** Repository metadata returned by `getRepository` (CI). */
+  repository?: CiRepositoryInfo;
+  /** Existing branches -> head SHA (CI). */
+  branches?: Record<string, string>;
+  /** Pre-existing open PRs keyed by head branch (CI). */
+  openPrs?: Record<string, { url: string; number: number }>;
+  /** Actions secret names; `secretsError` makes the list call fail instead. */
+  secretNames?: string[];
+  secretsError?: { status: number; message: string };
+  /** Workflow runs per workflow file name, and repo-wide (CI). */
+  runs?: Record<string, CiWorkflowRun[]>;
+  repoRuns?: CiWorkflowRun[];
+  /** Artifacts per workflow run id, and artifact zip bytes per artifact id (CI). */
+  artifacts?: Record<number, CiRunArtifact[]>;
+  artifactZips?: Record<number, Uint8Array>;
+  /** File blobs keyed `path@ref` -> { sha, text } (CI). */
+  blobs?: Record<string, { sha: string; text: string }>;
+  /** Recursive tree paths per ref (CI). */
+  trees?: Record<string, string[]>;
+  /** Pull state per PR number (CI). */
+  pullStates?: Record<number, { state: 'open' | 'closed'; merged: boolean }>;
+  /** Make a given operation throw an error carrying an HTTP `status`. */
+  failOn?: Partial<Record<MockGitHubOp, { status: number; message: string }>>;
 }
 
-export class MockGitHubClient implements GitHubClient {
+export type MockGitHubOp = keyof GitHubClient | keyof GitHubCiClient;
+
+export class MockGitHubClient implements GitHubClient, GitHubCiClient {
   public posted: { n: number; review: GitHubReviewPayload }[] = [];
   public openedPrs: OpenPrPayload[] = [];
   public committed: CommitFilesPayload[] = [];
   public createdComments: CreateReviewCommentInput[] = [];
+  /** Every call in order, for assertions. */
+  public calls: { op: MockGitHubOp; args: unknown[] }[] = [];
+
+  private record(op: MockGitHubOp, ...args: unknown[]): void {
+    this.calls.push({ op, args });
+    const fail = this.opts.failOn?.[op];
+    if (fail) throw Object.assign(new Error(fail.message), { status: fail.status });
+  }
 
   constructor(private opts: MockGitHubOptions = {}) {}
 
@@ -225,19 +262,114 @@ export class MockGitHubClient implements GitHubClient {
     };
   }
 
-  async openPullRequest(_repo: RepoRef, payload: OpenPrPayload): Promise<{ url: string }> {
+  async openPullRequest(repo: RepoRef, payload: OpenPrPayload): Promise<{ url: string }> {
+    this.record('openPullRequest', repo, payload);
     this.openedPrs.push(payload);
     return { url: 'https://github.com/mock/mock/pull/1' };
   }
 
-  async commitFiles(_repo: RepoRef, payload: CommitFilesPayload): Promise<{ branch: string }> {
+  async commitFiles(repo: RepoRef, payload: CommitFilesPayload): Promise<{ branch: string }> {
+    this.record('commitFiles', repo, payload);
     this.committed.push(payload);
     return { branch: payload.branch };
   }
 
-  async findOpenPr(_repo: RepoRef, branch: string): Promise<{ url: string } | null> {
+  async findOpenPr(
+    repo: RepoRef,
+    branch: string,
+  ): Promise<{ url: string; number: number } | null> {
+    this.record('findOpenPr', repo, branch);
+    const configured = this.opts.openPrs?.[branch];
+    if (configured) return configured;
     const pr = this.openedPrs.find((p) => p.head === branch);
-    return pr ? { url: 'https://github.com/mock/mock/pull/1' } : null;
+    return pr ? { url: 'https://github.com/mock/mock/pull/1', number: 1 } : null;
+  }
+
+  // ---- GitHubCiClient ----
+
+  async getRepository(repo: RepoRef): Promise<CiRepositoryInfo> {
+    this.record('getRepository', repo);
+    return (
+      this.opts.repository ?? {
+        id: 1,
+        defaultBranch: 'main',
+        fullName: `${repo.owner}/${repo.name}`,
+      }
+    );
+  }
+
+  async getBranchSha(repo: RepoRef, branch: string): Promise<string | null> {
+    this.record('getBranchSha', repo, branch);
+    const branches = this.opts.branches ?? { main: 'mock-main-sha' };
+    return branches[branch] ?? null;
+  }
+
+  async listActionsSecretNames(repo: RepoRef): Promise<string[]> {
+    this.record('listActionsSecretNames', repo);
+    if (this.opts.secretsError) {
+      throw Object.assign(new Error(this.opts.secretsError.message), {
+        status: this.opts.secretsError.status,
+      });
+    }
+    return this.opts.secretNames ?? [];
+  }
+
+  async listWorkflowRuns(
+    repo: RepoRef,
+    workflowFile: string,
+    opts: { perPage: number },
+  ): Promise<CiWorkflowRun[]> {
+    this.record('listWorkflowRuns', repo, workflowFile, opts);
+    return (this.opts.runs?.[workflowFile] ?? []).slice(0, opts.perPage);
+  }
+
+  async listRepoWorkflowRuns(repo: RepoRef, opts: { perPage: number }): Promise<CiWorkflowRun[]> {
+    this.record('listRepoWorkflowRuns', repo, opts);
+    return (this.opts.repoRuns ?? []).slice(0, opts.perPage);
+  }
+
+  async listRunArtifacts(repo: RepoRef, runId: number): Promise<CiRunArtifact[]> {
+    this.record('listRunArtifacts', repo, runId);
+    return this.opts.artifacts?.[runId] ?? [];
+  }
+
+  async downloadArtifactZip(repo: RepoRef, artifactId: number): Promise<Uint8Array> {
+    this.record('downloadArtifactZip', repo, artifactId);
+    const zip = this.opts.artifactZips?.[artifactId];
+    if (!zip) throw Object.assign(new Error('Not Found'), { status: 404 });
+    return zip;
+  }
+
+  async getFileBlobSha(repo: RepoRef, path: string, ref: string): Promise<string | null> {
+    this.record('getFileBlobSha', repo, path, ref);
+    return this.opts.blobs?.[`${path}@${ref}`]?.sha ?? null;
+  }
+
+  async pathExists(repo: RepoRef, path: string, ref: string): Promise<boolean> {
+    this.record('pathExists', repo, path, ref);
+    const blobs = this.opts.blobs ?? {};
+    const dir = path.endsWith('/') ? path : `${path}/`;
+    return Object.keys(blobs).some(
+      (k) => k.endsWith(`@${ref}`) && (k === `${path}@${ref}` || k.startsWith(dir)),
+    );
+  }
+
+  async getFileText(repo: RepoRef, path: string, ref: string): Promise<string | null> {
+    this.record('getFileText', repo, path, ref);
+    return this.opts.blobs?.[`${path}@${ref}`]?.text ?? null;
+  }
+
+  async listTreePaths(repo: RepoRef, ref: string, prefix: string): Promise<string[]> {
+    this.record('listTreePaths', repo, ref, prefix);
+    return (this.opts.trees?.[ref] ?? []).filter((p) => p.startsWith(prefix));
+  }
+
+  async getPullState(
+    repo: RepoRef,
+    n: number,
+  ): Promise<{ state: 'open' | 'closed'; merged: boolean }> {
+    this.record('getPullState', repo, n);
+    return this.opts.pullStates?.[n] ?? { state: 'open', merged: false };
   }
 
   async getIssue(_repo: RepoRef, n: number): Promise<IssueMeta> {
