@@ -13,7 +13,7 @@ import {
 import { usePrComments, useCreatePrComment, useFindingAction, useSmartDiff } from "@/lib/hooks";
 import { notify } from "@/lib/toast";
 import type { FindingRecord, PrFile, ReviewRecord } from "@devdigest/shared";
-import { FindingCard } from "../FindingCard";
+import { FindingCard } from "@/components/review/FindingCard";
 import { OrderToggle, type DiffOrder } from "./_components/OrderToggle";
 import { RoleGroup } from "./_components/RoleGroup";
 import { countOpenFindings, hasOpenFinding, latestOpenFindingsByPath, mergeSmartOrder, toAnchors } from "./helpers";

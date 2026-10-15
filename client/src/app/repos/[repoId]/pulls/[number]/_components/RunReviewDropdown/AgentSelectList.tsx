@@ -1,73 +1,140 @@
-/* AgentSelectList — checkbox rows inside the RunReviewDropdown menu.
-   Lets a user pick a subset of agents and run only those, while each row's
-   name stays individually clickable (unchanged "run this one now" behavior). */
+/* AgentSelectList — the "Pick agents to run" panel inside RunReviewDropdown
+   (design: components2.jsx). Checkbox rows for every enabled agent, a
+   full-width run button and a "Configure agents…" footer. */
 "use client";
 
-import { Button, Checkbox } from "@devdigest/ui";
+import React from "react";
+import { Button, Icon } from "@devdigest/ui";
 import type { Agent } from "@devdigest/shared";
+import { formatSeconds } from "@/lib/format";
+import { s } from "./styles";
+
+export interface AgentSelectLabels {
+  warning: string | null;
+  header: string;
+  selectAll: string;
+  clearAll: string;
+  run: string;
+  configure: string;
+  noAgents: string;
+  checkboxName: (name: string) => string;
+}
+
+function AgentRow({
+  agent,
+  on,
+  estimateMs,
+  ariaLabel,
+  onToggle,
+}: {
+  agent: Agent;
+  on: boolean;
+  estimateMs: number | null;
+  ariaLabel: string;
+  onToggle: () => void;
+}) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={on}
+      aria-label={ariaLabel}
+      onClick={onToggle}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={s.row(hover)}
+    >
+      <span aria-hidden style={s.box(on)}>
+        {on && <Icon.Check size={11} style={s.check} />}
+      </span>
+      <Icon.Cpu size={14} style={s.rowIcon} />
+      <span style={s.rowName}>{agent.name}</span>
+      <span className="mono" style={s.rowEstimate}>
+        {formatSeconds(estimateMs)}
+      </span>
+    </button>
+  );
+}
 
 export function AgentSelectList({
   agents,
-  selected,
+  excluded,
+  allSelected,
+  estimateMsFor,
+  labels,
+  multi,
+  running,
+  disabled,
   onToggle,
-  onRunOne,
-  onRunSelected,
-  runSelectedLabel,
+  onToggleAll,
+  onRun,
+  onConfigure,
 }: {
+  /** Enabled agents only. */
   agents: Agent[];
-  selected: Set<string>;
+  excluded: Set<string>;
+  allSelected: boolean;
+  estimateMsFor: (agentId: string) => number | null;
+  labels: AgentSelectLabels;
+  multi: boolean;
+  running: boolean;
+  disabled: boolean;
   onToggle: (agentId: string) => void;
-  onRunOne: (agentId: string) => void;
-  onRunSelected: () => void;
-  runSelectedLabel: (count: number) => string;
+  onToggleAll: () => void;
+  onRun: () => void;
+  onConfigure: () => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "2px 4px" }}>
-      {agents.map((a) => (
-        <div
-          key={a.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 6px",
-            borderRadius: 6,
-          }}
-        >
-          <Checkbox checked={selected.has(a.id)} onChange={() => onToggle(a.id)} />
-          <button
-            type="button"
-            onClick={() => onRunOne(a.id)}
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              gap: 0,
-              border: "none",
-              background: "transparent",
-              padding: 0,
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>{a.name}</span>
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-              {a.enabled ? a.model : `${a.model} · disabled`}
-            </span>
-          </button>
+    <div style={s.panel}>
+      {labels.warning && (
+        <div style={s.warnRow}>
+          <Icon.AlertTriangle size={13} style={s.warnIcon} />
+          <span>{labels.warning}</span>
         </div>
-      ))}
-      <Button
-        kind="secondary"
-        size="sm"
-        full
-        disabled={selected.size === 0}
-        onClick={onRunSelected}
-        style={{ marginTop: 4 }}
-      >
-        {runSelectedLabel(selected.size)}
-      </Button>
+      )}
+      <div style={s.header}>
+        <span style={s.headerLabel}>{labels.header}</span>
+        {agents.length > 0 && (
+          <button type="button" onClick={onToggleAll} style={s.link}>
+            {allSelected ? labels.clearAll : labels.selectAll}
+          </button>
+        )}
+      </div>
+      {agents.length === 0 ? (
+        <button type="button" onClick={onConfigure} style={s.footer}>
+          <Icon.Plus size={13} />
+          {labels.noAgents}
+        </button>
+      ) : (
+        agents.map((a) => (
+          <AgentRow
+            key={a.id}
+            agent={a}
+            on={!excluded.has(a.id)}
+            estimateMs={estimateMsFor(a.id)}
+            ariaLabel={labels.checkboxName(a.name)}
+            onToggle={() => onToggle(a.id)}
+          />
+        ))
+      )}
+      <div style={s.runWrap}>
+        <Button
+          kind="primary"
+          size="sm"
+          icon={multi ? "Users" : "Play"}
+          disabled={disabled}
+          loading={running}
+          onClick={onRun}
+          style={s.runButton}
+        >
+          {labels.run}
+        </Button>
+      </div>
+      <button type="button" onClick={onConfigure} style={s.footer}>
+        <Icon.Settings size={13} />
+        {labels.configure}
+      </button>
     </div>
   );
 }

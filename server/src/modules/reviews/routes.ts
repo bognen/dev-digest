@@ -1,6 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { GenerateIntentRequest, RunRequest } from '@devdigest/shared';
+import {
+  CreateMultiRunRequest,
+  GenerateIntentRequest,
+  MultiRunListQuery,
+  RunRequest,
+} from '@devdigest/shared';
 import type { RunEvent } from '@devdigest/shared';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
@@ -16,6 +21,12 @@ import { ReviewService } from './service.js';
  *   POST   /findings/:id/(accept|dismiss)              → finding actions
  *   GET    /pulls/:id/intent                           → derived PR intent (or unavailable_reason)
  *   POST   /pulls/:id/intent  {force?}                 → derive/regenerate the PR intent
+ *   POST   /pulls/:id/multi-agent-runs {agent_ids}     → start a multi-agent run (one review per agent)
+ *   GET    /multi-agent-runs?repo_id&limit             → a repo's previous multi-runs, newest first
+ *   GET    /multi-agent-runs/:id                       → multi-run detail (children + findings)
+ *   GET    /pulls/:id/multi-agent-runs/latest          → newest multi-run of a PR (or null)
+ *   POST   /multi-agent-runs/:id/cancel                → cancel every queued/running child
+ *   GET    /agent-estimates                            → per-agent duration/cost medians
  */
 const FINDING_ACTIONS = ['accept', 'dismiss'] as const;
 export default async function reviewsRoutes(appBase: FastifyInstance) {
@@ -160,6 +171,46 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
       return service.generateIntent(workspaceId, req.params.id, { force: body.force }, req.log);
     },
   );
+
+  // ---- Multi-agent runs (SPEC-07) -------------------------------------------
+  // Create fans out to N LLM runs, so it shares the review route's rate limit.
+  app.post(
+    '/pulls/:id/multi-agent-runs',
+    {
+      schema: { params: IdParams, body: CreateMultiRunRequest },
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    },
+    async (req) => {
+      const { workspaceId } = await getContext(container, req);
+      return service.createMultiRun(workspaceId, req.params.id, req.body.agent_ids, req.log);
+    },
+  );
+
+  app.get('/multi-agent-runs', { schema: { querystring: MultiRunListQuery } }, async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.listMultiRuns(workspaceId, req.query.repo_id, req.query.limit);
+  });
+
+  app.get('/multi-agent-runs/:id', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.getMultiRun(workspaceId, req.params.id);
+  });
+
+  app.get('/pulls/:id/multi-agent-runs/latest', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.latestMultiRun(workspaceId, req.params.id);
+  });
+
+  app.post('/multi-agent-runs/:id/cancel', { schema: { params: IdParams } }, async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.cancelMultiRun(workspaceId, req.params.id, req.log);
+  });
+
+  // NOT `/agents/estimates`: that would collide with `GET /agents/:id`.
+  app.get('/agent-estimates', async (req) => {
+    const { workspaceId } = await getContext(container, req);
+    return service.agentEstimates(workspaceId);
+  });
 
   // ---- Finding actions (accept / dismiss) ---------------------------------
   for (const action of FINDING_ACTIONS) {

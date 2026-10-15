@@ -16,6 +16,12 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-14 — Multi-run aggregate status is derived, never stored; reaper must cover `queued`
+`multi_agent_runs` has no status column: `deriveMultiRunStatus` (`reviews/helpers.ts`) computes running / done / done-with-errors / failed / cancelled from the child `agent_runs` on every read, so there is no sync logic to keep consistent. Restart recovery therefore depends entirely on the boot reaper failing orphaned children — and multi-run children beyond `MULTI_RUN_CONCURRENCY` (4) start as `queued`, so `reapStaleRunningRuns`, `cancelRunIfRunning` and `activeRunsForPull` all match `['running','queued']`. Any new code that filters "active" runs must include `queued`.
+
+### 2026-10-14 — Cancel is terminal only because `completeAgentRun` skips `cancelled` rows
+`ReviewService.cancelRun` calls `runBus.cancel()` then `runBus.complete()`, and `complete()` deletes the cancel flag (`platform/sse.ts` `complete`), so the engine usually never sees the cancel and its later `completeAgentRun('done')` used to overwrite `cancelled`. The fix is a `status <> 'cancelled'` condition in `completeAgentRun`'s WHERE (`reviews/repository/run.repo.ts`), applying to legacy and multi-run children alike; a cancelled run that already finished its LLM call may still persist its review/findings. Don't remove the guard or reorder cancel/complete without re-testing per-column cancel and Cancel all (SPEC-07 AC-16/17).
+
 ### 2026-10-13 — Feature modules declare structural port types instead of importing `db/rows`; compose cross-module helpers in the container
 `pnpm arch:check` flags `modules/<x>/types.ts → src/db/rows.ts` (only-repository-touches-db) and `service.ts → db/rows` (inner-no-outer); importing `reviews/diff-loader.ts` into `platform/container.ts` creates a cycle because diff-loader imports the `Container` type. The eval module (SPEC-06) declares `AgentLike`/`FindingLike`/`PullLike` in `modules/eval/types.ts` and composes the "git diff, else pr_files patches" fallback inline in `container.evalService` rather than importing `loadDiff`.
 

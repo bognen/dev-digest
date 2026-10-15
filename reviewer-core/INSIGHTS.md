@@ -12,6 +12,9 @@ of re-explaining it here.
 
 ## What Works
 
+### 2026-10-15 — Number diff lines for the model; never let it count from `@@` headers
+Given a raw unified diff, models mis-cite lines: on PR #2 three agents cited one `except: pass` (new lines 336-337) as 319-322 (old-side numbers from the `@@` header), 335-336 and 339-340 (removed lines counted as new). `groundFindings()` cannot catch this because every range still falls inside the hunk. `numberDiffLines()` (`src/diff-numbering.ts`) prefixes each added/context line with its new-file number, applied in `assemblePrompt` with a trusted `LINE_NUMBER_NOTE` outside the `<untrusted>` wrapper; on the re-run all agents cited identical lines for every shared issue. Hunk bodies are tracked by the header's line counts, so a removed line starting with `--` is never mistaken for a file header.
+
 ## What Doesn't Work
 
 ## Codebase Patterns

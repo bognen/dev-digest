@@ -281,6 +281,9 @@ contracts with no compiler error until a runtime mismatch shows up.
 
 ## Tool & Library Notes
 
+### 2026-10-14 — `Dropdown` pads its panel 6px; `Toggle` has no accessible name
+`@devdigest/ui` `Dropdown` always wraps `custom` content in 6px padding, so a flush designed panel (the 288px "Pick agents to run" picker in `RunReviewDropdown`) needs an inner `margin: -6` wrapper. `Toggle` renders a `role="switch"` with no label of its own — wrap it in a `<label>` with visible text (as `Disagreements.tsx` does for "Show only conflicts") or it fails role/name queries and a11y.
+
 ### 2026-10-11 � Stubbing a slot-taking component in tests: the stub must render the slot
 IntentCard now takes a `riskAreas` ReactNode slot; `page.test.tsx` stubbed it as `() => <div>intent-stub</div>`, so Risk areas vanished and an unrelated NFR-5 test failed. Stubs of components with slot props need `({ riskAreas }) => <div>stub{riskAreas}</div>`.
 
@@ -327,6 +330,12 @@ Browsers and Node have them, jsdom (vitest env) doesn't, so `extractSkillFile` (
 Seen while writing `extract.ts`: an escape written into a regex/string landed as a real NUL in the file. Grep for it after generating text-processing code: `grep -rlP '\x00' src`.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-14 — PR-page "no fetch" test breaks when `PrDetailHeader` gains a data hook
+`app/repos/[repoId]/pulls/[number]/page.test.tsx` asserts no network request; mounting `MultiRunResultsButton` (calls `useLatestMultiRun`) in `PrDetailHeader` made it fail. Fix: `vi.mock("@/lib/hooks/multi-agent", …)` in that test. Any new React Query hook rendered in the PR header needs the same mock there.
+
+### 2026-10-14 — Moving a component folder silently breaks its tests' relative paths
+When `RunTraceDrawer`/`FindingCard` moved from `app/repos/[repoId]/pulls/[number]/_components/` to `components/review/`, their tests' relative `messages/en/*.json` imports and relative `vi.mock("../../…/lib/hooks/…")` paths broke (4 fewer `../` segments). A wrong `vi.mock` path doesn't error — the real module loads and the test fails or fetches for an unrelated-looking reason. After any move, grep the moved tests for `../` and prefer `@/` aliases in `vi.mock`.
 
 ### 2026-10-13 — Tests that render FindingCard must mock `@/lib/hooks/eval`
 FindingCard renders `EvalCaseButton` (SPEC-06), which uses TanStack Query hooks; without a QueryClient every test rendering FindingCard, FindingsPanel, DiffTab or ReviewRunAccordion throws. Add `vi.mock("@/lib/hooks/eval", () => ({ useEvalCaseSources: () => ({ data: [] }), useCreateCaseFromFinding: () => ({ mutate: vi.fn(), isPending: false }) }))`. Keep hints in `title`, not `aria-label`: an aria-label ending "…Accept or dismiss the finding first" matched `getByRole("button", { name: /accept/i })` in the FindingsPanel tests.

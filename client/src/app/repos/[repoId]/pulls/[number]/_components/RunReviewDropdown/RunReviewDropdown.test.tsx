@@ -3,8 +3,9 @@ import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/re
 import { NextIntlClientProvider } from "next-intl";
 import messages from "../../../../../../../../messages/en/prReview.json";
 
+const push = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push, replace: vi.fn() }),
 }));
 const agents = [
   { id: "a1", name: "Security", model: "gpt-4.1", enabled: true },
@@ -13,11 +14,12 @@ const agents = [
 vi.mock("../../../../../../../lib/hooks/agents", () => ({
   useAgents: () => ({ data: agents }),
 }));
-const mutateAsync = vi.fn(({ agentId }: { agentId?: string }) =>
-  Promise.resolve({ runs: [{ run_id: agentId ? `run-${agentId}` : "run-all" }] }),
+const mutateAsync = vi.fn(({ agent_ids }: { agent_ids: string[] }) =>
+  Promise.resolve({ multi_run_id: "mr1", runs: agent_ids.map((id) => ({ run_id: `run-${id}` })) }),
 );
-vi.mock("../../../../../../../lib/hooks/reviews", () => ({
-  useRunReview: () => ({ mutateAsync, isPending: false }),
+vi.mock("../../../../../../../lib/hooks/multi-agent", () => ({
+  useCreateMultiRun: () => ({ mutateAsync, isPending: false }),
+  useAgentEstimates: () => ({ data: { estimates: [] } }),
 }));
 
 import { RunReviewDropdown } from "./RunReviewDropdown";
@@ -25,6 +27,7 @@ import { RunReviewDropdown } from "./RunReviewDropdown";
 afterEach(() => {
   cleanup();
   mutateAsync.mockClear();
+  push.mockClear();
 });
 
 function renderWithIntl(ui: React.ReactElement) {
@@ -43,30 +46,21 @@ describe("RunReviewDropdown (smoke)", () => {
 });
 
 describe("RunReviewDropdown multi-select", () => {
-  it("toggles a checkbox without closing the menu, and 'Run selected' starts only the checked agents", async () => {
+  it("preselects every enabled agent, toggles without closing the menu, and runs only the checked agents", async () => {
     const onRunsStarted = vi.fn();
     renderWithIntl(<RunReviewDropdown prId="pr1" onRunsStarted={onRunsStarted} />);
 
     fireEvent.click(screen.getByText("Run Review"));
-    const runSelected = screen.getByRole("button", { name: /run selected/i });
-    expect(runSelected).toBeDisabled();
+    expect(screen.getByRole("button", { name: /run multi-agent review \(2\)/i })).toBeEnabled();
 
-    const [firstCheckbox] = screen.getAllByRole("checkbox");
-    fireEvent.click(firstCheckbox!);
+    fireEvent.click(screen.getByRole("checkbox", { name: /performance/i }));
     // Menu stays open — the agent list (and the other agent's name) is still visible.
     expect(screen.getByText("Performance")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /run selected \(1\)/i })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: /run security/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: /run selected \(1\)/i }));
     expect(mutateAsync).toHaveBeenCalledTimes(1);
-    expect(mutateAsync).toHaveBeenCalledWith({ prId: "pr1", agentId: "a1" });
+    expect(mutateAsync).toHaveBeenCalledWith({ prId: "pr1", agent_ids: ["a1"] });
     await waitFor(() => expect(onRunsStarted).toHaveBeenCalledWith(["run-a1"]));
-  });
-
-  it("clicking an agent's name still runs it alone, unaffected by selection", () => {
-    renderWithIntl(<RunReviewDropdown prId="pr1" />);
-    fireEvent.click(screen.getByText("Run Review"));
-    fireEvent.click(screen.getByText("Security"));
-    expect(mutateAsync).toHaveBeenCalledWith({ prId: "pr1", agentId: "a1" });
+    expect(push).toHaveBeenCalledWith("/multi-agent-review/mr1");
   });
 });

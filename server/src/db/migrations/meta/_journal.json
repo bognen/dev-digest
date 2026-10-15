@@ -155,6 +155,13 @@
       "when": 1791936210158,
       "tag": "0021_premium_moira_mactaggert",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792019957532,
+      "tag": "0022_simple_marten_broadcloak",
+      "breakpoints": true
     }
   ]
 }

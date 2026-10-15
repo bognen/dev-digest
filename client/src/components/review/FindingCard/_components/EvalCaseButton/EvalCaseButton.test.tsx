@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { FindingRecord } from "@devdigest/shared";
-import messages from "../../../../../../../../../../messages/en/prReview.json";
+import messages from "../../../../../../messages/en/prReview.json";
 
 /** SPEC-06 AC-1/AC-2 (one click), AC-5 (undecided → disabled + hint), AC-6 ("Eval case ✓"). */
 

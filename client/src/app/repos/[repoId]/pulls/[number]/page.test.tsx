@@ -97,6 +97,7 @@ vi.mock("@/lib/repo-context", () => ({
 vi.mock("@/components/app-shell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
+vi.mock("@/lib/hooks/multi-agent", () => ({ useLatestMultiRun: () => ({ data: undefined }) }));
 vi.mock("@/app/repos/[repoId]/pulls/[number]/_components/RunReviewDropdown", () => ({
   RunReviewDropdown: () => <button type="button">Run Review</button>,
 }));

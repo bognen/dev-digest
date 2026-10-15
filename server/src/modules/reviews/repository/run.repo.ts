@@ -1,11 +1,11 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray, ne } from 'drizzle-orm';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
 import type { RunSummary, RunTrace } from '@devdigest/shared';
 
 // ---- in-flight / history --------------------------------------------------
 
-/** In-flight runs for a PR (status='running') — the server-side source of
+/** In-flight runs for a PR (status='running' or 'queued') — the server-side source of
  *  truth for "which agents are running now". Joined with the agent name. */
 export async function activeRunsForPull(
   db: Db,
@@ -25,7 +25,7 @@ export async function activeRunsForPull(
       and(
         eq(t.agentRuns.workspaceId, workspaceId),
         eq(t.agentRuns.prId, prId),
-        eq(t.agentRuns.status, 'running'),
+        inArray(t.agentRuns.status, ['running', 'queued']),
       ),
     );
   return rows.map((r) => ({
@@ -90,30 +90,30 @@ export async function deleteAgentRun(
   return rows.length > 0;
 }
 
-/** Mark a still-running run as cancelled (no-op if it already finished). */
+/** Mark a still-running (or queued) run as cancelled (no-op if it already finished). */
 export async function cancelRunIfRunning(db: Db, runId: string): Promise<boolean> {
   const rows = await db
     .update(t.agentRuns)
     .set({ status: 'cancelled' })
-    .where(and(eq(t.agentRuns.id, runId), eq(t.agentRuns.status, 'running')))
+    .where(and(eq(t.agentRuns.id, runId), inArray(t.agentRuns.status, ['running', 'queued'])))
     .returning({ id: t.agentRuns.id });
   return rows.length > 0;
 }
 
-/** On boot: any run still 'running' is orphaned (its process died / restarted),
+/** On boot: any run still 'running' or 'queued' is orphaned (its process died / restarted),
  *  so mark it failed. Prevents permanently stuck "running" runs in the UI. */
 export async function reapStaleRunningRuns(db: Db): Promise<number> {
   const rows = await db
     .update(t.agentRuns)
     .set({ status: 'failed' })
-    .where(eq(t.agentRuns.status, 'running'))
+    .where(inArray(t.agentRuns.status, ['running', 'queued']))
     .returning({ id: t.agentRuns.id });
   return rows.length;
 }
 
 // ---- observability: agent_runs + run_traces -------------------------------
 
-/** Create an agent_runs row in `running` state; returns its id (= the runId). */
+/** Create an agent_runs row (default `running`; multi-run children may start `queued`); returns its id (= the runId). */
 export async function createAgentRun(
   db: Db,
   values: {
@@ -122,6 +122,9 @@ export async function createAgentRun(
     prId: string;
     provider: string | null;
     model: string | null;
+    status?: 'running' | 'queued';
+    multiAgentRunId?: string;
+    multiAgentPosition?: number;
   },
 ): Promise<string> {
   const [row] = await db
@@ -132,8 +135,10 @@ export async function createAgentRun(
       prId: values.prId,
       provider: values.provider,
       model: values.model,
-      status: 'running',
+      status: values.status ?? 'running',
       source: 'local',
+      multiAgentRunId: values.multiAgentRunId ?? null,
+      multiAgentPosition: values.multiAgentPosition ?? null,
     })
     .returning({ id: t.agentRuns.id });
   return row!.id;
@@ -174,7 +179,9 @@ export async function completeAgentRun(
       costUsd: values.costUsd ?? null,
       error: values.error ?? null,
     })
-    .where(eq(t.agentRuns.id, runId));
+    // A cancelled run stays cancelled: cancel is terminal and must not be
+    // overwritten by the engine finishing afterwards.
+    .where(and(eq(t.agentRuns.id, runId), ne(t.agentRuns.status, 'cancelled')));
 }
 
 /**

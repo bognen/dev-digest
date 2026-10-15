@@ -18,6 +18,12 @@ export const REVIEW_STRATEGY = 'single-pass' as const;
  */
 export const AGENT_RUN_TIMEOUT_MS = 5 * 60_000;
 
+/**
+ * Max child runs of ONE multi-agent run executing at the same time (AC-18a).
+ * The remaining children wait `queued`. Tunable in one place.
+ */
+export const MULTI_RUN_CONCURRENCY = 4;
+
 // ============================================================ Intent Layer
 
 /** Settings -> Feature Models id for the intent-derivation call. */

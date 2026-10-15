@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within, type RenderResult } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import type { ProjectContextTrace, RunTrace } from "@devdigest/shared";
-import runsMessages from "../../../../../../../../../../messages/en/runs.json";
+import runsMessages from "../../../../../../messages/en/runs.json";
 
 let TRACE: RunTrace;
 vi.mock("@/lib/hooks/trace", () => ({

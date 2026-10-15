@@ -6,7 +6,7 @@ import React from "react";
 import { useTranslations } from "next-intl";
 import { Toggle, EmptyState, Icon, SEV } from "@devdigest/ui";
 import type { FindingRecord, Severity } from "@devdigest/shared";
-import { FindingCard } from "../FindingCard";
+import { FindingCard } from "@/components/review/FindingCard";
 import { useFindingAction } from "@/lib/hooks/reviews";
 import { countBySeverity, presentSeverities } from "@/lib/findings";
 import { visibleFindings } from "./helpers";

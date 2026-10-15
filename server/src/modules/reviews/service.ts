@@ -1,14 +1,31 @@
 import type { Container } from '../../platform/container.js';
-import type { FindingActionKind, PrIntentResponse, RunEventKind, RunTrace } from '@devdigest/shared';
+import type {
+  AgentEstimatesResponse,
+  CancelMultiRunResponse,
+  CreateMultiRunResponse,
+  FindingActionKind,
+  LatestMultiRunResponse,
+  MultiRunDetail,
+  MultiRunListResponse,
+  PrIntentResponse,
+  RunEventKind,
+  RunTrace,
+} from '@devdigest/shared';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import type { AgentRow } from '../../db/rows.js';
 import { ReviewRepository } from './repository.js';
 import { type ReviewDto, type ReviewDtoFinding } from './helpers.js';
 import { ReviewRunExecutor, type Logger } from './run-executor.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
-import { reviewToDto } from './helpers.js';
+import {
+  deriveMultiRunStatus,
+  estimatesFromRuns,
+  multiRunSummaryToDto,
+  multiRunToDto,
+  reviewToDto,
+} from './helpers.js';
 import { IntentService } from './pipeline/intent.js';
-import { INTENT_FEATURE } from './constants.js';
+import { INTENT_FEATURE, MULTI_RUN_CONCURRENCY } from './constants.js';
 import { hunkContexts, toIntentRecord } from './pipeline/intent-signals.js';
 import type { IntentDeps } from './types.js';
 
@@ -149,6 +166,125 @@ export class ReviewService {
     });
 
     return { runs, reviews: [] };
+  }
+
+  // ===========================================================================
+  // Multi-agent runs (SPEC-07)
+  // ===========================================================================
+
+  /**
+   * Start one review per selected agent as a single multi-run. Validates
+   * EVERYTHING (PR in workspace, every agent in workspace) before inserting
+   * anything. The first MULTI_RUN_CONCURRENCY children start `running`, the
+   * rest `queued`; execution is fire-and-forget like `runReview`.
+   */
+  async createMultiRun(
+    workspaceId: string,
+    prId: string,
+    agentIds: string[],
+    logger?: Logger,
+  ): Promise<CreateMultiRunResponse> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    const repo = await this.repo.getRepo(pull.repoId);
+    if (!repo) throw new NotFoundError('Repo not found');
+
+    // De-duplicate, keeping first-seen order (AC-6).
+    const uniqueIds = [...new Set(agentIds)];
+    // All agents of the workspace (enabled or not): the UI lists only enabled
+    // ones, the API accepts any agent the caller owns.
+    const byId = new Map((await this.agents.list(workspaceId)).map((a) => [a.id, a]));
+    const targets: AgentRow[] = [];
+    for (const id of uniqueIds) {
+      const agent = byId.get(id);
+      if (!agent) throw new NotFoundError('Agent not found');
+      targets.push(agent);
+    }
+    if (targets.length === 0) throw new AppError('invalid_run_request', 'Select at least one agent', 400);
+
+    const { multiRunId, runIds } = await this.repo.createMultiRunWithChildren(
+      workspaceId,
+      prId,
+      targets.map((agent, position) => ({
+        agentId: agent.id,
+        provider: agent.provider,
+        model: agent.model,
+        status: position < MULTI_RUN_CONCURRENCY ? 'running' : 'queued',
+        position,
+      })),
+    );
+    const jobs = targets.map((agent, i) => ({ agent, runId: runIds[i]! }));
+    logger?.info(
+      { multiRunId, prId, agentCount: targets.length, runIds },
+      'review: multi-run created',
+    );
+
+    void this.executor.executeMultiRun(workspaceId, pull, repo, jobs, multiRunId, logger).catch((err) => {
+      logger?.error({ multiRunId, err: (err as Error).message }, 'review: multi-run background execution crashed');
+    });
+
+    return {
+      multi_run_id: multiRunId,
+      runs: jobs.map((j, position) => ({
+        run_id: j.runId,
+        agent_id: j.agent.id,
+        agent_name: j.agent.name,
+        position,
+      })),
+    };
+  }
+
+  /** Multi-run read model; 404 when missing or in another workspace (AC-8). */
+  async getMultiRun(workspaceId: string, id: string): Promise<MultiRunDetail> {
+    const run = await this.repo.getMultiRun(workspaceId, id);
+    if (!run) throw new NotFoundError('Multi-agent run not found');
+    const children = await this.repo.multiRunChildren(id);
+    const reviews = await this.repo.reviewsForRuns(children.map((c) => c.runId));
+    return multiRunToDto(run, children, reviews);
+  }
+
+  /** Newest multi-run of a PR, or `{ multi_run: null }` when it has none. */
+  async latestMultiRun(workspaceId: string, prId: string): Promise<LatestMultiRunResponse> {
+    const pull = await this.repo.getPull(workspaceId, prId);
+    if (!pull) throw new NotFoundError('Pull request not found');
+    const latest = await this.repo.latestMultiRunForPull(workspaceId, prId);
+    if (!latest) return { multi_run: null };
+    return {
+      multi_run: {
+        id: latest.id,
+        status: deriveMultiRunStatus(latest.childStatuses),
+        ran_at: latest.ranAt.toISOString(),
+      },
+    };
+  }
+
+  /** One repo's previous multi-runs, newest first. Unknown repo -> empty list. */
+  async listMultiRuns(workspaceId: string, repoId: string, limit: number): Promise<MultiRunListResponse> {
+    const rows = await this.repo.listMultiRuns(workspaceId, repoId, limit);
+    return { multi_runs: rows.map(multiRunSummaryToDto) };
+  }
+
+  /** Cancel every child still queued/running; terminal children are untouched (AC-16). */
+  async cancelMultiRun(workspaceId: string, id: string, logger?: Logger): Promise<CancelMultiRunResponse> {
+    const run = await this.repo.getMultiRun(workspaceId, id);
+    if (!run) throw new NotFoundError('Multi-agent run not found');
+    const children = await this.repo.multiRunChildren(id);
+    const pending = children.filter((c) => c.status === 'queued' || c.status === 'running');
+    for (const child of pending) await this.cancelRun(child.runId);
+    logger?.info({ multiRunId: id, cancelled: pending.length }, 'review: multi-run cancelled');
+    return { cancelled: pending.length };
+  }
+
+  /** Per-agent duration/cost estimates; agents without history are omitted. */
+  async agentEstimates(workspaceId: string): Promise<AgentEstimatesResponse> {
+    const rows = await this.repo.doneRunsForEstimates(workspaceId);
+    return {
+      estimates: estimatesFromRuns(rows).map((e) => ({
+        agent_id: e.agentId,
+        duration_ms: e.durationMs,
+        cost_usd: e.costUsd,
+      })),
+    };
   }
 
   private publish(runId: string, kind: RunEventKind, msg: string, data?: unknown) {
