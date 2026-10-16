@@ -953,6 +953,40 @@ It does **not** change:
     - **Governed by:** `react-testing-library` + `frontend-architecture`.
     - **Owner:** test-writer.
 
+### Parallel work agreement (L07-ci-deployment ‖ L07-multiagents)
+
+> Added 2026-10-16 after the mentor review. This was not written down before the parallel run.
+> It records what actually happened and is the rule for the next parallel run. The same section
+> is in both plans (`2026-10-14-ci-agent-deployment-plan.md` and `2026-10-14-multi-agent-review-plan.md`).
+
+**Branches.** Both branches start from `04af4ca`, each in its own git worktree:
+- `L07-ci-deployment` in `dev-digest-ci`: CI deployment (`specs/2026-10-14-ci-agent-deployment.md`);
+- `L07-multiagents` in `dev-digest-multiagents`: Multi-Agent Review (`specs/2026-10-14-multi-agent-review.md`).
+
+Both specs use the ID `SPEC-07`. Refer to them by file name.
+
+**Merge order.**
+1. `L07-agent-runner` (only `agent-runner/**` and the vendored `contracts/eval-ci.ts`) goes first. `L07-ci-deployment` sits on top of it. Split out on 2026-10-16 after the mentor review: the runner is the contract shared by the studio and CI, and it is reviewed separately.
+2. `L07-ci-deployment` merges into `L07-multiagents` (merge `5b0d2b0`; before the split it was `4b7d648`).
+3. `L07-multiagents` then goes to `main` as one PR. Alternatively, `L07-agent-runner` goes to `main` as its own PR first.
+
+The branch that receives the merge resolves the conflicts and re-runs `scripts/verify-changed.sh`.
+
+**Shared files.** Both branches edit these files:
+
+| File | CI branch | Multi-agent branch | Merge rule |
+|---|---|---|---|
+| `client/src/vendor/ui/nav.ts` | `ci-runs` item in SKILLS LAB | `multi-agent` item (`/multi-agent-review`) in GLOBAL | Keep both items; each branch only adds its own item in its own section. `nav.test.ts` is owned by the CI branch. |
+| `client/src/lib/hooks/index.ts` | `ci` hooks export | `multi-agent` hooks export | Keep both export lines. |
+| `server/src/db/migrations/**` (`_journal.json`, `0022_snapshot.json`) | had generated `0022` | owns `0022_simple_marten_broadcloak` | Migration numbers are assigned up front: multi-agent gets `0022`, CI gets `0023` (`0023_complex_pet_avengers`). A branch that generated the same number regenerates on top of the other with `drizzle-kit`; nobody hand-edits the SQL. |
+| `server/INSIGHTS.md`, `client/INSIGHTS.md` | new entries | new entries | Append-only; keep both sets of entries. |
+
+**Shared without a file conflict.**
+- **One local Postgres serves both worktrees.** Drizzle applies a migration only if its `when` is later than the last applied one. So a migration from the other branch with a later timestamp hides yours, and the column is then missing at runtime. Seen on 2026-10-14 as "Could not start the multi-agent review": `multi_agent_run_id` did not exist. After switching branches, check that `pnpm db:migrate` really applied your migration.
+- **Vendored contracts:** each branch owns its own file (CI: `contracts/eval-ci.ts`; multi-agent: `contracts/observability.ts`). Each file is mirrored in both `server/` and `client/src/vendor/shared`.
+- **`agent-runner/**`:** changed only in its own branch `L07-agent-runner` (commit `1b37acb`). Neither the CI nor the multi-agent branch touches it. The runner is the contract shared by the studio and CI, so any further change to it also goes in a separate branch/PR.
+- **`reviewer-core/**`:** the multi-agent branch changed `prompt.ts` (numbered diff lines) after the merge. The CI runner bundles reviewer-core, so the runner bundle has to be rebuilt.
+
 ### File ownership (per wave)
 
 | Wave | Step | Files owned |

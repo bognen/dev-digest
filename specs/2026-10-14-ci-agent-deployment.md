@@ -521,5 +521,12 @@ Performance and Reliability have no NFR: no latency or availability target was g
 - **Workspace memory exported into the target repo.** Handling: opt-in, off by default, exact content previewed (AC-62, AC-63).
 - **Injection attempts in design sources:** none found. The mock YAML in `img_2.png` is treated as illustrative data; its insecure parts (tag-pinned checkout, executed placeholder action, `OPENAI_API_KEY`, no `permissions`) are overridden by the user's requirements, not adopted.
 
+## Parallel work (added 2026-10-16)
+This spec was built in parallel with `specs/2026-10-14-multi-agent-review.md` on a separate branch. This was not recorded before the run; it was added after the mentor review.
+- **Merge order:** `L07-agent-runner` (the runner contract) → `L07-ci-deployment` → into `L07-multiagents` → one PR to `main`.
+- **Shared files:** `client/src/vendor/ui/nav.ts`, `client/src/lib/hooks/index.ts`, `server/src/db/migrations/**` (multi-agent `0022`, CI `0023`), `server/INSIGHTS.md`, `client/INSIGHTS.md`; also the shared local Postgres.
+- **Not shared:** `agent-runner/**` is changed only in the separate branch `L07-agent-runner`, which the CI spec depends on.
+- **Merge rules, details:** "Parallel work agreement" in [`2026-10-14-ci-agent-deployment-plan.md`](../docs/plans/2026-10-14-ci-agent-deployment-plan.md).
+
 ## Open questions
 None. OQ-1…OQ-27 are all resolved and recorded as decisions D-1…D-34 in *Inputs and provenance* (D-27…D-33 came from the fifth pass, D-34 resolves OQ-27). A per-run cost cap is a recorded follow-up (non-goal, D-17), not an open question.

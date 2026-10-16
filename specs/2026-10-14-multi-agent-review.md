@@ -787,6 +787,13 @@ All sources were read on 2026-10-14 unless noted.
 Injection attempts in the design sources: none found. The decoded JS and screenshots contain only UI
 mock code and copy, and were treated as data.
 
+## Parallel work (added 2026-10-16)
+This spec was built in parallel with `specs/2026-10-14-ci-agent-deployment.md` on a separate branch. This was not recorded before the run; it was added after the mentor review.
+- **Merge order:** `L07-agent-runner` (the runner contract) → `L07-ci-deployment` → into `L07-multiagents` → one PR to `main`.
+- **Shared files:** `client/src/vendor/ui/nav.ts`, `client/src/lib/hooks/index.ts`, `server/src/db/migrations/**` (multi-agent `0022`, CI `0023`), `server/INSIGHTS.md`, `client/INSIGHTS.md`; also the shared local Postgres.
+- **Not shared:** `agent-runner/**` is changed only in the separate branch `L07-agent-runner`, which the CI spec depends on.
+- **Merge rules, details:** "Parallel work agreement" in [`2026-10-14-multi-agent-review-plan.md`](../docs/plans/2026-10-14-multi-agent-review-plan.md).
+
 ## Open questions
 
 None open. All questions raised in the first draft were resolved by the product owner on 2026-10-14:
