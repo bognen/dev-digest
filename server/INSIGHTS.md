@@ -16,6 +16,21 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-14 — Multi-run aggregate status is derived, never stored; reaper must cover `queued`
+`multi_agent_runs` has no status column: `deriveMultiRunStatus` (`reviews/helpers.ts`) computes running / done / done-with-errors / failed / cancelled from the child `agent_runs` on every read, so there is no sync logic to keep consistent. Restart recovery therefore depends entirely on the boot reaper failing orphaned children — and multi-run children beyond `MULTI_RUN_CONCURRENCY` (4) start as `queued`, so `reapStaleRunningRuns`, `cancelRunIfRunning` and `activeRunsForPull` all match `['running','queued']`. Any new code that filters "active" runs must include `queued`.
+
+### 2026-10-14 — Cancel is terminal only because `completeAgentRun` skips `cancelled` rows
+`ReviewService.cancelRun` calls `runBus.cancel()` then `runBus.complete()`, and `complete()` deletes the cancel flag (`platform/sse.ts` `complete`), so the engine usually never sees the cancel and its later `completeAgentRun('done')` used to overwrite `cancelled`. The fix is a `status <> 'cancelled'` condition in `completeAgentRun`'s WHERE (`reviews/repository/run.repo.ts`), applying to legacy and multi-run children alike; a cancelled run that already finished its LLM call may still persist its review/findings. Don't remove the guard or reorder cancel/complete without re-testing per-column cancel and Cancel all (SPEC-07 AC-16/17).
+
+### 2026-10-14 — CI ingest (SPEC-07): pulled artifacts are untrusted; keep the poll idempotent and the service a singleton
+`modules/ci/pipeline/ingest.ts` pulls `devdigest-result-<slug>` artifacts from the GitHub API (no inbound endpoint), and the client re-pulls every 60 s while CI Runs is open. Keep three properties: (1) zip-bomb guard via fflate `unzipSync`'s `filter` callback checking `originalSize` (filtered-out entries are never inflated); (2) bound PR-controlled `skipped_files` (50 entries × 200 chars, control chars stripped) before storing; (3) write the `ci.ingest` log/counters only when `insertAcceptedRun`/`insertNonAcceptedRun` returned true. `createIngestService` must be built once (`CiService` constructor), because the per-workspace in-flight map and the `foreign_workflow` seen-set live on the instance.
+
+### 2026-10-14 — `ci_installations` slug uniqueness is a partial index, so upsert on (agent_id, repo_id) and reassign the slug with CASE
+`(repo_id, slug) WHERE status <> 'removed'` (Drizzle `uniqueIndex().on(...).where(sql\`...\`)`) releases a slug on removal but can't be an `ON CONFLICT` target. `ci/repository.ts` `upsertInstallation` conflicts on `(agent_id, repo_id)` and takes the new slug/workflow_path only when the existing row is `removed` (SQL `CASE`), otherwise keeps the stored slug (D-32).
+
+### 2026-10-14 — Exported CI runner is multi-file; `ConflictError` codes live in `message`
+`agent-runner/dist/` holds `index.js`, a lazily imported `300.index.js` (node-domexception, pulled in by openai) and `package.json`. `CiDeps.readRunnerBundle()` returns every file (`CiRunnerBundle`) and `buildFileSet` emits `<agentDir>runner/<file>` — exporting only `index.js` would crash CI on the rare path that loads the chunk. Separately, `ConflictError` always has `code: 'conflict'`, so `ci_branch_exists` / `ci_removal_pending` are in `message` (+ `details.suggested_branch`); clients must match there.
+
 ### 2026-10-13 — Feature modules declare structural port types instead of importing `db/rows`; compose cross-module helpers in the container
 `pnpm arch:check` flags `modules/<x>/types.ts → src/db/rows.ts` (only-repository-touches-db) and `service.ts → db/rows` (inner-no-outer); importing `reviews/diff-loader.ts` into `platform/container.ts` creates a cycle because diff-loader imports the `Container` type. The eval module (SPEC-06) declares `AgentLike`/`FindingLike`/`PullLike` in `modules/eval/types.ts` and composes the "git diff, else pr_files patches" fallback inline in `container.evalService` rather than importing `loadDiff`.
 
@@ -178,6 +193,12 @@ contracts between client and server with no compiler error until runtime.
 
 ## Tool & Library Notes
 
+### 2026-10-14 — GitHub adapter: `commitFiles` creates the branch, PR numbers come from the URL, writes retry only on 429
+`GitHubClient.commitFiles` creates the branch from `base` when it is missing (there is no `createRef` port) and now fast-forwards only (`force: false`); `openPullRequest` returns only `{url}`, so `ci/pipeline/export.ts` parses `/pull/<n>`. The default `withRetry` also retries 5xx — Git Data writes pass a 429-only `isRetryable` so a partially applied write is never replayed. Octokit's `downloadArtifact` returns an `ArrayBuffer` typed `unknown`; cast and wrap in `Uint8Array`. Changing a `GitHubClient` port return type (e.g. `findOpenPr` → `{url, number}`) breaks `octokit.ts`, `mocks.ts` and `platform/container.ts` typecheck at once — land contract and adapter in the same wave.
+
+### 2026-10-14 — Generated workflow action pins come from `git ls-remote`, never memory
+`ci/constants.ts` `ACTION_PINS` holds full 40-char SHAs for checkout/setup-node/upload-artifact (AC-11). Refresh with `git ls-remote https://github.com/actions/<name> 'refs/tags/v4*'` and bump `CI_WORKFLOW_VERSION` so installed workflows show as outdated.
+
 ### 2026-10-13 — vitest `mergeConfig` concatenates `test.include`; Stryker's sandbox only contains `server/`
 A narrowed config built with `mergeConfig(base, { test: { include: [...] } })` still runs every base glob — write it standalone (`server/vitest.mutation.config.ts`). Stryker copies only the package into `.stryker-tmp/`, so a test reading `../client/...` (the vendored-contract parity check) fails the initial dry run — point mutation runs at self-contained tests (`pnpm mutation:eval` → `test/eval-scoring.test.ts`).
 
@@ -228,6 +249,9 @@ directly instead. If you add or rename a script, check
 whoever has the skip-worktree bit set.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-14 — Bash-tool heredocs and inline Python corrupt files on this Windows setup
+Seen by three implementers in one run: a heredoc containing an apostrophe or `’` fails with "unexpected EOF"; backslash escapes (`'\\'`, `\\r`) get mangled into unterminated literals or control characters; inline `python -` defaults to cp1252, so writing "→"/em dashes crashes after `open('w')` already truncated the file (this emptied `agent-runner/src/run.ts` once). Use the Write/Edit tools for prose or backslash-heavy code; if a script is unavoidable, pass `encoding='utf8'`.
 
 ### 2026-10-13 — An empty POST body reaches Fastify's Zod schema as `null`, so `Body.optional()` returns 422
 `app.inject({ method: 'POST', url })` without a payload (and the client's body-less `api.post`) hands the schema `null`, not `undefined`; `StartEvalRunBody.optional()` failed with "Expected object, received null". Use `.nullish()` for optional bodies (`server/src/modules/eval/routes.ts`: `/eval/cases/:id/run`, `/skills/:id/eval-runs`).

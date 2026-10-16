@@ -1,6 +1,6 @@
-/* RunReviewDropdown — ported from components2.jsx.
-   "Run all enabled agents" / a specific agent → kicks off POST /pulls/:id/review
-   and hands the resulting runIds up so the parent can stream SSE live status. */
+/* RunReviewDropdown — the PR-page "Run Review" picker (design: components2.jsx).
+   Every enabled agent is preselected; "Run multi-agent review (N)" creates a
+   multi-run (POST /pulls/:id/multi-agent-runs) and opens its results page. */
 "use client";
 
 import React from "react";
@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button, Dropdown, type DropdownItemDef } from "@devdigest/ui";
 import { useAgents } from "@/lib/hooks/agents";
-import { useRunReview } from "@/lib/hooks/reviews";
-import { DROPDOWN_WIDTH } from "./constants";
-import { AgentSelectList } from "./AgentSelectList";
+import { useAgentEstimates, useCreateMultiRun } from "@/lib/hooks/multi-agent";
+import { notify } from "@/lib/toast";
+import { AGENTS_HREF, DROPDOWN_WIDTH } from "./constants";
+import { AgentSelectList, type AgentSelectLabels } from "./AgentSelectList";
+import { s } from "./styles";
 
 export function RunReviewDropdown({
   prId,
@@ -35,88 +37,88 @@ export function RunReviewDropdown({
   const t = useTranslations("prReview");
   const router = useRouter();
   const { data: agents } = useAgents();
-  const run = useRunReview();
-  const all = agents ?? [];
-  const hasEnabled = all.some((a) => a.enabled);
-  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const { data: estimates } = useAgentEstimates();
+  const create = useCreateMultiRun();
+  const enabled = React.useMemo(() => (agents ?? []).filter((a) => a.enabled), [agents]);
+  // Excluded ids (not selected ids): every enabled agent starts preselected
+  // without an effect, and agents enabled later are preselected too.
+  const [excluded, setExcluded] = React.useState<Set<string>>(new Set());
 
-  const kick = async (opts: { all?: boolean; agentId?: string }) => {
-    onRunStart?.();
-    try {
-      const res = await run.mutateAsync({ prId, ...opts });
-      onRunsStarted?.(res.runs.map((r) => r.run_id));
-    } finally {
-      onRunSettled?.();
-    }
-  };
+  const selected = enabled.filter((a) => !excluded.has(a.id));
+  const allSelected = enabled.length > 0 && selected.length === enabled.length;
+  const multi = selected.length > 1;
 
-  // Runs several agents in parallel via the existing single-agent endpoint —
-  // no backend change needed, each request already returns its own run id(s).
-  const kickMany = async (agentIds: string[]) => {
-    onRunStart?.();
-    try {
-      const results = await Promise.all(agentIds.map((agentId) => run.mutateAsync({ prId, agentId })));
-      onRunsStarted?.(results.flatMap((res) => res.runs.map((r) => r.run_id)));
-    } finally {
-      onRunSettled?.();
-    }
-  };
+  const estimateMsFor = (agentId: string) =>
+    estimates?.estimates.find((e) => e.agent_id === agentId)?.duration_ms ?? null;
 
-  const toggleSelected = (agentId: string) =>
-    setSelected((prev) => {
+  const toggle = (agentId: string) =>
+    setExcluded((prev) => {
       const next = new Set(prev);
       if (next.has(agentId)) next.delete(agentId);
       else next.add(agentId);
       return next;
     });
+  const toggleAll = () =>
+    setExcluded(allSelected ? new Set(enabled.map((a) => a.id)) : new Set());
 
-  // List EVERY agent (not just enabled) so they're always visible; a specific
-  // agent can be run regardless of its enabled flag. "Run all" still targets
-  // only enabled agents.
-  const agentItems: DropdownItemDef[] = all.length
-    ? [
-        {
-          custom: (close: () => void) => (
-            <AgentSelectList
-              agents={all}
-              selected={selected}
-              onToggle={toggleSelected}
-              onRunOne={(agentId) => {
-                close();
-                kick({ agentId });
-              }}
-              onRunSelected={() => {
-                const ids = [...selected];
-                setSelected(new Set());
-                close();
-                void kickMany(ids);
-              }}
-              runSelectedLabel={(count) => t("runReview.runSelected", { count })}
-            />
-          ),
-        },
-      ]
-    : [{ label: "No agents yet — create one", icon: "Plus", muted: true, onClick: () => router.push("/agents") }];
+  const run = async () => {
+    const agentIds = selected.map((a) => a.id);
+    if (agentIds.length === 0 || create.isPending) return;
+    onRunStart?.();
+    try {
+      const res = await create.mutateAsync({ prId, agent_ids: agentIds });
+      onRunsStarted?.(res.runs.map((r) => r.run_id));
+      router.push(`/multi-agent-review/${res.multi_run_id}`);
+    } catch {
+      notify.error(t("runReview.startFailed"));
+    } finally {
+      onRunSettled?.();
+    }
+  };
+
+  const runLabel =
+    selected.length === 0
+      ? t("runReview.selectAgent")
+      : multi
+        ? t("runReview.runMulti", { count: selected.length })
+        : t("runReview.runOne", { name: selected[0]!.name });
+
+  const labels: AgentSelectLabels = {
+    warning: warnMerged ? t("runReview.mergedWarning") : null,
+    header: t("runReview.pickAgents"),
+    selectAll: t("runReview.selectAll"),
+    clearAll: t("runReview.clearAll"),
+    run: runLabel,
+    configure: t("runReview.configureAgents"),
+    noAgents: t("runReview.noAgents"),
+    checkboxName: (name) => t("runReview.agentCheckbox", { name }),
+  };
 
   const items: DropdownItemDef[] = [
-    // Merged/closed PRs can still be reviewed (informational only); lead with a
-    // muted, non-actionable warning so the intent is clear.
-    ...(warnMerged
-      ? [
-          { label: t("runReview.mergedWarning"), icon: "AlertTriangle" as const, muted: true },
-          { divider: true } as DropdownItemDef,
-        ]
-      : []),
     {
-      label: t("runReview.runAll"),
-      icon: "Play",
-      ...(hasEnabled ? {} : { muted: true }),
-      onClick: () => kick({ all: true }),
+      custom: (close) => (
+        <AgentSelectList
+          agents={enabled}
+          excluded={excluded}
+          allSelected={allSelected}
+          estimateMsFor={estimateMsFor}
+          labels={labels}
+          multi={multi}
+          running={create.isPending}
+          disabled={selected.length === 0}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
+          onRun={() => {
+            close();
+            void run();
+          }}
+          onConfigure={() => {
+            close();
+            router.push(AGENTS_HREF);
+          }}
+        />
+      ),
     },
-    { divider: true },
-    ...agentItems,
-    { divider: true },
-    { label: t("runReview.configureAgents"), icon: "Settings", muted: true, onClick: () => router.push("/agents") },
   ];
 
   return (
@@ -127,10 +129,10 @@ export function RunReviewDropdown({
       trigger={
         <span
           title={warnMerged ? t("runReview.mergedTooltip") : undefined}
-          style={warnMerged ? { opacity: 0.6 } : undefined}
+          style={warnMerged ? s.triggerMerged : undefined}
         >
-          <Button kind={kind} size={size} iconRight="ChevronDown" icon="Sparkles" loading={run.isPending}>
-            {run.isPending ? t("runReview.running") : t("runReview.runReview")}
+          <Button kind={kind} size={size} iconRight="ChevronDown" icon="Sparkles" loading={create.isPending}>
+            {create.isPending ? t("runReview.running") : t("runReview.runReview")}
           </Button>
         </span>
       }

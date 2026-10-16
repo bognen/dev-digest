@@ -41,6 +41,10 @@ const EnvSchema = z.object({
   // outside development in loadConfig() below regardless of this value, so a
   // stray `true` committed to a deployed .env can't turn it on in prod.
   PROMPT_LOG_VERBOSE: z.string().optional(),
+  // CI export (SPEC-07): entry file of the built agent-runner bundle; its whole
+  // directory is exported. Default `<repoRoot>/agent-runner/dist/index.js`
+  // (the API runs from server/, so the repo root is its parent).
+  AGENT_RUNNER_BUNDLE: z.string().optional(),
 });
 
 export type AppConfig = {
@@ -72,6 +76,8 @@ export type AppConfig = {
    * silently turned on in a deployed environment.
    */
   promptLogVerbose: boolean;
+  /** Absolute path to the built agent-runner entry (`index.js`); siblings are exported too. */
+  agentRunnerBundle: string;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -93,5 +99,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     // `&& parsed.NODE_ENV !== 'production'` is the enforcement point, not just
     // documentation — this makes "verbose mode is local-only" a code guarantee.
     promptLogVerbose: parsed.PROMPT_LOG_VERBOSE === 'true' && parsed.NODE_ENV !== 'production',
+    agentRunnerBundle: resolve(
+      process.cwd(),
+      parsed.AGENT_RUNNER_BUNDLE || join('..', 'agent-runner', 'dist', 'index.js'),
+    ),
   };
 }

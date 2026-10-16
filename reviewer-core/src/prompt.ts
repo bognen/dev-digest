@@ -1,4 +1,5 @@
 import type { ChatMessage, PromptAssembly } from '@devdigest/shared';
+import { numberDiffLines } from './diff-numbering.js';
 
 /**
  * Prompt assembly + prompt-injection hardening.
@@ -164,6 +165,17 @@ export interface AssembledPrompt {
 }
 
 /**
+ * Trusted instruction for the line-numbered diff (outside the `<untrusted>`
+ * wrapper). One shared numbering means every agent cites the same lines for
+ * the same defect, so multi-agent results can be matched.
+ */
+const LINE_NUMBER_NOTE =
+  'Each added (+) and unchanged line of the diff is prefixed with its line number in the NEW ' +
+  'version of the file; removed (-) lines have no number because they no longer exist. Set ' +
+  'start_line/end_line ONLY from these printed numbers — never count lines yourself and never ' +
+  'use old-file numbers. A removed line is cited by the nearest numbered line next to it.';
+
+/**
  * Trusted framing that always accompanies a derived-intent block — OUTSIDE the
  * `<untrusted>` wrapper, since it is our instruction, not derived content.
  */
@@ -251,7 +263,12 @@ export function assemblePrompt(parts: PromptParts): AssembledPrompt {
       `## Callers of changed symbols\n${wrapUntrusted('callers', parts.callers)}`,
     );
   }
-  userSections.push(`## Diff to review\n${wrapUntrusted('diff', parts.diff)}`);
+  const diff = numberDiffLines(parts.diff);
+  userSections.push(
+    diff.numbered
+      ? `## Diff to review\n${LINE_NUMBER_NOTE}\n${wrapUntrusted('diff', diff.text)}`
+      : `## Diff to review\n${wrapUntrusted('diff', parts.diff)}`,
+  );
 
   const user = userSections.join('\n\n');
 

@@ -1,6 +1,86 @@
 import type { CSSProperties } from "react";
 
-/** Co-located styles for RunReviewDropdown. This component renders only library
-   primitives (Button/Dropdown) and has no inline styles; the map is kept for
-   convention parity and future use. */
-export const s = {} satisfies Record<string, CSSProperties>;
+/** Co-located styles for RunReviewDropdown / AgentSelectList (design: components2.jsx). */
+export const s = {
+  // Cancels the Dropdown's own 6px padding so the panel sits flush like the design.
+  panel: { margin: -6, overflow: "hidden", borderRadius: 9 } satisfies CSSProperties,
+  warnRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "9px 14px",
+    borderBottom: "1px solid var(--border)",
+    fontSize: 12,
+    color: "var(--text-secondary)",
+  } satisfies CSSProperties,
+  warnIcon: { color: "var(--warn)", flexShrink: 0 } satisfies CSSProperties,
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "11px 14px 8px",
+  } satisfies CSSProperties,
+  headerLabel: {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.05em",
+    color: "var(--text-muted)",
+    textTransform: "uppercase",
+  } satisfies CSSProperties,
+  link: {
+    border: "none",
+    background: "transparent",
+    color: "var(--accent-text)",
+    fontSize: 11.5,
+    fontWeight: 600,
+    cursor: "pointer",
+    fontFamily: "inherit",
+  } satisfies CSSProperties,
+  row: (hover: boolean): CSSProperties => ({
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    padding: "8px 14px",
+    border: "none",
+    background: hover ? "var(--bg-hover)" : "transparent",
+    cursor: "pointer",
+    textAlign: "left",
+    color: "var(--text-primary)",
+  }),
+  box: (on: boolean): CSSProperties => ({
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    flexShrink: 0,
+    display: "grid",
+    placeItems: "center",
+    border: `1.5px solid ${on ? "var(--accent)" : "var(--border-strong)"}`,
+    background: on ? "var(--accent)" : "transparent",
+  }),
+  check: { color: "#fff" } satisfies CSSProperties,
+  rowIcon: { color: "var(--text-muted)", flexShrink: 0 } satisfies CSSProperties,
+  rowName: { fontSize: 13, fontWeight: 500, flex: 1 } satisfies CSSProperties,
+  rowEstimate: { fontSize: 10.5, color: "var(--text-muted)" } satisfies CSSProperties,
+  runWrap: {
+    padding: "10px 14px",
+    borderTop: "1px solid var(--border)",
+    marginTop: 4,
+  } satisfies CSSProperties,
+  runButton: { width: "100%", justifyContent: "center" } satisfies CSSProperties,
+  footer: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    padding: "9px 14px",
+    border: "none",
+    borderTop: "1px solid var(--border)",
+    background: "transparent",
+    cursor: "pointer",
+    color: "var(--text-muted)",
+    fontSize: 12,
+    fontFamily: "inherit",
+  } satisfies CSSProperties,
+  triggerMerged: { opacity: 0.6 } satisfies CSSProperties,
+} as const;

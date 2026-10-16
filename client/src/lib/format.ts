@@ -56,3 +56,13 @@ export function relativeTime(iso: string | null | undefined): string {
   if (h < 24) return `${h}h`;
   return `${Math.round(h / 24)}d`;
 }
+
+/**
+ * Duration in milliseconds as seconds with one decimal, e.g. `8.2s`; `null`/
+ * `undefined`/non-finite (unknown) renders as "—". Used by the multi-agent
+ * review surfaces ("X.Xs · $Y.YY").
+ */
+export function formatSeconds(ms: number | null | undefined): string {
+  if (ms == null || !Number.isFinite(ms)) return "—";
+  return `${(ms / 1000).toFixed(1)}s`;
+}

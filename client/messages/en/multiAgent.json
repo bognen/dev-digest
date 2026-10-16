@@ -1,0 +1,102 @@
+{
+  "crumb": "Multi-Agent Review",
+  "config": {
+    "crumb": "Configure run",
+    "title": "Run a Multi-Agent Review",
+    "subtitle": "Pick a pull request and choose which agents to fan out — they run in parallel and you compare their findings side by side.",
+    "step1": "Pull request",
+    "step2": "Agents to run",
+    "prPlaceholder": "Select a pull request…",
+    "prItem": "#{number} · {title}",
+    "selectAll": "Select all",
+    "clearAll": "Clear all",
+    "emptyPrTitle": "Pick a pull request first",
+    "emptyPrBody": "Choose which PR to review above, then select the agents to run on it.",
+    "runNone": "Select agents",
+    "runOne": "Run 1 agent",
+    "runMulti": "Run multi-agent review ({count})",
+    "starting": "Starting…",
+    "estimate": "≈ {time} · {cost} · parallel fan-out",
+    "estimateExcluded": "{count, plural, one {# agent has} other {# agents have}} no run history and {count, plural, one {is} other {are}} left out of this estimate.",
+    "createFailed": "Could not start the multi-agent review. Your selection was kept — try again.",
+    "noRepo": {
+      "title": "Connect a repository first",
+      "body": "Multi-agent review needs a repository with pull requests to review.",
+      "cta": "Go to repositories"
+    },
+    "noPrs": {
+      "title": "No open pull requests to review",
+      "body": "There is nothing to review in this repository right now."
+    }
+  },
+  "results": {
+    "title": "Multi-Agent Review",
+    "configureRun": "Configure run",
+    "configureRunTitle": "Change PR or agents",
+    "selectedAgents": "{count} selected agents · parallel",
+    "viewColumns": "Columns",
+    "viewTabs": "Tabs",
+    "viewLabel": "Results view",
+    "meta": "{count, plural, one {# agent} other {# agents}} · parallel fan-out · {time} total · {cost}",
+    "cancelAll": "Cancel all",
+    "cancelAllLabel": "Cancel all running agents",
+    "loading": "Loading multi-agent review…",
+    "errorTitle": "Multi-agent review not found",
+    "errorBody": "This run does not exist or you do not have access to it.",
+    "emptyTitle": "No agents selected",
+    "emptyBody": "Pick at least one agent to fan out this review. Configure the run to choose agents.",
+    "deletedAgent": "Deleted agent",
+    "status": {
+      "queued": "queued",
+      "running": "running",
+      "done": "done",
+      "failed": "failed",
+      "cancelled": "cancelled"
+    },
+    "column": {
+      "viewTrace": "View trace",
+      "viewTraceFor": "View trace for {name}",
+      "findings": "{count, plural, one {# finding} other {# findings}}",
+      "noFindings": "No findings",
+      "cancel": "Cancel",
+      "cancelFor": "Cancel {name}",
+      "failedReason": "Run failed: {error}",
+      "failedNoReason": "Run failed",
+      "score": "Score {score}"
+    },
+    "tabs": {
+      "label": "Agents",
+      "noSummary": "No summary available.",
+      "learn": "Learn",
+      "learnUnavailable": "Learn is not available yet"
+    }
+  },
+  "disagree": {
+    "title": "Where agents disagree",
+    "onlyConflicts": "Show only conflicts",
+    "singleAgent": "Run 2+ agents to compare their findings.",
+    "noConflicts": "All agents agree — no conflicts found.",
+    "noFindings": "No agent flagged anything on this PR.",
+    "didNotFlag": "did not flag",
+    "flagged": "{severity} ×{count}",
+    "rowLabel": "{file}:{line}"
+  },
+  "history": {
+    "title": "Previous runs",
+    "empty": "No multi-agent reviews in this repository yet.",
+    "loadFailed": "Could not load previous runs.",
+    "pr": "#{number} · {title}",
+    "agents": "{count, plural, one {# agent} other {# agents}}",
+    "findings": "{count, plural, one {# finding} other {# findings}}",
+    "ranAt": "{age} ago",
+    "justNow": "just now",
+    "deletedAgent": "Deleted agent",
+    "status": {
+      "running": "running",
+      "done": "done",
+      "partial": "done with errors",
+      "failed": "failed",
+      "cancelled": "cancelled"
+    }
+  }
+}

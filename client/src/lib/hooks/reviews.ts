@@ -44,7 +44,9 @@ export function usePrRuns(prId: string | null | undefined) {
     queryFn: () => api.get<RunSummary[]>(`/pulls/${prId}/runs`),
     enabled: !!prId,
     refetchInterval: (query) =>
-      (query.state.data ?? []).some((r) => r.status === "running") ? 4000 : false,
+      (query.state.data ?? []).some((r) => r.status === "running" || r.status === "queued")
+        ? 4000
+        : false,
   });
 }
 
@@ -73,8 +75,14 @@ export function useDeleteRun(prId: string | null | undefined) {
 
 /** Request cancellation of an in-flight run (takes effect at the next step). */
 export function useCancelRun() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (runId: string) => api.post<{ ok: boolean }>(`/runs/${runId}/cancel`),
+    // A cancelled child changes its multi-run's detail + aggregate status.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["multi-run"] });
+      qc.invalidateQueries({ queryKey: ["multi-run-latest"] });
+    },
   });
 }
 
@@ -167,6 +175,8 @@ export function useFindingAction() {
         // finding_lines in the smart-diff depend on open (non-dismissed) findings.
         qc.invalidateQueries({ queryKey: smartDiffKey(prId) });
       }
+      // Multi-run detail embeds the findings (and their accepted/dismissed state).
+      qc.invalidateQueries({ queryKey: ["multi-run"] });
     },
   });
 }

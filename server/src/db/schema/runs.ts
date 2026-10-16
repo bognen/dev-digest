@@ -44,10 +44,17 @@ export const agentRuns = pgTable(
     /** USD cost of this run's LLM calls; null on failed/cancelled runs or when
      *  the model's price is unknown. */
     costUsd: doublePrecision('cost_usd'),
+    /** Parent multi-agent run (null for ordinary single-agent runs). */
+    multiAgentRunId: uuid('multi_agent_run_id').references(() => multiAgentRuns.id, {
+      onDelete: 'set null',
+    }),
+    /** Selection order of this run inside its multi-agent run. */
+    multiAgentPosition: integer('multi_agent_position'),
   },
   (t) => ({
     // Serves the pulls-list cost rollup: `WHERE pr_id IN (...) AND status = 'done'`.
     prStatusIdx: index('agent_runs_pr_status_idx').on(t.prId, t.status),
+    multiRunIdx: index('agent_runs_multi_run_idx').on(t.multiAgentRunId),
   }),
 );
 

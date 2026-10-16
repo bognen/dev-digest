@@ -137,12 +137,15 @@ export interface CommitFile {
 }
 
 export interface CommitFilesPayload {
-  /** Branch to create-or-update with the commit (e.g. "devdigest/ci"). */
+  /** Branch to create-or-update with the commit (e.g. "devdigest/ci-<slug>"). */
   branch: string;
   /** Base branch to fork from when `branch` does not yet exist (e.g. "main"). */
   base: string;
   message: string;
+  /** May be empty for a deletion-only commit (then `deletePaths` is non-empty). */
   files: CommitFile[];
+  /** Repo-relative paths removed in the same commit (tree entries with sha null). */
+  deletePaths?: string[];
 }
 
 export interface GitHubClient {
@@ -161,14 +164,81 @@ export interface GitHubClient {
   /**
    * Commit `files` onto `branch` as ONE atomic commit (Git Data API: blobs →
    * tree → commit → ref). Creates the branch from `base` if missing, else
-   * fast-forwards it. Idempotent: re-publishing just adds a new commit.
+   * fast-forwards it. Fast-forward ONLY — the ref is never force-moved, so a
+   * concurrent push to the branch makes the update fail instead of being lost.
    */
   commitFiles(repo: RepoRef, payload: CommitFilesPayload): Promise<{ branch: string }>;
   /** The open PR whose head is `branch`, if any (so re-publish reuses it). */
-  findOpenPr(repo: RepoRef, branch: string): Promise<{ url: string } | null>;
+  findOpenPr(repo: RepoRef, branch: string): Promise<{ url: string; number: number } | null>;
   getIssue(repo: RepoRef, n: number): Promise<IssueMeta>;
   /** GET /user — for "posting as @user". */
   currentLogin(): Promise<string>;
+}
+
+// ---------- GitHub CI (Export to CI + CI Runs ingest) ----------
+export interface CiWorkflowRun {
+  id: number;
+  runAttempt: number;
+  status: string | null;
+  conclusion: string | null;
+  event: string;
+  /** Workflow file path as reported by the API, e.g. ".github/workflows/x.yml". */
+  path: string;
+  headSha: string;
+  createdAt: string;
+  repoFullName: string;
+  /** Null when the head repository was deleted (treated as a fork). */
+  headRepoFullName: string | null;
+  triggeringActor: string | null;
+  pullRequests: { number: number; baseSha: string }[];
+}
+
+export interface CiRunArtifact {
+  id: number;
+  name: string;
+  sizeInBytes: number;
+  expired: boolean;
+  workflowRunId: number;
+}
+
+export interface CiRepositoryInfo {
+  id: number;
+  defaultBranch: string;
+  fullName: string;
+}
+
+/**
+ * GitHub operations used only by the `ci` module. Kept separate from
+ * `GitHubClient` so the PR-review surface stays small; one adapter class
+ * implements both.
+ */
+export interface GitHubCiClient {
+  getRepository(repo: RepoRef): Promise<CiRepositoryInfo>;
+  /** Head SHA of `branch`; null when the branch does not exist (404). */
+  getBranchSha(repo: RepoRef, branch: string): Promise<string | null>;
+  /** Names only — secret values are never readable. */
+  listActionsSecretNames(repo: RepoRef): Promise<string[]>;
+  listWorkflowRuns(
+    repo: RepoRef,
+    workflowFile: string,
+    opts: { perPage: number },
+  ): Promise<CiWorkflowRun[]>;
+  /** Recent completed pull_request runs across the whole repo. */
+  listRepoWorkflowRuns(repo: RepoRef, opts: { perPage: number }): Promise<CiWorkflowRun[]>;
+  listRunArtifacts(repo: RepoRef, runId: number): Promise<CiRunArtifact[]>;
+  downloadArtifactZip(repo: RepoRef, artifactId: number): Promise<Uint8Array>;
+  /** Blob SHA of `path` at `ref`; null on 404. */
+  getFileBlobSha(repo: RepoRef, path: string, ref: string): Promise<string | null>;
+  /** True when `path` (file or directory) exists at `ref`. */
+  pathExists(repo: RepoRef, path: string, ref: string): Promise<boolean>;
+  /** UTF-8 text of a file at `ref` (at most 64 KiB); null on 404. */
+  getFileText(repo: RepoRef, path: string, ref: string): Promise<string | null>;
+  /** File paths from the recursive tree at `ref` whose path starts with `prefix`. */
+  listTreePaths(repo: RepoRef, ref: string, prefix: string): Promise<string[]>;
+  getPullState(
+    repo: RepoRef,
+    n: number,
+  ): Promise<{ state: 'open' | 'closed'; merged: boolean }>;
 }
 
 // ---------- Git (simple-git, heavy) ----------

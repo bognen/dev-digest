@@ -1,7 +1,16 @@
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
 import type { Finding, Intent, RunSummary, RunTrace } from '@devdigest/shared';
-import type { IntentMeta, StoredIntent } from './types.js';
+import type {
+  EstimateRunRow,
+  IntentMeta,
+  LatestMultiRunRecord,
+  MultiRunChildInsert,
+  MultiRunChildRecord,
+  MultiRunListRecord,
+  MultiRunRecord,
+  StoredIntent,
+} from './types.js';
 
 /**
  * A2 — review data-access. The ONLY layer touching the DB for the review
@@ -22,6 +31,9 @@ export type ReviewRow = typeof t.reviews.$inferSelect;
 import * as reviewRepo from './repository/review.repo.js';
 import * as runRepo from './repository/run.repo.js';
 import * as pullRepo from './repository/pull.repo.js';
+import * as multiRunRepo from './repository/multi-run.repo.js';
+import type { MultiRunReviewRecord } from './repository/multi-run.repo.js';
+export type { MultiRunReviewRecord };
 
 export class ReviewRepository {
   constructor(private db: Db) {}
@@ -88,12 +100,12 @@ export class ReviewRepository {
     return runRepo.deleteAgentRun(this.db, workspaceId, runId);
   }
 
-  /** Mark a still-running run as cancelled (no-op if it already finished). */
+  /** Mark a still-running (or queued) run as cancelled (no-op if it already finished). */
   cancelRunIfRunning(runId: string): Promise<boolean> {
     return runRepo.cancelRunIfRunning(this.db, runId);
   }
 
-  /** On boot: any run still 'running' is orphaned (its process died / restarted),
+  /** On boot: any run still 'running' or 'queued' is orphaned (its process died / restarted),
    *  so mark it failed. Prevents permanently stuck "running" runs in the UI. */
   reapStaleRunningRuns(): Promise<number> {
     return runRepo.reapStaleRunningRuns(this.db);
@@ -143,13 +155,16 @@ export class ReviewRepository {
 
   // ---- observability: agent_runs + run_traces ----------------------------
 
-  /** Create an agent_runs row in `running` state; returns its id (= the runId). */
+  /** Create an agent_runs row (default `running`); returns its id (= the runId). */
   createAgentRun(values: {
     workspaceId: string;
     agentId: string | null;
     prId: string;
     provider: string | null;
     model: string | null;
+    status?: 'running' | 'queued';
+    multiAgentRunId?: string;
+    multiAgentPosition?: number;
   }): Promise<string> {
     return runRepo.createAgentRun(this.db, values);
   }
@@ -195,5 +210,44 @@ export class ReviewRepository {
 
   getRunTrace(runId: string): Promise<RunTrace | undefined> {
     return runRepo.getRunTrace(this.db, runId);
+  }
+
+  // ---- multi-agent runs (SPEC-07) ----------------------------------------
+
+  createMultiRunWithChildren(
+    workspaceId: string,
+    prId: string,
+    children: MultiRunChildInsert[],
+  ): Promise<{ multiRunId: string; runIds: string[] }> {
+    return multiRunRepo.createMultiRunWithChildren(this.db, workspaceId, prId, children);
+  }
+
+  /** queued -> running; false when the run was cancelled while queued. */
+  claimAgentRun(runId: string): Promise<boolean> {
+    return multiRunRepo.claimAgentRun(this.db, runId);
+  }
+
+  getMultiRun(workspaceId: string, id: string): Promise<MultiRunRecord | undefined> {
+    return multiRunRepo.getMultiRun(this.db, workspaceId, id);
+  }
+
+  multiRunChildren(multiRunId: string): Promise<MultiRunChildRecord[]> {
+    return multiRunRepo.multiRunChildren(this.db, multiRunId);
+  }
+
+  reviewsForRuns(runIds: string[]): Promise<MultiRunReviewRecord[]> {
+    return multiRunRepo.reviewsForRuns(this.db, runIds);
+  }
+
+  latestMultiRunForPull(workspaceId: string, prId: string): Promise<LatestMultiRunRecord | undefined> {
+    return multiRunRepo.latestMultiRunForPull(this.db, workspaceId, prId);
+  }
+
+  listMultiRuns(workspaceId: string, repoId: string, limit: number): Promise<MultiRunListRecord[]> {
+    return multiRunRepo.listMultiRuns(this.db, workspaceId, repoId, limit);
+  }
+
+  doneRunsForEstimates(workspaceId: string): Promise<EstimateRunRow[]> {
+    return multiRunRepo.doneRunsForEstimates(this.db, workspaceId);
   }
 }

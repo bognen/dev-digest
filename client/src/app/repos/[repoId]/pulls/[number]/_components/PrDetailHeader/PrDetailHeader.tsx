@@ -3,6 +3,7 @@
 import React, { useCallback } from "react";
 import { Icon, Avatar, Badge, Button, Tabs } from "@devdigest/ui";
 import { RunReviewDropdown } from "../RunReviewDropdown";
+import { MultiRunResultsButton } from "../MultiRunResultsButton";
 import { s } from "./styles";
 import type { PrDetail } from "@/lib/types";
 
@@ -90,6 +91,7 @@ export function PrDetailHeader({
           >
             View on GitHub
           </Button>
+          {prId && <MultiRunResultsButton prId={prId} />}
           {prId && (
             <RunReviewDropdown
               prId={prId}

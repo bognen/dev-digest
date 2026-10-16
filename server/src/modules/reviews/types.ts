@@ -1,4 +1,5 @@
 import type {
+  ChildRunStatus,
   FeatureModelChoice,
   GitHubClient,
   Intent,
@@ -163,4 +164,70 @@ export interface ProjectContextResolved {
 
 export interface ProjectContextResolver {
   resolveForRun(input: ProjectContextResolveInput): Promise<ProjectContextResolved>;
+}
+
+// ---------------------------------------------------------------------------
+// Multi-agent run (SPEC-07) domain shapes. camelCase; the repository maps rows
+// into these and `helpers.ts` maps them to the snake_case contract DTOs.
+// ---------------------------------------------------------------------------
+
+/** One child run to create alongside its multi-agent run. */
+export interface MultiRunChildInsert {
+  agentId: string;
+  provider: string | null;
+  model: string | null;
+  /** First `MULTI_RUN_CONCURRENCY` children start `running`; the rest `queued`. */
+  status: 'running' | 'queued';
+  position: number;
+}
+
+/** A multi-agent run header joined with its PR's number + title. */
+export interface MultiRunRecord {
+  id: string;
+  prId: string;
+  prNumber: number;
+  prTitle: string;
+  ranAt: Date;
+}
+
+/** One child `agent_runs` row (agent name joined; null when the agent was deleted). */
+export interface MultiRunChildRecord {
+  runId: string;
+  position: number;
+  agentId: string | null;
+  agentName: string | null;
+  provider: string | null;
+  model: string | null;
+  status: ChildRunStatus;
+  error: string | null;
+  score: number | null;
+  durationMs: number | null;
+  costUsd: number | null;
+}
+
+/** The newest multi-agent run of a PR plus its children's statuses. */
+export interface LatestMultiRunRecord {
+  id: string;
+  ranAt: Date;
+  childStatuses: ChildRunStatus[];
+}
+
+/** A multi-run header plus its children and finding count (previous-runs list). */
+export interface MultiRunListRecord extends MultiRunRecord {
+  children: MultiRunChildRecord[];
+  findingCount: number;
+}
+
+/** One recent `done` run used for the estimate medians. */
+export interface EstimateRunRow {
+  agentId: string;
+  durationMs: number | null;
+  costUsd: number | null;
+}
+
+/** Per-agent estimate (domain shape of the `AgentEstimate` contract). */
+export interface AgentEstimateValue {
+  agentId: string;
+  durationMs: number | null;
+  costUsd: number | null;
 }
