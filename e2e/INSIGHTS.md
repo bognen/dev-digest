@@ -45,6 +45,9 @@ data" note) — it just no longer also requires it to be the *first* one.
 
 ## Tool & Library Notes
 
+### 2026-10-17 — Stopping a backgrounded `pnpm dev` leaves node on the port; agent-browser needs absolute screenshot paths
+Killing the shell that ran `pnpm dev` (Windows) leaves the `node` child still listening on :3001, so an "API down" check still returns 200 — stop it by port (`Get-NetTCPConnection -LocalPort 3001` → `Stop-Process`). `agent-browser screenshot demo/x.png` fails with "path not found" on Windows even when the folder exists relative to the shell cwd; pass an absolute path.
+
 ### 2026-09-17 — `run.ts` used `execFile('agent-browser', …)`, which is broken on Windows
 npm installs `agent-browser` on Windows as a `.cmd` shim (plus a `.ps1` and an
 extensionless POSIX script). `node:child_process`'s `execFile`/`spawn` do NOT

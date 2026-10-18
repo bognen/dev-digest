@@ -252,6 +252,10 @@ export function Gallery() {
             { label: "anthropic", value: 2.1, color: "var(--ok)" },
           ]}
         />
+        <Donut
+          segments={[{ label: "gpt-4.1", value: 0.0042, color: "var(--info)" }]}
+          formatValue={(v) => `$${v.toFixed(4)}`}
+        />
         <div style={s.w320}>
           <BarRow label="security-agent" value={42} max={60} suffix="42" />
           <BarRow label="perf-agent" value={28} max={60} color="var(--ok)" suffix="28" />

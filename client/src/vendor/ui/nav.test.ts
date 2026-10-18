@@ -53,6 +53,14 @@ describe("CI Runs nav item (SPEC-07)", () => {
   });
 });
 
+describe("Agent Performance nav item", () => {
+  it("is in GLOBAL after Multi-Agent Review and links to /agent-performance", () => {
+    const global = NAV.find((g) => g.section === "GLOBAL")!;
+    expect(global.items.map((i) => i.key)).toEqual(["multi-agent", "agent-performance"]);
+    expect(global.items[1]).toMatchObject({ label: "Agent Performance", icon: "Activity", href: "/agent-performance" });
+  });
+});
+
 describe("every nav item has a shell.nav translation (command palette)", () => {
   it("resolves nav.<key> for each item", async () => {
     const shell = (await import("../../../messages/en/shell.json")).default as { nav: Record<string, string> };

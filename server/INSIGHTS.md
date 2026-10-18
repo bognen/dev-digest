@@ -16,6 +16,12 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-17 — Agents grid accept-% is all-time and differs from range-based Stats
+`AgentsRepository.statsForAgents` (agents grid cards) is unbounded in time and counts decisions from runs of any status, and renders 0 decided as `0%`; the agent-stats module is range-bound, counts only included runs and reports 0 decided as `null` ("—"). Don't "fix" one to match the other without deciding which rule is canonical — they intentionally answer different questions today.
+
+### 2026-10-17 — Agent Stats tab and Agent Performance share one inclusion predicate; totals are sums of rows
+`GET /agents/:id/stats` and `GET /agent-performance` both go through `AgentStatsRepository.includedRun` (`modules/agent-stats/repository.ts`: `done` + `source='local'` + live agent + `from <= ran_at < to`), and the dashboard totals/breakdowns are built by summing the per-agent `toPerfRow` results (`agent-stats/helpers.ts`), so a dashboard row equals the Stats tab by construction. Money is summed as integer micro-dollars (`toMicro`) — plain float sums made `total`, `Σ by agent` and `Σ by model` differ in the last digits. Change the inclusion rule only in `includedRun`, never per query.
+
 ### 2026-10-14 — Multi-run aggregate status is derived, never stored; reaper must cover `queued`
 `multi_agent_runs` has no status column: `deriveMultiRunStatus` (`reviews/helpers.ts`) computes running / done / done-with-errors / failed / cancelled from the child `agent_runs` on every read, so there is no sync logic to keep consistent. Restart recovery therefore depends entirely on the boot reaper failing orphaned children — and multi-run children beyond `MULTI_RUN_CONCURRENCY` (4) start as `queued`, so `reapStaleRunningRuns`, `cancelRunIfRunning` and `activeRunsForPull` all match `['running','queued']`. Any new code that filters "active" runs must include `queued`.
 
@@ -249,6 +255,9 @@ directly instead. If you add or rename a script, check
 whoever has the skip-worktree bit set.
 
 ## Recurring Errors & Fixes
+
+### 2026-10-17 — TS2308 "already exported a member" from the shared barrel
+`vendor/shared/index.ts` does `export *` from every contract file, so two contract files exporting the same name (here an unused placeholder `AgentPerfRow` in `contracts/productionize.ts` vs the real one in `observability.ts`) breaks typecheck in both packages. Grep both vendored copies for the name before adding a contract; delete dead placeholders rather than renaming the real export.
 
 ### 2026-10-14 — Bash-tool heredocs and inline Python corrupt files on this Windows setup
 Seen by three implementers in one run: a heredoc containing an apostrophe or `’` fails with "unexpected EOF"; backslash escapes (`'\\'`, `\\r`) get mangled into unterminated literals or control characters; inline `python -` defaults to cp1252, so writing "→"/em dashes crashes after `open('w')` already truncated the file (this emptied `agent-runner/src/run.ts` once). Use the Write/Edit tools for prose or backslash-heavy code; if a script is unavoidable, pass `encoding='utf8'`.
