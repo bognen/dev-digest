@@ -199,6 +199,9 @@
     "runsPerDay": "Runs per day (UTC)",
     "emptyTitle": "No runs in this period",
     "emptyBody": "{name} has no completed runs between {from} and {to}. Pick a wider range — this tab only reads stored runs.",
-    "openDashboard": "Compare all agents"
+    "openDashboard": "Compare all agents",
+    "costBySkill": "Cost by skill",
+    "costBySkillHint": "Runs that loaded each skill. A run can load several skills, so rows overlap and don’t add up to the total.",
+    "noSkill": "no skill recorded"
   }
 }

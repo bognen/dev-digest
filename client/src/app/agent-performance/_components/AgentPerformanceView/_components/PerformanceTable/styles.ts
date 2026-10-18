@@ -68,6 +68,7 @@ export const s = {
   detailLabel: { ...label, fontSize: 11 } as CSSProperties,
   detailLine: { display: "flex", justifyContent: "space-between", gap: 16, fontSize: 13 } as CSSProperties,
   detailMuted: { fontSize: 13, color: "var(--text-muted)" } as CSSProperties,
+  detailHint: { fontSize: 11.5, color: "var(--text-muted)", maxWidth: 260, lineHeight: 1.4, marginTop: 2 } as CSSProperties,
   note: {
     margin: 0,
     padding: "10px 16px 12px",

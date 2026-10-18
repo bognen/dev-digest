@@ -43,6 +43,7 @@ const row = (id: string, name: string, o: Partial<AgentPerfRow> = {}): AgentPerf
   low_sample: true,
   last_run_at: null,
   cost_by_model: [],
+  cost_by_skill: [],
   ...o,
 });
 
@@ -60,6 +61,11 @@ const SEC = row("a1", "Security Reviewer", {
   low_sample: false,
   last_run_at: "2026-09-30T23:56:00.000Z",
   cost_by_model: [{ model: "gpt-4.1", runs: 142, cost_usd: 5.68 }],
+  cost_by_skill: [
+    { skill_id: "s1", skill_name: "owasp-top10", runs: 100, cost_usd: 4.1 },
+    { skill_id: "s2", skill_name: "secrets-scan", runs: 60, cost_usd: 2.5 },
+    { skill_id: null, skill_name: null, runs: 30, cost_usd: 1.0 },
+  ],
 });
 const MENTOR = row("a2", "Custom Mentor", {
   runs: 24,
@@ -180,6 +186,10 @@ describe("AgentPerformanceView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show details for Security Reviewer" }));
     expect(screen.getByText("39 accepted · 11 dismissed")).toBeInTheDocument();
     expect(screen.getByText("141 of 142")).toBeInTheDocument();
+    expect(screen.getByText("owasp-top10")).toBeInTheDocument();
+    expect(screen.getByText("100 · $4.1000")).toBeInTheDocument();
+    expect(screen.getByText("no skill recorded")).toBeInTheDocument();
+    expect(screen.getByText(/rows overlap and don’t add up to the total/)).toBeInTheDocument();
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
 

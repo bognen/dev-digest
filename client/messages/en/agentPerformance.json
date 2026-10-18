@@ -61,7 +61,10 @@
       "pricedRuns": "Priced runs",
       "pricedRunsValue": "{priced} of {runs}",
       "noModelCost": "No runs in this period.",
-      "unknownModel": "unknown model"
+      "unknownModel": "unknown model",
+      "costBySkill": "Cost by skill",
+      "costBySkillHint": "Runs that loaded each skill. A run can load several skills, so rows overlap and don’t add up to the total.",
+      "noSkill": "no skill recorded"
     }
   },
   "cost": {

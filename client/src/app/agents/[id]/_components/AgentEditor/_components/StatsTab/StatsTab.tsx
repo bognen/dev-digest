@@ -143,6 +143,18 @@ function StatsBody({ st }: { st: AgentStats }) {
               </React.Fragment>
             ))}
           </div>
+          <p style={{ ...s.meta, marginTop: 18 }}>{t("stats.costBySkill")}</p>
+          <div style={s.kv} data-testid="stats-cost-by-skill">
+            {st.cost_by_skill.map((k) => (
+              <React.Fragment key={k.skill_id ?? "none"}>
+                <span style={k.skill_id ? undefined : s.muted}>{k.skill_name ?? t("stats.noSkill")}</span>
+                <span className="mono tnum">
+                  {k.runs} · {formatCost(k.cost_usd)}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+          <p style={{ ...s.meta, marginTop: 6 }}>{t("stats.costBySkillHint")}</p>
           {trend.length > 1 && (
             <>
               <p style={{ ...s.meta, marginTop: 18 }}>{t("stats.runsPerDay")}</p>

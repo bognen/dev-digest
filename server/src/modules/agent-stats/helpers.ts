@@ -1,6 +1,13 @@
-import type { AgentPerformance, AgentPerfRow, AgentStats, ModelCost, StatPoint } from '@devdigest/shared';
+import type { AgentPerformance, AgentPerfRow, AgentStats, ModelCost, SkillCost, StatPoint } from '@devdigest/shared';
 import { COST_BASIS } from './constants.js';
-import type { AgentDecisionFacts, AgentRef, AgentRunFacts, DayRunFacts, RangeBounds } from './types.js';
+import type {
+  AgentDecisionFacts,
+  AgentRef,
+  AgentRunFacts,
+  DayRunFacts,
+  RangeBounds,
+  SkillRunFacts,
+} from './types.js';
 
 /**
  * Pure aggregation for the agent stats module. The dashboard and the Stats tab
@@ -32,12 +39,27 @@ function mergeModelCosts(groups: Array<{ model: string | null; runs: number; mic
     .map(({ model, runs, micro }) => ({ model, runs, cost_usd: fromMicro(micro) }));
 }
 
+/** Per-skill costs (overlapping), most expensive first; the "no skill" bucket last. */
+function toSkillCosts(skills: SkillRunFacts[]): SkillCost[] {
+  return skills
+    .map((k) => ({ skill_id: k.skillId, skill_name: k.skillName, runs: k.runs, micro: toMicro(k.costSum) }))
+    .sort(
+      (a, b) =>
+        Number(a.skill_id === null) - Number(b.skill_id === null) ||
+        b.micro - a.micro ||
+        b.runs - a.runs ||
+        String(a.skill_name).localeCompare(String(b.skill_name)),
+    )
+    .map(({ micro, ...k }) => ({ ...k, cost_usd: fromMicro(micro) }));
+}
+
 /** One agent's row: runs, cost, duration, accept-rate (with its denominator), last run. */
 export function toPerfRow(
   agent: AgentRef,
   runs: AgentRunFacts[],
   decisions: AgentDecisionFacts | undefined,
   minDecisions: number,
+  skills: SkillRunFacts[] = [],
 ): AgentPerfRow {
   let runCount = 0;
   let priced = 0;
@@ -72,6 +94,7 @@ export function toPerfRow(
     low_sample: decided < minDecisions,
     last_run_at: last ? last.toISOString() : null,
     cost_by_model: mergeModelCosts(runs.map((r) => ({ model: r.model, runs: r.runs, micro: toMicro(r.costSum) }))),
+    cost_by_skill: toSkillCosts(skills),
   };
 }
 
@@ -99,8 +122,9 @@ export function buildAgentStats(
   decisions: AgentDecisionFacts | undefined,
   days: DayRunFacts[],
   minDecisions: number,
+  skills: SkillRunFacts[] = [],
 ): AgentStats {
-  const row = toPerfRow(agent, runs, decisions, minDecisions);
+  const row = toPerfRow(agent, runs, decisions, minDecisions, skills);
   const total = decisions?.total ?? 0;
   return {
     ...row,
@@ -126,6 +150,7 @@ export function buildPerformance(
   decisions: AgentDecisionFacts[],
   days: DayRunFacts[],
   minDecisions: number,
+  skills: SkillRunFacts[] = [],
 ): AgentPerformance {
   const decisionsBy = new Map(decisions.map((d) => [d.agentId, d]));
   const rows = agents.map((a) =>
@@ -134,6 +159,7 @@ export function buildPerformance(
       runs.filter((r) => r.agentId === a.id),
       decisionsBy.get(a.id),
       minDecisions,
+      skills.filter((k) => k.agentId === a.id),
     ),
   );
 

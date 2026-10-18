@@ -191,6 +191,24 @@ function RowDetail({ row }: { row: AgentPerfRow }) {
         )}
       </div>
       <div style={s.detailBlock}>
+        <span style={s.detailLabel} title={t("table.detail.costBySkillHint")}>
+          {t("table.detail.costBySkill")}
+        </span>
+        {row.cost_by_skill.length === 0 ? (
+          <span style={s.detailMuted}>{t("table.detail.noModelCost")}</span>
+        ) : (
+          row.cost_by_skill.map((k) => (
+            <span key={k.skill_id ?? "none"} style={s.detailLine}>
+              <span style={k.skill_id ? undefined : s.detailMuted}>{k.skill_name ?? t("table.detail.noSkill")}</span>
+              <span className="mono tnum">
+                {k.runs} · {formatCost(k.cost_usd)}
+              </span>
+            </span>
+          ))
+        )}
+        <span style={s.detailHint}>{t("table.detail.costBySkillHint")}</span>
+      </div>
+      <div style={s.detailBlock}>
         <span style={s.detailLabel}>{t("table.detail.decisions")}</span>
         <span style={s.detailLine}>
           {t("table.detail.decisionsValue", { accepted: row.accepted, dismissed: row.dismissed })}

@@ -51,6 +51,7 @@ async function addRun(
     costUsd?: number | null;
     durationMs?: number | null;
     decisions?: Array<'accepted' | 'dismissed' | 'open'>;
+    skillIds?: string[];
   },
 ) {
   const [run] = await db
@@ -68,6 +69,9 @@ async function addRun(
       durationMs: o.durationMs === undefined ? 1000 : o.durationMs,
     })
     .returning();
+  if (o.skillIds?.length) {
+    await db.insert(t.agentRunSkills).values(o.skillIds.map((skillId) => ({ agentRunId: run!.id, skillId })));
+  }
   if (!o.decisions?.length) return;
   const [review] = await db
     .insert(t.reviews)
@@ -152,15 +156,28 @@ d('agent stats + agent performance (Testcontainers pg)', () => {
       })
       .returning();
     const base = { workspaceId, prId: pr!.id };
+    const [s1, s2] = await db
+      .insert(t.skills)
+      .values(
+        ['perf-owasp', 'perf-secrets'].map((name) => ({
+          workspaceId,
+          name,
+          description: name,
+          type: 'security' as const,
+          source: 'manual' as const,
+          body: '# rule',
+        })),
+      )
+      .returning();
 
     // A — 3 included runs over two models; 1 accepted, 2 dismissed, 1 open.
-    await addRun(db, { ...base, agentId: agentA, ranAt: IN, costUsd: 0.1, durationMs: 2000, decisions: ['accepted', 'dismissed', 'open'] });
-    await addRun(db, { ...base, agentId: agentA, ranAt: IN, costUsd: 0.2, durationMs: 4000, decisions: ['dismissed'] });
+    await addRun(db, { ...base, agentId: agentA, ranAt: IN, costUsd: 0.1, durationMs: 2000, decisions: ['accepted', 'dismissed', 'open'], skillIds: [s1!.id, s2!.id] });
+    await addRun(db, { ...base, agentId: agentA, ranAt: IN, costUsd: 0.2, durationMs: 4000, decisions: ['dismissed'], skillIds: [s1!.id] });
     await addRun(db, { ...base, agentId: agentA, ranAt: IN, model: 'gpt-4o', costUsd: null, durationMs: null });
     // A — excluded: out of range (both edges), failed, CI-sourced.
     await addRun(db, { ...base, agentId: agentA, ranAt: BEFORE, costUsd: 5, decisions: ['accepted'] });
     await addRun(db, { ...base, agentId: agentA, ranAt: AT_TO, costUsd: 5, decisions: ['accepted'] });
-    await addRun(db, { ...base, agentId: agentA, ranAt: IN, status: 'failed', costUsd: 5 });
+    await addRun(db, { ...base, agentId: agentA, ranAt: IN, status: 'failed', costUsd: 5, skillIds: [s1!.id] });
     await addRun(db, { ...base, agentId: agentA, ranAt: IN, source: 'ci', costUsd: 5, decisions: ['accepted'] });
     // B — 1 included run.
     await addRun(db, { ...base, agentId: agentB, ranAt: IN, model: 'gpt-4o', costUsd: 0.05, decisions: ['accepted'] });
@@ -195,6 +212,20 @@ d('agent stats + agent performance (Testcontainers pg)', () => {
     expect(s.avg_cost_usd).toBeCloseTo(0.15, 9);
     expect(s.accept_rate).toBeCloseTo(1 / 3, 9);
     expect(s.trend).toHaveLength(30);
+  });
+
+  it('breaks cost down by skill over the same included runs (overlapping, no-skill last)', async () => {
+    const s = (await app.inject({ method: 'GET', url: `/agents/${agentA}/stats?${q}` })).json();
+    const byName = s.cost_by_skill.map((k: { skill_name: string | null; runs: number; cost_usd: number }) => [
+      k.skill_name,
+      k.runs,
+      Math.round(k.cost_usd * 1e6),
+    ]);
+    expect(byName).toEqual([
+      ['perf-owasp', 2, 300_000],
+      ['perf-secrets', 1, 100_000],
+      [null, 1, 0],
+    ]);
   });
 
   it('the dashboard row equals the Stats-tab numbers for the same agent and range', async () => {

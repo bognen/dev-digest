@@ -39,6 +39,10 @@ const STATS: AgentStats = {
   low_sample: false,
   last_run_at: "2026-09-30T23:56:00.000Z",
   cost_by_model: [{ model: "gpt-4.1", runs: 142, cost_usd: 5.68 }],
+  cost_by_skill: [
+    { skill_id: "s1", skill_name: "owasp-top10", runs: 100, cost_usd: 4.1 },
+    { skill_id: null, skill_name: null, runs: 42, cost_usd: 1.58 },
+  ],
   range: { from: "2026-09-01T00:00:00.000Z", to: "2026-10-01T00:00:00.000Z" },
   min_decisions: 10,
   cost_basis: "estimate",
@@ -87,6 +91,9 @@ describe("Agent StatsTab", () => {
     expect(screen.getByTestId("stats-accept")).toHaveTextContent("78%");
     expect(screen.getByText("39 accepted of 50 decided")).toBeInTheDocument();
     expect(screen.getAllByText("DevDigest estimate").length).toBeGreaterThan(0);
+    const skills = screen.getByTestId("stats-cost-by-skill");
+    expect(skills).toHaveTextContent("owasp-top10100 · $4.1000");
+    expect(skills).toHaveTextContent("no skill recorded42 · $1.5800");
   });
 
   it("links back to the dashboard on the same range", async () => {

@@ -34,6 +34,15 @@ export interface AgentDecisionFacts {
   suggestion: number;
 }
 
+/** Included runs of one agent that loaded one skill (`skillId` null = no recorded skill). */
+export interface SkillRunFacts {
+  agentId: string;
+  skillId: string | null;
+  skillName: string | null;
+  runs: number;
+  costSum: number;
+}
+
 /** Included runs of one agent on one UTC day (`YYYY-MM-DD`). */
 export interface DayRunFacts {
   agentId: string;
@@ -47,4 +56,5 @@ export interface AgentStatsStore {
   runFacts(workspaceId: string, range: RangeBounds, agentIds: string[]): Promise<AgentRunFacts[]>;
   decisionFacts(workspaceId: string, range: RangeBounds, agentIds: string[]): Promise<AgentDecisionFacts[]>;
   runsByDay(workspaceId: string, range: RangeBounds, agentIds: string[]): Promise<DayRunFacts[]>;
+  skillFacts(workspaceId: string, range: RangeBounds, agentIds: string[]): Promise<SkillRunFacts[]>;
 }

@@ -187,6 +187,20 @@ export const ModelCost = z.object({
 });
 export type ModelCost = z.infer<typeof ModelCost>;
 
+/**
+ * Cost of the runs that loaded one skill (`agent_run_skills`). Runs load
+ * several skills, so rows OVERLAP and do not sum to the agent's total — this
+ * is a filter, not an allocation (no per-skill cost is stored). `skill_id`
+ * null = runs with no recorded skill (none linked, or the skill was deleted).
+ */
+export const SkillCost = z.object({
+  skill_id: z.string().nullable(),
+  skill_name: z.string().nullable(),
+  runs: z.number().int(),
+  cost_usd: z.number(),
+});
+export type SkillCost = z.infer<typeof SkillCost>;
+
 /** One agent's aggregates for a range — a dashboard row AND the Stats tab headline. */
 export const AgentPerfRow = z.object({
   agent_id: z.string(),
@@ -209,6 +223,8 @@ export const AgentPerfRow = z.object({
   low_sample: z.boolean(),
   last_run_at: z.string().nullable(),
   cost_by_model: z.array(ModelCost),
+  /** Overlapping per-skill view of the same runs (see SkillCost). */
+  cost_by_skill: z.array(SkillCost),
 });
 export type AgentPerfRow = z.infer<typeof AgentPerfRow>;
 

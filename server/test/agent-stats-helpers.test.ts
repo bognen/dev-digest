@@ -84,6 +84,34 @@ describe('toPerfRow', () => {
   });
 });
 
+describe('cost_by_skill', () => {
+  const skill = (agentId: string, skillId: string | null, runs: number, costSum: number) => ({
+    agentId,
+    skillId,
+    skillName: skillId ? `skill-${skillId}` : null,
+    runs,
+    costSum,
+  });
+
+  it('lists overlapping per-skill run costs, most expensive first, no-skill bucket last', () => {
+    const row = toPerfRow(A, [facts('a', 'm', { runs: 3, costSum: 0.3 })], undefined, 10, [
+      skill('a', null, 1, 0.05),
+      skill('a', 's1', 2, 0.25),
+      skill('a', 's2', 2, 0.15),
+    ]);
+    expect(row.cost_by_skill).toEqual([
+      { skill_id: 's1', skill_name: 'skill-s1', runs: 2, cost_usd: 0.25 },
+      { skill_id: 's2', skill_name: 'skill-s2', runs: 2, cost_usd: 0.15 },
+      { skill_id: null, skill_name: null, runs: 1, cost_usd: 0.05 },
+    ]);
+  });
+
+  it('gives each dashboard row only the skills of its own agent', () => {
+    const perf = buildPerformance(range, [A, B], [], [], [], 10, [skill('a', 's1', 1, 0.1), skill('b', 's2', 1, 0.2)]);
+    expect(perf.agents.map((r) => r.cost_by_skill.map((k) => k.skill_id))).toEqual([['s1'], ['s2']]);
+  });
+});
+
 describe('daySeries', () => {
   it('emits every UTC day of the half-open range, filling gaps with zero', () => {
     expect(daySeries(range, [{ day: '2026-10-02', runs: 3 }])).toEqual([

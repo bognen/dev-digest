@@ -16,23 +16,25 @@ export class AgentStatsService {
     const [agent] = await this.store.agents(workspaceId, agentId);
     if (!agent) return null;
     const ids = [agent.id];
-    const [runs, decisions, days] = await Promise.all([
+    const [runs, decisions, days, skills] = await Promise.all([
       this.store.runFacts(workspaceId, range, ids),
       this.store.decisionFacts(workspaceId, range, ids),
       this.store.runsByDay(workspaceId, range, ids),
+      this.store.skillFacts(workspaceId, range, ids),
     ]);
-    return buildAgentStats(range, agent, runs, decisions[0], days, MIN_DECISIONS);
+    return buildAgentStats(range, agent, runs, decisions[0], days, MIN_DECISIONS, skills);
   }
 
   /** All agents' stats for the range, with totals and cost breakdowns. */
   async performance(workspaceId: string, range: RangeBounds): Promise<AgentPerformance> {
     const agents = await this.store.agents(workspaceId);
     const ids = agents.map((a) => a.id);
-    const [runs, decisions, days] = await Promise.all([
+    const [runs, decisions, days, skills] = await Promise.all([
       this.store.runFacts(workspaceId, range, ids),
       this.store.decisionFacts(workspaceId, range, ids),
       this.store.runsByDay(workspaceId, range, ids),
+      this.store.skillFacts(workspaceId, range, ids),
     ]);
-    return buildPerformance(range, agents, runs, decisions, days, MIN_DECISIONS);
+    return buildPerformance(range, agents, runs, decisions, days, MIN_DECISIONS, skills);
   }
 }

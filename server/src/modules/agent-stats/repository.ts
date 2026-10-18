@@ -1,7 +1,14 @@
 import { and, asc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
 import type { Db } from '../../db/client.js';
 import * as t from '../../db/schema.js';
-import type { AgentDecisionFacts, AgentRef, AgentRunFacts, DayRunFacts, RangeBounds } from './types.js';
+import type {
+  AgentDecisionFacts,
+  AgentRef,
+  AgentRunFacts,
+  DayRunFacts,
+  RangeBounds,
+  SkillRunFacts,
+} from './types.js';
 
 /**
  * Agent stats data-access — read-only aggregates over `agent_runs`, `reviews`
@@ -87,6 +94,29 @@ export class AgentStatsRepository {
       .from(t.agentRuns)
       .where(this.includedRun(workspaceId, range, agentIds))
       .groupBy(t.agentRuns.agentId, day);
+    return rows.flatMap((r) => (r.agentId === null ? [] : [{ ...r, agentId: r.agentId }]));
+  }
+
+  /**
+   * Included runs per agent × loaded skill (`agent_run_skills`). A run counts
+   * once under every skill it loaded — rows overlap by design. Runs with no
+   * link (none loaded, or the skill was since deleted) group under null.
+   */
+  async skillFacts(workspaceId: string, range: RangeBounds, agentIds: string[]): Promise<SkillRunFacts[]> {
+    if (agentIds.length === 0) return [];
+    const rows = await this.db
+      .select({
+        agentId: t.agentRuns.agentId,
+        skillId: t.agentRunSkills.skillId,
+        skillName: t.skills.name,
+        runs: sql<number>`count(*)`.mapWith(Number),
+        costSum: sql<number>`coalesce(sum(${t.agentRuns.costUsd}), 0)`.mapWith(Number),
+      })
+      .from(t.agentRuns)
+      .leftJoin(t.agentRunSkills, eq(t.agentRunSkills.agentRunId, t.agentRuns.id))
+      .leftJoin(t.skills, eq(t.skills.id, t.agentRunSkills.skillId))
+      .where(this.includedRun(workspaceId, range, agentIds))
+      .groupBy(t.agentRuns.agentId, t.agentRunSkills.skillId, t.skills.name);
     return rows.flatMap((r) => (r.agentId === null ? [] : [{ ...r, agentId: r.agentId }]));
   }
 

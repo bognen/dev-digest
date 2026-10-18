@@ -18,6 +18,7 @@ const row = (id: string, o: Partial<AgentPerfRow> = {}): AgentPerfRow => ({
   low_sample: false,
   last_run_at: "2026-10-01T00:00:00.000Z",
   cost_by_model: [],
+  cost_by_skill: [],
   ...o,
 });
 

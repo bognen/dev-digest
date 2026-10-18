@@ -23,6 +23,7 @@ export const s = {
   tileLabel: { fontSize: 12, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.03em" } satisfies CSSProperties,
   tileValue: { fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" } satisfies CSSProperties,
   meta: { margin: 0, fontSize: 12, color: "var(--text-muted)" } satisfies CSSProperties,
+  muted: { color: "var(--text-muted)" } satisfies CSSProperties,
   warn: { fontSize: 12, color: "var(--warn)" } satisfies CSSProperties,
   panels: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 } satisfies CSSProperties,
   kv: { display: "grid", gridTemplateColumns: "1fr auto", rowGap: 6, columnGap: 16, fontSize: 13, marginTop: 8 } satisfies CSSProperties,
