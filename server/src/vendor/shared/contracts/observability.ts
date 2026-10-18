@@ -8,6 +8,7 @@ import { FindingRecord } from './review-api.js';
  * sit alongside A2's `review-api.ts`:
  *   - MultiRunDetail / MultiRunChild  the multi-agent run read model (SPEC-07)
  *   - AgentStats           per-agent quality aggregates (GET /agents/:id/stats)
+ *   - AgentPerformance     all-agent aggregates (GET /agent-performance)
  *   - CuratorResult        the cross-session memory curator outcome
  *
  * The single-document run trace itself stays in `contracts/trace.ts` (RunTrace).
@@ -133,37 +134,139 @@ export const MultiRunListResponse = z.object({
 export type MultiRunListResponse = z.infer<typeof MultiRunListResponse>;
 
 // ---------------------------------------------------------------------------
-// Per-agent Stats (GET /agents/:id/stats)
+// Per-agent Stats (GET /agents/:id/stats) + Agent Performance (GET /agent-performance)
 // ---------------------------------------------------------------------------
+//
+// Both endpoints are computed by ONE server aggregation over stored rows only
+// (agent_runs + reviews + findings) — never a model call — so an agent's row on
+// the dashboard and its Stats tab agree for the same range. Rules:
+//   - an included run is a `done`, `local` agent_run of a live agent with
+//     `from <= ran_at < to` (failed/cancelled/CI runs and deleted agents are out);
+//   - cost = sum of the included runs' stored `cost_usd` (unpriced runs add 0
+//     and are counted in `unpriced_runs`); avg cost = cost / priced runs;
+//   - accept-rate = accepted / (accepted + dismissed) over findings of the
+//     included runs; pending findings are not in the denominator.
 
 /** A single (date, value) point for a sparkline/trend. */
 export const StatPoint = z.object({ label: z.string(), value: z.number() });
 export type StatPoint = z.infer<typeof StatPoint>;
 
-export const AgentStats = z.object({
+/** Longest range either stats endpoint accepts (bounds the per-day series). */
+export const MAX_STATS_RANGE_DAYS = 366;
+
+/** Query of both stats endpoints: half-open ISO range `[from, to)`. */
+export const StatsRangeQuery = z
+  .object({
+    from: z.string().datetime({ offset: true }),
+    to: z.string().datetime({ offset: true }),
+  })
+  .refine((q) => Date.parse(q.from) < Date.parse(q.to), {
+    message: '`from` must be before `to`',
+  })
+  .refine((q) => Date.parse(q.to) - Date.parse(q.from) <= MAX_STATS_RANGE_DAYS * 86_400_000, {
+    message: `range must not exceed ${MAX_STATS_RANGE_DAYS} days`,
+  });
+export type StatsRangeQuery = z.infer<typeof StatsRangeQuery>;
+
+export const StatsRange = z.object({ from: z.string(), to: z.string() });
+export type StatsRange = z.infer<typeof StatsRange>;
+
+/**
+ * Where cost numbers come from. Every stored run cost today is a DevDigest
+ * estimate (tokens x price table / OpenRouter list price); `reconciled` is
+ * reserved for provider billing data, which DevDigest does not ingest yet.
+ */
+export const CostBasis = z.enum(['estimate', 'reconciled']);
+export type CostBasis = z.infer<typeof CostBasis>;
+
+/** Cost attributed to one model (`agent_runs.model`; null when not recorded). */
+export const ModelCost = z.object({
+  model: z.string().nullable(),
+  runs: z.number().int(),
+  cost_usd: z.number(),
+});
+export type ModelCost = z.infer<typeof ModelCost>;
+
+/** One agent's aggregates for a range — a dashboard row AND the Stats tab headline. */
+export const AgentPerfRow = z.object({
   agent_id: z.string(),
   agent_name: z.string(),
+  /** Included runs in range. */
   runs: z.number().int(),
-  findings_total: z.number().int(),
-  /** accept-rate is the headline quality signal. 0..1 over acted findings. */
+  priced_runs: z.number().int(),
+  unpriced_runs: z.number().int(),
+  total_cost_usd: z.number(),
+  /** total_cost_usd / priced_runs; null when no included run has a price. */
+  avg_cost_usd: z.number().nullable(),
+  avg_duration_ms: z.number().nullable(),
   accepted: z.number().int(),
   dismissed: z.number().int(),
-  pending: z.number().int(),
+  /** accepted + dismissed — the accept-rate denominator. */
+  decided: z.number().int(),
+  /** 0..1; null when nothing was decided. */
   accept_rate: z.number().nullable(),
-  dismiss_rate: z.number().nullable(),
-  avg_findings_per_run: z.number().nullable(),
-  total_cost_usd: z.number().nullable(),
-  avg_cost_usd: z.number().nullable(),
-  avg_latency_ms: z.number().nullable(),
+  /** decided < min_decisions: the rate is shown but not ranked. */
+  low_sample: z.boolean(),
+  last_run_at: z.string().nullable(),
+  cost_by_model: z.array(ModelCost),
+});
+export type AgentPerfRow = z.infer<typeof AgentPerfRow>;
+
+/** Response of GET /agents/:id/stats. */
+export const AgentStats = AgentPerfRow.extend({
+  range: StatsRange,
+  min_decisions: z.number().int(),
+  cost_basis: CostBasis,
+  findings_total: z.number().int(),
+  pending: z.number().int(),
   findings_by_severity: z.object({
     CRITICAL: z.number().int(),
     WARNING: z.number().int(),
     SUGGESTION: z.number().int(),
   }),
-  /** recent runs for a small trend chart (oldest→newest). */
+  /** Included runs per UTC day (oldest→newest, gap days = 0). */
   trend: z.array(StatPoint),
 });
 export type AgentStats = z.infer<typeof AgentStats>;
+
+/** Response of GET /agent-performance. */
+export const AgentPerformance = z.object({
+  range: StatsRange,
+  min_decisions: z.number().int(),
+  cost_basis: CostBasis,
+  /** Number of agents in the workspace (0 → "no agents" empty state). */
+  agent_count: z.number().int(),
+  totals: z.object({
+    runs: z.number().int(),
+    priced_runs: z.number().int(),
+    unpriced_runs: z.number().int(),
+    /** Sum of included runs' costs == sum(cost_by_agent) == sum(cost_by_model). */
+    total_cost_usd: z.number(),
+    accepted: z.number().int(),
+    decided: z.number().int(),
+    /** Pooled: sum(accepted) / sum(decided) across agents; null when 0 decided. */
+    accept_rate: z.number().nullable(),
+  }),
+  /** Agent with the most included runs (ties → name); null when no runs. */
+  most_active: z
+    .object({
+      agent_id: z.string(),
+      agent_name: z.string(),
+      runs: z.number().int(),
+      accept_rate: z.number().nullable(),
+      decided: z.number().int(),
+    })
+    .nullable(),
+  /** Every agent in the workspace, including ones with no runs in range. */
+  agents: z.array(AgentPerfRow),
+  cost_by_agent: z.array(
+    z.object({ agent_id: z.string(), agent_name: z.string(), cost_usd: z.number() }),
+  ),
+  cost_by_model: z.array(ModelCost),
+  /** Included runs per UTC day across all agents (oldest→newest). */
+  runs_by_day: z.array(StatPoint),
+});
+export type AgentPerformance = z.infer<typeof AgentPerformance>;
 
 // ---------------------------------------------------------------------------
 // Cross-session memory curator

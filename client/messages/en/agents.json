@@ -173,5 +173,32 @@
   },
   "mount": {
     "body": "Mount point for {owner}. The Agent Editor shell + tab routing are wired by A2 — {owner} renders this tab."
+  },
+  "stats": {
+    "title": "Stats",
+    "subtitle": "Runs, cost and accept rate for this agent — the same numbers as its Agent Performance row.",
+    "loadError": "Could not load this agent's stats.",
+    "runs": "Runs",
+    "totalCost": "Total cost",
+    "avgCost": "Avg cost / run",
+    "avgDuration": "Avg duration",
+    "acceptRate": "Accept rate",
+    "lastRun": "Last run",
+    "acceptDenominator": "{accepted} accepted of {decided} decided",
+    "noDecisions": "No decided findings yet",
+    "lowSample": "Low sample — fewer than {min} decided findings.",
+    "unpriced": "{count, plural, one {# run} other {# runs}} without a price — not in the total",
+    "findings": "Findings",
+    "findingsTotal": "{total} total · {pending} pending",
+    "accepted": "Accepted",
+    "dismissed": "Dismissed",
+    "pending": "Pending",
+    "severity": "By severity",
+    "costByModel": "Cost by model",
+    "unknownModel": "unknown model",
+    "runsPerDay": "Runs per day (UTC)",
+    "emptyTitle": "No runs in this period",
+    "emptyBody": "{name} has no completed runs between {from} and {to}. Pick a wider range — this tab only reads stored runs.",
+    "openDashboard": "Compare all agents"
   }
 }

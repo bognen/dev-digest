@@ -1,0 +1,78 @@
+import type { CSSProperties } from "react";
+
+const cell: CSSProperties = {
+  padding: "14px 12px",
+  borderTop: "1px solid var(--border)",
+  fontSize: 14,
+  verticalAlign: "middle",
+};
+
+const label: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "var(--text-muted)",
+};
+
+export const s = {
+  card: { background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, overflowX: "auto" } as CSSProperties,
+  table: { width: "100%", borderCollapse: "collapse" } as CSSProperties,
+  th: { padding: "12px", textAlign: "left", whiteSpace: "nowrap" } as CSSProperties,
+  thExpand: { width: 36 } as CSSProperties,
+  srOnly: { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" } as CSSProperties,
+  sortBtn: {
+    ...label,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    background: "none",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+  } as CSSProperties,
+  sortBtnActive: { color: "var(--text-primary)" } as CSSProperties,
+  td: cell,
+  tdExpand: { ...cell, padding: "14px 0 14px 12px", width: 36 } as CSSProperties,
+  num: { ...cell, whiteSpace: "nowrap" } as CSSProperties,
+  muted: { ...cell, color: "var(--text-muted)", whiteSpace: "nowrap" } as CSSProperties,
+  idle: { ...cell, color: "var(--text-muted)", fontStyle: "italic" } as CSSProperties,
+  expandBtn: {
+    background: "none",
+    border: "none",
+    padding: 2,
+    cursor: "pointer",
+    color: "var(--text-muted)",
+    display: "inline-flex",
+  } as CSSProperties,
+  agent: { display: "inline-flex", alignItems: "center", gap: 12 } as CSSProperties,
+  agentIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 7,
+    background: "var(--bg-hover)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  } as CSSProperties,
+  agentName: { fontWeight: 600 } as CSSProperties,
+  accept: { display: "inline-flex", alignItems: "center", gap: 8 } as CSSProperties,
+  acceptValue: { fontWeight: 700 } as CSSProperties,
+  denominator: { fontSize: 12, color: "var(--text-muted)" } as CSSProperties,
+  view: { color: "var(--text-secondary)", fontSize: 13 } as CSSProperties,
+  detailRow: { background: "var(--bg-surface)" } as CSSProperties,
+  detailCell: { padding: "4px 12px 16px" } as CSSProperties,
+  detail: { display: "flex", gap: 40, flexWrap: "wrap" } as CSSProperties,
+  detailBlock: { display: "flex", flexDirection: "column", gap: 4, minWidth: 180 } as CSSProperties,
+  detailLabel: { ...label, fontSize: 11 } as CSSProperties,
+  detailLine: { display: "flex", justifyContent: "space-between", gap: 16, fontSize: 13 } as CSSProperties,
+  detailMuted: { fontSize: 13, color: "var(--text-muted)" } as CSSProperties,
+  note: {
+    margin: 0,
+    padding: "10px 16px 12px",
+    fontSize: 12,
+    color: "var(--text-muted)",
+    borderTop: "1px solid var(--border)",
+  } as CSSProperties,
+};

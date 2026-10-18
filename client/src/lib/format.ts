@@ -66,3 +66,12 @@ export function formatSeconds(ms: number | null | undefined): string {
   if (ms == null || !Number.isFinite(ms)) return "—";
   return `${(ms / 1000).toFixed(1)}s`;
 }
+
+/**
+ * A 0..1 rate as a whole percentage, e.g. `0.783` → `78%`; `null` (no
+ * denominator — nothing decided yet) renders as "—", never as `0%`.
+ */
+export function formatRate(rate: number | null | undefined): string {
+  if (rate == null || !Number.isFinite(rate)) return "—";
+  return `${Math.round(rate * 100)}%`;
+}

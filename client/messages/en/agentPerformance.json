@@ -1,32 +1,82 @@
 {
   "title": "Agent Performance",
-  "subtitle": "Accept-rate is the headline quality signal · cost shown as a breakdown",
+  "subtitle": "Which agents earn their keep — accept rate is the quality signal",
+  "crumb": "Agent Performance",
+  "refresh": "Refresh",
   "loadError": "Could not load agent performance.",
-  "summary": {
-    "totalRuns": "Total runs",
-    "avgAcceptRate": "Avg accept-rate",
-    "totalCost": "Total cost",
-    "mostActive": "Most active"
+  "range": {
+    "label": "Time range",
+    "1d": "1 day",
+    "30d": "30 days",
+    "custom": "Custom",
+    "from": "From",
+    "to": "To",
+    "utc": "UTC days, inclusive",
+    "invalid": "Pick a start date on or before the end date, at most {max} days apart.",
+    "period": {
+      "1d": "1D",
+      "30d": "30D",
+      "custom": "custom"
+    }
   },
-  "costByAgent": "Cost by agent",
-  "costByModel": "Cost by model",
-  "noCost": "No cost recorded yet.",
-  "sort": {
-    "acceptRate": "accept-rate",
-    "runs": "runs",
-    "cost": "cost"
+  "summary": {
+    "totalRuns": "Total runs ({period})",
+    "totalRunsHint": "{agents, plural, one {# agent} other {# agents}} with runs",
+    "totalCost": "Total cost ({period})",
+    "unpriced": "{count, plural, one {# run} other {# runs}} without a price — not in the total",
+    "avgAcceptRate": "Avg accept rate",
+    "acceptDenominator": "{accepted} accepted of {decided} decided",
+    "noDecisions": "No decided findings yet",
+    "mostActive": "Most-active agent",
+    "mostActiveMeta": "{runs, plural, one {# run} other {# runs}} · {rate} accept ({decided} decided)",
+    "none": "—"
+  },
+  "costBasis": {
+    "estimate": "DevDigest estimate",
+    "estimateHint": "Estimated by DevDigest from token counts × model list prices at run time. Not reconciled with provider billing.",
+    "reconciled": "Reconciled billing",
+    "reconciledHint": "Matched against provider billing data."
   },
   "table": {
     "agent": "Agent",
+    "runs": "Runs ({period})",
+    "avgCost": "Avg cost",
+    "avgDuration": "Avg dur.",
     "accept": "Accept",
-    "runs": "Runs",
-    "findings": "Findings",
-    "cost": "Cost",
-    "trend": "Trend"
+    "lastRun": "Last run",
+    "view": "View",
+    "viewAria": "View {name} stats for this period",
+    "expandAria": "Show details for {name}",
+    "collapseAria": "Hide details for {name}",
+    "sortAria": "Sort by {column}",
+    "noRuns": "No runs in this period",
+    "lowSample": "low sample",
+    "lowSampleHint": "Fewer than {min} decided findings — ranked after agents with enough decisions.",
+    "decided": "{accepted}/{decided}",
+    "acceptSortNote": "Accept-rate sorting ranks agents with ≥ {min} decided findings first; smaller samples follow, marked “low sample”.",
+    "detail": {
+      "costByModel": "Cost by model",
+      "decisions": "Decisions",
+      "decisionsValue": "{accepted} accepted · {dismissed} dismissed",
+      "pricedRuns": "Priced runs",
+      "pricedRunsValue": "{priced} of {runs}",
+      "noModelCost": "No runs in this period.",
+      "unknownModel": "unknown model"
+    }
+  },
+  "cost": {
+    "title": "Cost breakdown",
+    "byAgent": "By agent",
+    "byModel": "By model",
+    "reconcile": "Both breakdowns sum to {total} — the total cost of included runs.",
+    "noCost": "No cost recorded in this period."
   },
   "empty": {
-    "title": "No agent runs yet",
-    "body": "Run a review (manually) to populate per-agent performance."
+    "noAgentsTitle": "No agents yet",
+    "noAgentsBody": "Create an agent and run it on a pull request to see its performance here.",
+    "noAgentsCta": "Go to Agents",
+    "noRunsTitle": "No agent runs in this period",
+    "noRunsBody": "{agents, plural, one {Your agent has} other {None of your # agents have}} completed runs between {from} and {to}. Try a wider range — this page only reads stored runs, it never starts a review."
   },
-  "perAgent": "Per-agent"
+  "rules": "Counts completed local runs of current agents in the period (failed, cancelled and CI runs are excluded). Accept rate = accepted ÷ (accepted + dismissed) over those runs’ findings."
 }

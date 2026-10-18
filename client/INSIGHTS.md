@@ -16,6 +16,12 @@ of re-explaining it here.
 
 ## Codebase Patterns
 
+### 2026-10-17 — `agentColor()` collides; use index colours where agents share one chart
+`agentColor` hashes ids into a 6-colour palette, so two agents in the same donut often get the same colour. The Agent Performance page assigns colours by row index (`agentColorMap` in `app/agent-performance/_components/AgentPerformanceView/helpers.ts`) and passes the map to tiles, table and donut. `Donut`'s legend hardcoded `toFixed(2)` (sub-cent costs read `$0.00`) — pass `formatValue={formatCost}` instead.
+
+### 2026-10-17 — Rolling stats ranges are anchored once at mount and pinned with `at=` in links
+`useStatsRange` (`components/agent-stats/StatsRangePicker/useStatsRange.ts`) resolves 1d/30d against a `now` captured in `useState` at mount and rounded up to the minute (`lib/stats-range.ts`); recomputing `new Date()` per render changes the TanStack query key and refetches on every sort/expand. Cross-screen links (dashboard "View" → `?tab=stats`) pass `at=<resolved to>` via `pinnedRangeParams`, so both screens query the identical `[from, to)`.
+
 ### 2026-10-14 — Global `MutationCache.onError` toasts every failed mutation; inline error UIs duplicate it
 `src/app/providers.tsx` builds `new MutationCache({ onError: (err) => notify.error(...) })` with no per-mutation opt-out, so the Export to CI wizard's inline notices (preview/install/zip) show alongside a toast. The CI tab avoids it by surfacing "Remove from CI" errors only via the toast. A fix needs `providers.tsx` to skip `mutation.meta?.silent` and the hooks in `src/lib/hooks/ci.ts` to pass `meta: { silent: true }`.
 
